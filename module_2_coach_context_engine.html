@@ -1,0 +1,2135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Basement Lab · Module 2: Coach Context Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pb-safe { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 20px)); }
+    [v-cloak] { display: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="selection:bg-indigo-500 selection:text-white">
+  <div id="app" v-cloak class="min-h-screen flex flex-col justify-between max-w-md mx-auto relative bg-slate-950 border-x border-slate-900 shadow-2xl">
+
+    <!-- TOAST NOTIFICATION -->
+    <div v-if="toast" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm px-3.5 py-2.5 rounded-2xl bg-slate-900/95 border border-indigo-500/60 shadow-2xl flex items-center justify-between gap-2 text-xs backdrop-blur-md">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+        <span class="text-slate-100 font-medium truncate">{{ toast }}</span>
+      </div>
+      <button @click="toast = null" class="text-slate-400 hover:text-white font-bold text-sm px-1">&times;</button>
+    </div>
+
+    <!-- TOP MODULE BAR & SHARED CONTRACT TELEMETRY -->
+    <header class="px-4 pt-3 pb-3 border-b border-slate-800/90 bg-slate-950/90 sticky top-0 z-30 backdrop-blur-md space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">MODULE 2 OF 4</span>
+            <span class="text-[10px] font-bold text-slate-400 font-mono">{{ todayIso }}</span>
+          </div>
+          <h1 class="text-base font-black tracking-tight text-white mt-0.5">Coach Context &amp; Goals Engine</h1>
+        </div>
+        <button @click="showContractInspector = !showContractInspector" class="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-right transition">
+          <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">Readiness</span>
+          <span class="text-xs font-mono font-black" :class="readinessScore >= 80 ? 'text-emerald-400' : (readinessScore >= 65 ? 'text-amber-400' : 'text-rose-400')">{{ readinessScore }}% &bull; Sync ✓</span>
+        </button>
+      </div>
+
+      <!-- Shared State Contract Quick Summary Strip -->
+      <div class="flex items-center justify-between gap-1 text-[10px] font-mono bg-slate-900/90 border border-slate-800/90 rounded-xl px-2.5 py-1.5">
+        <span class="text-indigo-300 truncate"><strong>1°:</strong> {{ activeGoal.shortTag }}<span v-if="secondaryGoalId !== 'none'" class="text-sky-300"> + {{ secondaryGoalObj.shortTag }}</span></span>
+        <span class="text-slate-600">|</span>
+        <span class="text-emerald-300"><strong>{{ athleteAge }}y</strong> &bull; {{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}" &bull; {{ athleteProfile.weightLbs }}lb</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-rose-300"><strong>Guards:</strong> {{ activeChronicGuardsCount + activeTemporaryInjuries.length }}</span>
+        <button @click="showContractInspector = !showContractInspector" class="text-emerald-400 underline ml-1">JSON</button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <div class="flex-1 px-4 pt-3 pb-28 space-y-4">
+
+      <!-- SECTION SWITCHER PILLS -->
+      <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-900 border border-slate-800 text-[11px] font-bold">
+        <button @click="activeTab = 'goals'" class="py-2 rounded-xl transition text-center" :class="activeTab === 'goals' ? 'bg-indigo-500 text-white shadow' : 'text-slate-400 hover:text-white'">
+          1. Goals
+        </button>
+        <button @click="activeTab = 'injuries'" class="py-2 rounded-xl transition text-center" :class="activeTab === 'injuries' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'">
+          2. Injuries ({{ activeTemporaryInjuries.length }})
+        </button>
+        <button @click="activeTab = 'guards'" class="py-2 rounded-xl transition text-center" :class="activeTab === 'guards' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-white'">
+          3. Life &amp; DOMS
+        </button>
+        <button @click="activeTab = 'simulator'" class="py-2 rounded-xl transition text-center" :class="activeTab === 'simulator' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'">
+          4. AI Sim
+        </button>
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 1: 2–3 MONTH AI GOAL BLOCK + SECONDARY GOAL + 50LB STRATEGY       -->
+      <!-- ===================================================================== -->
+      <main v-if="activeTab === 'goals'" class="space-y-4">
+        <!-- Active Goal Banner Card + Switch / Custom Builder -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/50 via-slate-900 to-slate-900 border border-indigo-500/40 space-y-3 shadow-lg">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Primary Goal Block (~70% Focus &bull; Wk {{ activeGoal.currentWeek }}/{{ activeGoal.durationWeeks }})</span>
+              <h2 class="text-base font-black text-white mt-0.5">{{ activeGoal.title }}</h2>
+            </div>
+            <button
+              @click="showPrimaryGoalPicker = !showPrimaryGoalPicker"
+              class="px-2.5 py-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-[10px] flex-shrink-0 shadow transition"
+            >
+              {{ showPrimaryGoalPicker ? 'Close ▲' : 'Change 1° Goal ▼' }}
+            </button>
+          </div>
+
+          <!-- COLLAPSIBLE PRIMARY GOAL DROPDOWN (Presets + Custom AI Goal Builder) -->
+          <div v-if="showPrimaryGoalPicker" class="p-3 rounded-xl bg-slate-950 border border-indigo-500/40 space-y-3">
+            <div class="space-y-1.5">
+              <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Select a Preset 2–3 Month Goal:</div>
+              <div class="grid grid-cols-1 gap-1.5">
+                <button
+                  v-for="preset in goalPresets"
+                  :key="preset.id"
+                  @click="selectGoalPreset(preset)"
+                  class="p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2"
+                  :class="activeGoal.id === preset.id ? 'bg-indigo-600/25 border-indigo-400 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'"
+                >
+                  <div class="min-w-0">
+                    <div class="text-xs font-black truncate flex items-center gap-1.5">
+                      <span>{{ preset.title }}</span>
+                      <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">{{ preset.durationWeeks }}w</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate mt-0.5">{{ preset.description }}</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold flex-shrink-0" :class="activeGoal.id === preset.id ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'">
+                    {{ activeGoal.id === preset.id ? 'Active ✓' : 'Select' }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-2.5 border-t border-slate-800 space-y-2">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-indigo-300">Or Describe a New Custom Goal for AI to Build:</label>
+              <textarea
+                v-model="customGoalInput"
+                rows="2"
+                placeholder="e.g., Build thicker calves and tibialis to stop shin splints, or get a wider V-shape upper body..."
+                class="w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-400"
+              ></textarea>
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1">
+                  <span class="text-[9px] text-slate-400 uppercase font-bold">Weeks:</span>
+                  <button v-for="w in [8, 10, 12]" :key="w" @click="customGoalWeeks = w" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold" :class="customGoalWeeks === w ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'">{{ w }}w</button>
+                </div>
+                <button
+                  @click="buildCustomGoalWithAi"
+                  :disabled="!customGoalInput.trim() || aiGoalLoading"
+                  class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] disabled:opacity-40"
+                >
+                  {{ aiGoalLoading ? 'AI Building...' : '✨ AI Build & Set Goal' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed">{{ activeGoal.description }}</p>
+
+          <!-- Weekly Goal Volume Progress Bar -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[10px] font-mono">
+              <span class="text-slate-400">Weekly Goal Stimulus Target ({{ goalWeeklySetsCompleted }}/{{ activeGoal.weeklyTargetSets }} sets)</span>
+              <span class="text-indigo-300 font-bold">{{ Math.min(100, Math.round((goalWeeklySetsCompleted / activeGoal.weeklyTargetSets) * 100)) }}% Complete</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-slate-950 overflow-hidden border border-slate-800">
+              <div class="h-full bg-indigo-500 transition-all duration-500" :style="{ width: Math.min(100, Math.round((goalWeeklySetsCompleted / activeGoal.weeklyTargetSets) * 100)) + '%' }"></div>
+            </div>
+          </div>
+
+          <!-- Primary & Secondary Anti-Overload Rotation Lifts (Clickable for 2-Stage Human Photos) -->
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5">
+              <div class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Primary Drivers (Day A/C)</div>
+              <div class="space-y-1">
+                <button
+                  v-for="liftName in activeGoal.primaryLifts"
+                  :key="liftName"
+                  @click="openFormCardByName(liftName)"
+                  class="w-full flex items-center gap-1.5 text-left p-1 rounded-lg hover:bg-slate-900 transition"
+                >
+                  <img :src="getExercisePhoto(liftName, 'top')" class="w-7 h-7 rounded object-cover border border-slate-700 flex-shrink-0" />
+                  <span class="text-[10px] font-bold text-white underline decoration-dotted truncate">{{ liftName }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5">
+              <div class="text-[9px] font-bold uppercase tracking-wider text-sky-400">Secondary / Recovery (Day B)</div>
+              <div class="space-y-1">
+                <button
+                  v-for="liftName in activeGoal.secondaryLifts"
+                  :key="liftName"
+                  @click="openFormCardByName(liftName)"
+                  class="w-full flex items-center gap-1.5 text-left p-1 rounded-lg hover:bg-slate-900 transition"
+                >
+                  <img :src="getExercisePhoto(liftName, 'top')" class="w-7 h-7 rounded object-cover border border-slate-700 flex-shrink-0" />
+                  <span class="text-[10px] font-bold text-slate-200 underline decoration-dotted truncate">{{ liftName }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEW PARAMETER #4: MESOCYCLE PHASE & AUTO-DELOAD CONTROL -->
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Block Phase &amp; Deload Control</span>
+              <span class="text-[10px] font-mono text-slate-300">{{ currentPhaseDetails.rounds }} Rounds &bull; Target RPE {{ currentPhaseDetails.targetRpe }}</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 text-[10px] font-bold">
+              <button
+                v-for="ph in mesocyclePhases"
+                :key="ph.id"
+                @click="mesocyclePhase = ph.id; saveContextToStorage(); showToast('Switched block phase to ' + ph.label)"
+                class="py-1.5 px-2 rounded-lg border transition text-center"
+                :class="mesocyclePhase === ph.id ? 'bg-amber-500 text-slate-950 border-amber-400 font-black' : 'bg-slate-900 text-slate-400 border-slate-800'"
+              >
+                {{ ph.shortLabel }}
+              </button>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-snug">{{ currentPhaseDetails.description }}</div>
+          </div>
+        </div>
+
+        <!-- NEW PARAMETER #3: SECONDARY / MAINTENANCE GOAL PAIRING (~30% FOCUS) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-sky-500/30 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">
+                Optional Secondary / Maintenance Goal ({{ secondaryGoalId === 'none' ? 'Off — 100% Primary' : '~30% Focus' }})
+              </span>
+              <h3 class="text-xs font-black text-white">Pair a 2nd Focus or Choose "None"</h3>
+            </div>
+            <button
+              @click="showAddSecondaryGoal = !showAddSecondaryGoal"
+              class="px-2 py-1 rounded-lg bg-slate-950 border border-sky-500/40 text-[10px] font-bold text-sky-300 hover:text-white shrink-0"
+            >
+              {{ showAddSecondaryGoal ? 'Close ▲' : '+ Add New' }}
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 text-xs">
+            <button
+              v-for="sec in secondaryGoalOptions"
+              :key="sec.id"
+              @click="secondaryGoalId = sec.id; saveContextToStorage(); showToast(sec.id === 'none' ? 'Deselected Secondary Goal (100% Primary Focus)' : 'Secondary goal set to ' + sec.shortTag)"
+              class="p-2 rounded-xl border text-left transition"
+              :class="secondaryGoalId === sec.id ? 'bg-sky-950/40 border-sky-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'"
+            >
+              <div class="font-bold text-[11px] truncate">{{ sec.shortTag }}</div>
+              <div class="text-[9px] text-slate-400 truncate">{{ sec.subtitle }}</div>
+            </button>
+          </div>
+
+          <!-- Add Custom Secondary Goal Drawer -->
+          <div v-if="showAddSecondaryGoal" class="p-3 rounded-xl bg-slate-950 border border-sky-500/40 space-y-2 text-xs">
+            <label class="block text-[10px] font-bold uppercase text-sky-300">Create New Secondary / Maintenance Goal:</label>
+            <input
+              v-model="newSecondaryGoalTitle"
+              type="text"
+              placeholder="e.g., Posture & Rotator Cuff Maintenance..."
+              class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+            />
+            <div class="flex items-center gap-1.5">
+              <select v-model="newSecondaryGoalLift" class="flex-1 px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs">
+                <option v-for="liftName in allCatalogLiftNames" :key="liftName" :value="liftName">Anchor Lift: {{ liftName }}</option>
+              </select>
+              <button
+                @click="addCustomSecondaryGoal"
+                :disabled="!newSecondaryGoalTitle.trim()"
+                class="px-3 py-1.5 rounded-lg bg-sky-500 text-slate-950 font-black text-xs disabled:opacity-40"
+              >
+                + Save &amp; Select
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW PARAMETER #6: 50-LB CAP PROGRESSION STRATEGY -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-2.5">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">50-lb Dumbbell Cap Progression Mode</span>
+            <h3 class="text-xs font-black text-white">How Should AI Progress Lifts When You Max Out 50 lb?</h3>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5 text-[10px]">
+            <button
+              v-for="mode in capProgressionModes"
+              :key="mode.id"
+              @click="capProgressionMode = mode.id; saveContextToStorage(); showToast('50-lb progression mode: ' + mode.label)"
+              class="p-2 rounded-xl border text-left transition flex flex-col justify-between"
+              :class="capProgressionMode === mode.id ? 'bg-emerald-950/40 border-emerald-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
+            >
+              <div class="font-black text-[11px] text-emerald-300">{{ mode.label }}</div>
+              <div class="text-[9px] text-slate-400 mt-1 leading-tight">{{ mode.desc }}</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- NEW PARAMETER #5: EXERCISE FAVORITES (★) & DO-NOT-SUGGEST (⊘) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Personal Exercise Preferences</span>
+              <h3 class="text-xs font-black text-white">Favorites (★ Boost) &amp; Banned Lifts (⊘ Never Suggest)</h3>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400">{{ favoriteLifts.length }} ★ &bull; {{ bannedLifts.length }} ⊘</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
+            <div
+              v-for="liftName in allCatalogLiftNames"
+              :key="liftName"
+              class="px-2 py-1 rounded-lg bg-slate-950 border flex items-center gap-1.5 text-[10px]"
+              :class="isLiftFavorite(liftName) ? 'border-amber-400/60 bg-amber-950/20 text-amber-200' : (isLiftBanned(liftName) ? 'border-rose-500/60 bg-rose-950/20 text-rose-300 line-through' : 'border-slate-800 text-slate-300')"
+            >
+              <span @click="openFormCardByName(liftName)" class="cursor-pointer truncate max-w-[125px]">{{ liftName }}</span>
+              <button @click="toggleFavoriteLift(liftName)" title="Favorite / Boost" class="hover:scale-110 transition" :class="isLiftFavorite(liftName) ? 'text-amber-400 font-black' : 'text-slate-600'">★</button>
+              <button @click="toggleBannedLift(liftName)" title="Ban / Do Not Suggest" class="hover:scale-110 transition" :class="isLiftBanned(liftName) ? 'text-rose-400 font-black' : 'text-slate-600'">⊘</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 2: TEMPORARY / ACUTE INJURIES (WITH EXPIRATION DATES)             -->
+      <!-- ===================================================================== -->
+      <main v-if="activeTab === 'injuries'" class="space-y-4">
+        <div class="p-4 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-3 text-xs">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Acute / Temporary Setbacks</span>
+            <h2 class="text-sm font-black text-white">Log Temporary Injury with Auto-Expiration</h2>
+          </div>
+
+          <input
+            v-model="newInjuryName"
+            type="text"
+            placeholder="e.g., Sprained Right Ankle, Tweaked Lower Back"
+            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"
+          />
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Joint / Region</label>
+              <select v-model="newInjuryRegion" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                <option value="ankle">Ankle / Shin / Foot</option>
+                <option value="knee">Knee Joint</option>
+                <option value="hip">Hip / Pelvis</option>
+                <option value="lower_back">Lower Back / Lumbar</option>
+                <option value="shoulder">Shoulder / Rotator Cuff</option>
+                <option value="elbow_wrist">Elbow / Wrist / Grip</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Severity</label>
+              <select v-model="newInjurySeverity" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                <option value="mild">Mild (Modify Load)</option>
+                <option value="moderate">Moderate (Swap Lift)</option>
+                <option value="severe">Severe (Exclude Region)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[9px] font-bold uppercase text-slate-400">Expires On (Auto-Resumes Normal Lifts After):</label>
+              <div class="flex gap-1">
+                <button @click="setInjuryDurationDays(7)" class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-mono text-amber-300">+7d</button>
+                <button @click="setInjuryDurationDays(14)" class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-mono text-amber-300">+14d</button>
+                <button @click="setInjuryDurationDays(30)" class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-mono text-amber-300">+30d</button>
+                <button @click="setInjuryDurationDays(-1)" class="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-mono text-slate-400">Yesterday (Test)</button>
+              </div>
+            </div>
+            <input v-model="newInjuryExpiresAt" type="date" class="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono" />
+          </div>
+
+          <button @click="addTemporaryInjury" :disabled="!newInjuryName.trim()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black disabled:opacity-40">
+            + Add Temporary Injury Guardrail
+          </button>
+
+          <!-- List of Temporary Injuries -->
+          <div class="space-y-2 pt-2 border-t border-slate-800">
+            <div v-for="inj in temporaryInjuries" :key="inj.id" class="p-3 rounded-xl bg-slate-950 border space-y-1.5" :class="isInjuryCurrentlyActive(inj) ? 'border-amber-500/40' : 'border-slate-800 opacity-60'">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <span class="font-bold text-white">{{ inj.name }}</span>
+                  <span class="text-[10px] font-mono text-amber-300 block">
+                    {{ inj.region.toUpperCase() }} &bull; {{ inj.severity }} &bull;
+                    <template v-if="isInjuryCurrentlyActive(inj)">{{ daysRemaining(inj.expiresAt) }}d left (Until {{ inj.expiresAt }})</template>
+                    <template v-else>EXPIRED / IGNORED ({{ inj.expiresAt }})</template>
+                  </span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button @click="toggleTempInjury(inj)" class="px-2 py-1 rounded text-[10px] font-bold" :class="isInjuryCurrentlyActive(inj) ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'">
+                    {{ isInjuryCurrentlyActive(inj) ? 'ACTIVE' : 'EXPIRED/OFF' }}
+                  </button>
+                  <button @click="removeTempInjury(inj.id)" class="text-slate-500 hover:text-rose-400 px-1.5 font-bold">&times;</button>
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-300 leading-snug bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+                <strong class="text-amber-400">AI Impact:</strong> {{ getInjuryCoachingImpactText(inj) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 3: LIFE, DOMS, CHRONIC GUARDRAILS, ANTHROPOMETRICS & STEP 0       -->
+      <!-- ===================================================================== -->
+      <main v-if="activeTab === 'guards'" class="space-y-4">
+        <!-- Athlete Baseline Anthropometrics (DOB 4/24/80, 5'11", 215 lbs + Future Weight Module Hook) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-3 text-xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Athlete Baseline Context &amp; Future Weight Hook</span>
+              <h3 class="text-sm font-black text-white">Age ({{ athleteAge }}), Height ({{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}") &amp; Body Weight ({{ athleteProfile.weightLbs }} lb)</h3>
+            </div>
+            <button @click="editingAthleteProfile = !editingAthleteProfile" class="px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white">
+              {{ editingAthleteProfile ? 'Done' : 'Edit' }}
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+              <div class="text-[9px] font-bold uppercase text-slate-400">Birthday / Age</div>
+              <div class="text-xs font-mono font-black text-white mt-0.5">04/24/1980</div>
+              <div class="text-[10px] font-mono text-emerald-400">{{ athleteAge }} yrs (Masters)</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+              <div class="text-[9px] font-bold uppercase text-slate-400">Height</div>
+              <div class="text-sm font-mono font-black text-white mt-0.5">{{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}"</div>
+              <div class="text-[10px] font-mono text-slate-400">{{ totalHeightInches }} in ({{ heightCm }} cm)</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+              <div class="text-[9px] font-bold uppercase text-slate-400">Current Weight</div>
+              <div class="text-sm font-mono font-black text-sky-400 mt-0.5">{{ athleteProfile.weightLbs }} lb</div>
+              <div class="text-[10px] font-mono text-slate-400">BMI {{ athleteBmi }}</div>
+            </div>
+          </div>
+
+          <!-- Quick Edit Drawer for Anthropometrics -->
+          <div v-if="editingAthleteProfile" class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2.5">
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Birthdate</label>
+                <input v-model="athleteProfile.birthDate" @change="saveContextToStorage" type="date" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-mono text-white" />
+              </div>
+              <div>
+                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Height (ft / in)</label>
+                <div class="flex gap-1">
+                  <input v-model.number="athleteProfile.heightFeet" @change="saveContextToStorage" type="number" min="4" max="7" class="w-1/2 px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-mono text-white" />
+                  <input v-model.number="athleteProfile.heightInches" @change="saveContextToStorage" type="number" min="0" max="11" class="w-1/2 px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-mono text-white" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Weight (lbs)</label>
+                <input v-model.number="athleteProfile.weightLbs" @change="saveContextToStorage(); showToast('Updated body weight to ' + athleteProfile.weightLbs + ' lb')" type="number" step="0.5" min="90" max="400" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-mono text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-[11px] text-slate-300 leading-snug">
+            <strong class="text-emerald-400">How AI Coach Uses This:</strong> At <strong>{{ athleteAge }} yrs</strong> and <strong>{{ athleteProfile.weightLbs }} lb</strong> ({{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}"), running impact and standing calf loads place ~2.5&times; body weight (~{{ Math.round(athleteProfile.weightLbs * 2.5) }} lb) across your Achilles, plantar fascia, and tibialis. The coach enforces 48h tendon recovery windows and scales bodyweight/dumbbell density accordingly.
+          </div>
+        </div>
+
+        <!-- Muscle Soreness (DOMS) Quick-Tap Map -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5 text-xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Local Muscle Soreness (DOMS) Map</span>
+              <h3 class="text-sm font-black text-white">Tap Any Muscle to Cycle: Fresh &rarr; Tight &rarr; Very Sore</h3>
+            </div>
+            <button @click="resetSorenessMap" class="px-2 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 hover:text-white">Reset All</button>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button
+              v-for="z in sorenessZones"
+              :key="z.id"
+              @click="cycleMuscleSoreness(z.id)"
+              class="p-2.5 rounded-xl border text-left transition flex items-center justify-between"
+              :class="sorenessMap[z.id] === 0 ? 'bg-slate-950 border-slate-800 text-slate-300' : (sorenessMap[z.id] === 1 ? 'bg-amber-950/30 border-amber-500/50 text-amber-200' : 'bg-rose-950/40 border-rose-500/60 text-rose-200')"
+            >
+              <span class="text-[11px] font-bold truncate">{{ z.label }}</span>
+              <span class="text-[9px] font-mono font-black px-1.5 py-0.5 rounded flex-shrink-0" :class="sorenessMap[z.id] === 0 ? 'bg-emerald-500/15 text-emerald-400' : (sorenessMap[z.id] === 1 ? 'bg-amber-500 text-slate-950' : 'bg-rose-500 text-white')">
+                {{ sorenessMap[z.id] === 0 ? 'Fresh ✓' : (sorenessMap[z.id] === 1 ? 'Tight' : 'Sore ⊘') }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Non-Gym Real-Life Physical Load -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5 text-xs">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Non-Gym "Real Life" Physical Load</span>
+            <h3 class="text-sm font-black text-white">Yard Work, Travel &amp; Desk Fatigue</h3>
+          </div>
+          <div class="space-y-1.5">
+            <div
+              v-for="item in externalLifeLoadList"
+              :key="item.id"
+              @click="item.active = !item.active; saveContextToStorage(); showToast((item.active ? 'Enabled: ' : 'Cleared: ') + item.label)"
+              class="p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between gap-2"
+              :class="item.active ? 'bg-sky-950/30 border-sky-500/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
+            >
+              <div class="min-w-0">
+                <div class="text-xs font-bold">{{ item.label }}</div>
+                <div class="text-[10px] text-slate-400 truncate">{{ item.effect }}</div>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold flex-shrink-0" :class="item.active ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-500'">
+                {{ item.active ? 'ON' : 'OFF' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chronic Guardrails & Baseline Tendencies (With Voice + AI Summarizer) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-rose-500/30 space-y-3 text-xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400 block">Ongoing Joint &amp; Postural Protection</span>
+              <h3 class="text-sm font-black text-white">Chronic Guardrails &amp; Baseline Tendencies</h3>
+            </div>
+            <button @click="editingChronicGuards = !editingChronicGuards" class="px-2.5 py-1 rounded-xl bg-rose-500/15 border border-rose-500/40 text-[10px] font-bold text-rose-300">
+              {{ editingChronicGuards ? 'Done' : '+ Add / Edit' }}
+            </button>
+          </div>
+
+          <!-- Voice / Text AI Guardrail Builder -->
+          <div v-if="editingChronicGuards" class="p-3 rounded-xl bg-slate-950 border border-rose-500/40 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase text-rose-300">Speak or Type Ongoing Tendency:</span>
+              <button
+                @click="toggleChronicVoiceRecording"
+                class="px-2.5 py-1 rounded-lg font-bold text-[10px] flex items-center gap-1 transition"
+                :class="isRecordingChronicVoice ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 text-emerald-400 border border-slate-700'"
+              >
+                <span>🎤 {{ isRecordingChronicVoice ? 'Listening... (Tap to Stop)' : 'Speak Description' }}</span>
+              </button>
+            </div>
+
+            <textarea
+              v-model="spokenChronicInput"
+              rows="2"
+              placeholder="e.g., 'I'm prone to shin splints when I run or jump' or 'My knees ache under the kneecap on deep lunges'..."
+              class="w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white"
+            ></textarea>
+
+            <div class="flex flex-wrap gap-1">
+              <button
+                v-for="p in chronicGuardPresets"
+                :key="p.label"
+                @click="prefillChronicGuardPreset(p)"
+                class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[9px] text-slate-300 hover:border-rose-400"
+              >
+                + {{ p.label }}
+              </button>
+            </div>
+
+            <div class="flex gap-1.5">
+              <button
+                @click="summarizeSpokenChronicGuardWithAi(false)"
+                :disabled="!spokenChronicInput.trim() || aiSummarizingChronic"
+                class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-indigo-300 font-bold text-[10px] disabled:opacity-40"
+              >
+                {{ aiSummarizingChronic ? 'Summarizing...' : '✨ Preview AI Summary' }}
+              </button>
+              <button
+                @click="summarizeSpokenChronicGuardWithAi(true)"
+                :disabled="(!spokenChronicInput.trim() && !newChronicLabel.trim()) || aiSummarizingChronic"
+                class="flex-1 py-1.5 rounded-lg bg-rose-500 text-white font-black text-[10px] disabled:opacity-40"
+              >
+                + AI Summarize, Title &amp; Save
+              </button>
+            </div>
+
+            <div v-if="newChronicLabel" class="p-2 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+              <div class="text-[10px] font-bold text-emerald-400">AI Title: {{ newChronicLabel }} ({{ newChronicRegion }})</div>
+              <div class="text-[10px] text-slate-300">{{ newChronicDescription }}</div>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div v-for="limit in limits" :key="limit.id" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div class="min-w-0 pr-2">
+                <div class="font-bold text-white flex items-center gap-1.5">
+                  <span class="truncate">{{ limit.label }}</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 uppercase">{{ limit.region || 'joint' }}</span>
+                </div>
+                <div class="text-[10px] text-slate-400 leading-snug mt-0.5">{{ limit.description }}</div>
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button @click="toggleLimit(limit)" class="px-2.5 py-1 rounded-lg text-[10px] font-bold" :class="limit.active ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'">
+                  {{ limit.active ? 'ACTIVE' : 'OFF' }}
+                </button>
+                <button v-if="editingChronicGuards" @click="removeChronicGuardrail(limit.id)" class="text-slate-500 hover:text-rose-400 font-bold px-1 text-sm">&times;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Readiness & Lifestyle Parameters (Future-Ready Biometrics Hook) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 text-xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Daily Biometric &amp; Schedule Inputs</span>
+              <h3 class="text-sm font-black text-white">Sleep, Energy &amp; Target Duration Window</h3>
+            </div>
+            <span class="text-xs font-mono font-bold text-emerald-400">{{ readinessScore }}% Ready</span>
+          </div>
+
+          <!-- Weekly Modality Split & Cardio Rules (Lift vs. Run vs. Row Cadence) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-3 text-xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Pro Trainer Weekly Modality Cadence</span>
+              <h3 class="text-sm font-black text-white">Target Days/Week &bull; Max 2 Lift Days &bull; Run vs. Row</h3>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[9px] font-mono font-bold text-amber-300">
+              {{ modalityPreferences.targetDaysPerWeek || 5 }}d/wk &bull; {{ modalityPreferences.targetWindowLabel }}
+            </span>
+          </div>
+
+          <!-- Target Workouts Per Week (3, 4, 5, 6 Days/Wk) -->
+          <div class="space-y-1">
+            <label class="block text-[10px] font-bold uppercase text-slate-400">Target Workouts Per Week:</label>
+            <div class="grid grid-cols-4 gap-1.5">
+              <button
+                v-for="d in [3, 4, 5, 6]"
+                :key="d"
+                @click="modalityPreferences.targetDaysPerWeek = d; saveContextToStorage(); showToast('Target workout frequency: ' + d + ' days/week')"
+                class="py-2 rounded-xl font-mono text-xs font-bold border transition"
+                :class="(modalityPreferences.targetDaysPerWeek || 5) === d ? 'bg-amber-500 text-slate-950 border-amber-300 font-black' : 'bg-slate-950 text-slate-400 border-slate-800'"
+              >
+                {{ d }} Days/Wk
+              </button>
+            </div>
+          </div>
+
+          <!-- Alternating Cadence Pattern -->
+          <div class="space-y-1.5">
+            <label class="block text-[10px] font-bold uppercase text-slate-400">Coach Lifting &amp; Conditioning Cadence Rule</label>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button
+                @click="modalityPreferences.cadenceRule = 'pro_trainer_max_2_lifts'; saveContextToStorage(); showToast('Set to Pro Trainer Cadence (Never Lift 3 Days in a Row)')"
+                class="p-2.5 rounded-xl border text-left transition"
+                :class="modalityPreferences.cadenceRule === 'pro_trainer_max_2_lifts' ? 'bg-amber-950/40 border-amber-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
+              >
+                <div class="font-black text-[11px] text-amber-300">Pro Trainer: Max 2 Lift Days</div>
+                <div class="text-[9px] text-slate-400 mt-0.5 leading-tight">Never lift 3 days in a row. Coach can pair 2 complementary lift days when needed, or alternate with Run/Row.</div>
+              </button>
+              <button
+                @click="modalityPreferences.cadenceRule = 'alternate_lift_cardio'; saveContextToStorage(); showToast('Set to Strict Alternating Lift & Cardio Days')"
+                class="p-2.5 rounded-xl border text-left transition"
+                :class="modalityPreferences.cadenceRule === 'alternate_lift_cardio' ? 'bg-amber-950/40 border-amber-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
+              >
+                <div class="font-black text-[11px] text-amber-300">Strict 1-Lift / 1-Cardio</div>
+                <div class="text-[9px] text-slate-400 mt-0.5 leading-tight">Always alternate 1 day of weights with 1 day of Running or Rowing.</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hard Rules: Never Lift 3 Days in a Row + Never Run 2 Days in a Row -->
+          <div class="space-y-1.5">
+            <div
+              @click="modalityPreferences.neverRunConsecutiveDays = !modalityPreferences.neverRunConsecutiveDays; saveContextToStorage()"
+              class="p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between gap-2"
+              :class="modalityPreferences.neverRunConsecutiveDays ? 'bg-rose-950/35 border-rose-500/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
+            >
+              <div class="min-w-0">
+                <div class="text-xs font-black text-rose-300">🛑 Hard Guardrails: Never Run 2 Days in a Row &amp; Never Lift 3 Days in a Row</div>
+                <div class="text-[10px] text-slate-300 leading-tight">Locks 48h tibial impact recovery between runs and forces a cardio/conditioning day after any 2 consecutive strength sessions.</div>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-black shrink-0" :class="modalityPreferences.neverRunConsecutiveDays ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'">
+                {{ modalityPreferences.neverRunConsecutiveDays ? 'LOCKED ON' : 'OFF' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Running vs Rowing Coaching Role -->
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-emerald-400">🏃 Running (Aerobic &amp; Legs)</span>
+                <span class="text-[9px] font-mono text-slate-400">Enjoy Most</span>
+              </div>
+              <p class="text-[9px] text-slate-400 leading-tight">Prescribed when shins/ankles have 48h clearance and lower-body tendons are fresh (25–35 min, &le;1.5% incline).</p>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-sky-400">🚣 Rowing (86% Muscle Activation)</span>
+                <span class="text-[9px] font-mono text-slate-400">Posture + Lats</span>
+              </div>
+              <p class="text-[9px] text-slate-400 leading-tight">Prescribed whenever your body needs upper-back/lat/posterior-chain activation (counteracting desk posture) or zero-impact conditioning.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamically Assembled Step 0 Mobility Primer Preview (100% Reactive with Source Badges) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-teal-500/30 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-teal-400">Dynamically Assembled Step 0 Primer ({{ stepZeroPrimers.length }} Drills)</div>
+              <div class="text-[10px] text-slate-400">Updates live as you change Goals, DOMS, Life Loads, or Guardrails</div>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-teal-500/15 border border-teal-500/30 text-[9px] font-mono font-bold text-teal-300">Live Reactive</span>
+          </div>
+          <div class="space-y-2">
+            <div v-for="(drill, dIdx) in stepZeroPrimers" :key="drill.title + dIdx" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-bold text-teal-300">{{ dIdx + 1 }}. {{ drill.title }}</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-teal-500/30 text-[9px] font-mono text-teal-200 flex-shrink-0">{{ drill.triggerBadge }}</span>
+              </div>
+              <div class="text-[11px] text-slate-400 leading-snug">{{ drill.reason }}</div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 4: HOLISTIC AI CONFLICT & ANTI-OVERLOAD SIMULATOR (TEST 14.25/31) -->
+      <!-- ===================================================================== -->
+      <main v-if="activeTab === 'simulator'" class="space-y-4">
+        <div class="p-4 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Interactive Context Testbed</span>
+              <h2 class="text-sm font-black text-white">Simulate "Yesterday's Workload" &amp; See AI Adapt</h2>
+            </div>
+            <button @click="askGeminiCoachAnalysis" :disabled="aiCoachLoading" class="px-2.5 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-black text-[10px]">
+              {{ aiCoachLoading ? 'Thinking...' : '✨ Live AI Brief' }}
+            </button>
+          </div>
+
+          <p class="text-[11px] text-slate-400 leading-snug">
+            Test how the Holistic Coach combines your <strong>2–3 Month Goal ({{ activeGoal.shortTag }})</strong> + <strong>{{ activeTemporaryInjuries.length }} Temp Injuries</strong> + <strong>{{ activeChronicGuardsCount }} Chronic Guards</strong> with different prior-day workouts so you never get a static swap or repeat the same workout two days in a row:
+          </p>
+
+          <!-- Scenario Presets -->
+          <div class="space-y-1.5">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Tap a Prior-Day Scenario to Test Circuit Adaptation:</div>
+            <div class="grid grid-cols-1 gap-1.5">
+              <button
+                v-for="scen in simulationScenarios"
+                :key="scen.id"
+                @click="applySimulationScenario(scen)"
+                class="p-2.5 rounded-xl border text-left transition flex items-center justify-between text-xs"
+                :class="activeScenarioId === scen.id ? 'bg-emerald-950/40 border-emerald-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-300'"
+              >
+                <div>
+                  <div class="font-bold">{{ scen.label }}</div>
+                  <div class="text-[10px] text-slate-400 font-mono">{{ scen.subtext }}</div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded" :class="activeScenarioId === scen.id ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'">
+                  {{ activeScenarioId === scen.id ? 'Testing' : 'Test' }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="geminiCoachBrief" class="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/40 text-xs text-indigo-200 leading-relaxed">
+            {{ geminiCoachBrief }}
+          </div>
+
+          <!-- Simulated 6-Station Circuit Output -->
+          <div class="space-y-2 pt-1">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Synthesized 6-Station Circuit for Selected Scenario:</div>
+            <div v-for="(st, idx) in simulatedStations" :key="st.name + idx" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-xs">
+              <div class="flex items-center justify-between gap-2">
+                <div @click="openFormCardByName(st.name)" class="flex items-center gap-2 cursor-pointer min-w-0">
+                  <img :src="getExercisePhoto(st.name, 'top')" class="w-8 h-8 rounded object-cover border border-slate-700 shrink-0" />
+                  <span class="font-black text-white underline decoration-dotted truncate">#{{ idx + 1 }} {{ st.name }}</span>
+                </div>
+                <span class="text-[10px] font-mono text-emerald-400 shrink-0">{{ st.weight > 0 ? st.weight + ' lb' : 'Band/BW' }}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 leading-snug">{{ st.reason }}</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- SHARED JSON CONTRACT INSPECTOR MODAL -->
+    <div v-if="showContractInspector" @click.self="showContractInspector = false" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-indigo-500/50 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-black text-white">Shared localStorage["basement_coach_context"]</h3>
+          <button @click="showContractInspector = false" class="text-slate-400 hover:text-white font-bold">&times;</button>
+        </div>
+        <pre class="flex-1 overflow-auto p-3 rounded-xl bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-300">{{ formattedSharedContractJson }}</pre>
+      </div>
+    </div>
+
+    <!-- UNIVERSAL 2-STAGE HUMAN PHOTO FORM CARD MODAL (WITH BUILT-IN PHOTO CHANGER) -->
+    <div v-if="activeFormModalLift" @click.self="activeFormModalLift = null" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono uppercase">{{ activeFormModalLift.equipment }}</span>
+            <h3 class="text-base font-black text-white mt-1">{{ activeFormModalLift.name }}</h3>
+          </div>
+          <button @click="activeFormModalLift = null" class="text-slate-400 hover:text-white text-lg">&times;</button>
+        </div>
+
+        <div class="space-y-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+              <img :src="getExercisePhoto(activeFormModalLift.name, 'top')" class="w-full h-36 object-cover" />
+              <div class="p-2 text-[10px] text-slate-300"><strong class="text-emerald-400 block">1. Setup / Start</strong>{{ activeFormModalLift.cue }}</div>
+            </div>
+            <div class="rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+              <img :src="getExercisePhoto(activeFormModalLift.name, 'bottom')" class="w-full h-36 object-cover" />
+              <div class="p-2 text-[10px] text-slate-300"><strong class="text-sky-400 block">2. Peak / Bottom</strong><span class="text-amber-300">Trap:</span> {{ activeFormModalLift.trap }}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 text-[10px] px-1">
+            <span class="font-mono text-slate-400 truncate">
+              Photo: <strong class="text-emerald-300">{{ activeFormModalLift.customPhotoTop ? 'Custom / AI Photo' : activeFormModalLift.slug }}</strong>
+            </span>
+            <button
+              @click="toggleModalPhotoFixer"
+              class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-black transition shrink-0"
+            >
+              {{ showModalPhotoFixer ? 'Close Photo Fixer ▲' : '🖼️ Change 2-Stage Photo ▼' }}
+            </button>
+          </div>
+
+          <!-- 873-EXERCISE PHOTO PICKER & CUSTOM URL DRAWER INSIDE MODULE 2 FORM MODAL -->
+          <div v-if="showModalPhotoFixer" class="p-3 rounded-xl bg-slate-950 border border-amber-500/50 space-y-2.5 text-xs">
+            <div class="relative">
+              <input
+                v-model="modalPhotoSearchQuery"
+                type="text"
+                placeholder="Search 873+ exercises (e.g., clam, abduction, calf, row, press)..."
+                class="w-full pl-2.5 pr-7 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+              />
+              <button v-if="modalPhotoSearchQuery" @click="modalPhotoSearchQuery = ''" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white font-bold">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+              <button
+                v-for="cand in filteredModalPhotoCandidates"
+                :key="cand.slug"
+                @click="applyModalPhotoSlug(cand.slug)"
+                class="p-1.5 rounded-xl border text-left transition space-y-1"
+                :class="activeFormModalLift.slug === cand.slug ? 'bg-amber-500/20 border-amber-400 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'"
+              >
+                <div class="flex gap-0.5 rounded overflow-hidden bg-slate-950">
+                  <img :src="`${photoCdn}/${cand.slug}/0.jpg`" loading="lazy" class="w-1/2 h-12 object-cover" />
+                  <img :src="`${photoCdn}/${cand.slug}/1.jpg`" loading="lazy" class="w-1/2 h-12 object-cover" />
+                </div>
+                <div class="text-[10px] font-bold text-white truncate">{{ cand.label }}</div>
+                <div class="text-[8px] font-mono text-slate-400 truncate">{{ cand.muscles }}</div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- VOICE-FIRST AI EXERCISE COACH (DIRECTLY BELOW PHOTOS)           -->
+        <!-- =============================================================== -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950/75 via-slate-950 to-slate-950 border-2 border-indigo-500/50 space-y-2.5 text-xs shadow-lg">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300 block">
+                🗣️ Voice AI Exercise Coach &bull; Natural Spoken Replies
+              </span>
+              <h4 class="text-xs font-black text-white">
+                Ask Anything About {{ activeFormModalLift.name }}
+              </h4>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button
+                v-if="activeTtsSourceId === 'exercise-modal'"
+                @click="stopCurrentAudioPlayback"
+                class="px-2 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black animate-pulse"
+              >
+                ⏹ Stop Audio
+              </button>
+              <button
+                @click="autoSpeakExerciseAi = !autoSpeakExerciseAi"
+                class="px-2 py-1 rounded-lg border text-[10px] font-mono font-bold"
+                :class="autoSpeakExerciseAi ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400'"
+              >
+                {{ autoSpeakExerciseAi ? '🔊 Voice ON' : '🔇 Voice OFF' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="currentExerciseChatList.length > 0" class="space-y-2 max-h-44 overflow-y-auto pr-1">
+            <div
+              v-for="(msg, idx) in currentExerciseChatList"
+              :key="idx"
+              class="p-2.5 rounded-xl space-y-1"
+              :class="msg.role === 'user' ? 'bg-indigo-600/25 border border-indigo-500/40 ml-4 text-white' : 'bg-slate-900 border border-emerald-500/40 mr-2 text-slate-100'"
+            >
+              <div class="flex items-center justify-between text-[9px] font-mono">
+                <span class="font-black uppercase" :class="msg.role === 'user' ? 'text-indigo-300' : 'text-emerald-400'">
+                  {{ msg.role === 'user' ? 'You Asked' : '🏋️‍♂️ AI Exercise Coach' }}
+                </span>
+                <button v-if="msg.role === 'coach'" @click="speakTextOutLoud(msg.text, 'exercise-modal')" class="text-emerald-300 underline font-bold">
+                  🔊 Replay Voice
+                </button>
+              </div>
+              <p class="text-[11px] leading-relaxed whitespace-pre-line">{{ msg.text }}</p>
+            </div>
+          </div>
+
+          <div class="flex gap-1.5">
+            <button
+              @click="toggleExerciseModalVoiceMic"
+              type="button"
+              class="px-3 py-2 rounded-xl border font-mono font-black text-xs transition shrink-0"
+              :class="isListeningExerciseModal ? 'bg-rose-500 text-white border-rose-300 animate-pulse' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'"
+            >
+              {{ isListeningExerciseModal ? '⏹ Stop' : '🎤 Speak' }}
+            </button>
+            <input
+              v-model="exerciseModalQuestionInput"
+              @keyup.enter="askAiAboutActiveExercise"
+              type="text"
+              :placeholder="`Ask about ${activeFormModalLift.name}...`"
+              class="flex-1 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-400"
+            />
+            <button
+              @click="askAiAboutActiveExercise"
+              :disabled="!exerciseModalQuestionInput.trim() || exerciseAiLoading"
+              class="px-3 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs shrink-0 disabled:opacity-40"
+            >
+              Ask
+            </button>
+          </div>
+        </div>
+
+        <!-- Full Setup, Good Form Steps & Breakdown Traps Below Voice AI Coach -->
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">✅ How to Set Up &amp; Perform</span>
+            <p class="text-slate-200 leading-relaxed mt-0.5">{{ activeFormModalLift.cue }}</p>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">⚠️ What to Watch Out For (Breakdown Trap)</span>
+            <p class="text-amber-100/90 leading-relaxed mt-0.5">{{ activeFormModalLift.trap }}</p>
+          </div>
+        </div>
+
+        <button @click="activeFormModalLift = null" class="w-full py-2.5 rounded-xl bg-slate-800 text-white font-bold text-xs">Close Form Card</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+    const PHOTO_CDN = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
+
+    const getLocalIsoDate = (offsetDays = 0) => {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const LIFT_PHOTOS = {
+      'Goblet Squat': { slug: 'Goblet_Squat', equipment: 'Dumbbell', weight: 50, cue: 'Cup vertical DB at sternum; sit hips between knees.', trap: 'Torso pitching forward onto toes.' },
+      'Dumbbell Bulgarian Split Squat': { slug: 'Split_Squat_with_Dumbbells', equipment: 'Dumbbell', weight: 25, cue: 'Rear foot on bench; lower straight down with 80% load on front leg.', trap: 'Front knee collapsing inward.' },
+      'Dumbbell Sumo Squat': { slug: 'Plie_Dumbbell_Squat', equipment: 'Dumbbell', weight: 45, cue: 'Wide stance, toes flared 45 deg, vertical DB.', trap: 'Knees caving inward.' },
+      'Flat Dumbbell Bench Press': { slug: 'Dumbbell_Bench_Press', equipment: 'Dumbbell', weight: 50, cue: 'Pinch shoulder blades; 45-deg elbow tuck.', trap: 'Flaring elbows 90 degrees.' },
+      'Incline Dumbbell Bench Press': { slug: 'Incline_Dumbbell_Press', equipment: 'Dumbbell', weight: 45, cue: '30-deg bench; drive DBs up and inward.', trap: 'Arching lower back off pad.' },
+      'Dumbbell Floor Press': { slug: 'Dumbbell_Floor_Press', equipment: 'Dumbbell', weight: 45, cue: 'Pause triceps gently on floor for 1s, then press.', trap: 'Bouncing elbows off floor.' },
+      'Dumbbell Romanian Deadlift (RDL)': { slug: 'Stiff-Legged_Dumbbell_Deadlift', equipment: 'Dumbbell', weight: 50, cue: 'Push hips straight back; 2s pause at mid-shin.', trap: 'Rounding lumbar spine.' },
+      'Bodyweight Glute Bridge': { slug: 'Butt_Lift_Bridge', equipment: 'Bodyweight', weight: 0, cue: 'Drive through heels; 2s glute squeeze at top.', trap: 'Arching lower back instead of extending hips.' },
+      'Single-Arm Dumbbell Row': { slug: 'One-Arm_Dumbbell_Row', equipment: 'Dumbbell', weight: 50, cue: '3-point bench support; row toward hip pocket.', trap: 'Jerking or twisting torso.' },
+      'Chest-Supported Incline Row': { slug: 'Dumbbell_Incline_Row', equipment: 'Dumbbell', weight: 40, cue: 'Chest glued to 30-deg pad; row elbows past ribs.', trap: 'Lifting chest off pad.' },
+      'Dumbbell Pullover': { slug: 'Bent-Arm_Dumbbell_Pullover', equipment: 'Dumbbell', weight: 35, cue: 'Keep ribs anchored; arc single DB overhead.', trap: 'Hyperextending lower back.' },
+      'Dumbbell Lateral Raise': { slug: 'Side_Lateral_Raise', equipment: 'Dumbbell', weight: 20, cue: 'Raise in 30-deg scapular plane to shoulder height.', trap: 'Shrugging upper traps.' },
+      'Dumbbell Arnold Press': { slug: 'Arnold_Dumbbell_Press', equipment: 'Dumbbell', weight: 35, cue: 'Start palms facing in; rotate outward as you press.', trap: 'Rushing bottom rotation.' },
+      'Seated DB Overhead Press': { slug: 'Dumbbell_Shoulder_Press', equipment: 'Dumbbell', weight: 40, cue: 'Brace abs against pad; press in scapular plane.', trap: 'Arching lower back.' },
+      'Dumbbell Rear Delt Reverse Fly': { slug: 'Seated_Bent-Over_Rear_Delt_Raise', equipment: 'Dumbbell', weight: 20, cue: 'Sweep arms wide to isolate posterior delts.', trap: 'Bending elbows into a row.' },
+      'Band Face Pull': { slug: 'Face_Pull', equipment: 'Band', weight: 0, cue: 'Pull to forehead while rotating thumbs behind ears.', trap: 'Wrists collapsing forward.' },
+      'Band Pull-Apart': { slug: 'Band_Pull_Apart', equipment: 'Band', weight: 0, cue: 'Keep arms straight; pull band to sternum.', trap: 'Shrugging upper traps.' },
+      'Seated Calf Raise': { slug: 'Dumbbell_Seated_One-Leg_Calf_Raise', equipment: 'Dumbbell', weight: 50, cue: 'DBs on knees; 2s pause at deep bottom stretch.', trap: 'Bouncing out of bottom stretch.' },
+      'Standing Dumbbell Calf Raise': { slug: 'Standing_Dumbbell_Calf_Raise', equipment: 'Dumbbell', weight: 30, cue: 'Rise high onto big-toe knuckle; 1s pause.', trap: 'Rolling ankles outward.' },
+      'Banded Clamshell': { slug: 'Clam', equipment: 'Band', weight: 0, cue: 'Side-lying with loop band above knees; rotate top knee up.', trap: 'Rolling pelvis backward.' },
+      'Band Lateral Walk': { slug: 'Monster_Walk', equipment: 'Band', weight: 0, cue: 'Quarter-squat stance; step sideways keeping band taut.', trap: 'Knees caving inward.' },
+      'Dead Bug': { slug: 'Dead_Bug', equipment: 'Bodyweight', weight: 0, cue: 'Crush lower back into mat while extending opposite limbs.', trap: 'Lower back arching off floor.' }
+    };
+
+    createApp({
+      setup() {
+        const todayIso = ref(getLocalIsoDate(0));
+        const activeTab = ref('goals');
+        const toast = ref(null);
+        const showContractInspector = ref(false);
+        const activeFormModalLift = ref(null);
+        const aiGoalLoading = ref(false);
+        const aiCoachLoading = ref(false);
+        const geminiCoachBrief = ref('');
+        const customCatalogVersion = ref(0);
+
+        const showToast = (msg) => {
+          toast.value = msg;
+          setTimeout(() => { if (toast.value === msg) toast.value = null; }, 3500);
+        };
+
+        const goalPresets = [
+          {
+            id: 'goal-calves-shins',
+            title: 'Build Calves & Stop Shin Splints',
+            shortTag: 'Calf & Shin Armor',
+            durationWeeks: 10,
+            currentWeek: 2,
+            weeklyTargetSets: 12,
+            focusArea: 'calves_shins',
+            description: 'Builds soleus & gastrocnemius load capacity alongside glute-medius hip external rotation so running impact never overloads your tibialis or shins.',
+            primaryLifts: ['Seated Calf Raise', 'Standing Dumbbell Calf Raise'],
+            secondaryLifts: ['Banded Clamshell', 'Band Lateral Walk', 'Bodyweight Glute Bridge'],
+            weeklySchedule: [
+              { dayLabel: 'Day A', focusTitle: 'Bent-Knee Soleus Hypertrophy + Hip Alignment', liftsText: 'Seated Calf Raise (3x15 w/ 2s pause) + Banded Clamshell woven into PHA circuit.' },
+              { dayLabel: 'Day B', focusTitle: '48h Calf Recovery & Pelvic/Core Unload', liftsText: 'Zero direct calf load after Day A or running; rotates to Band Lateral Walk + Glute Bridge + Dead Bug.' },
+              { dayLabel: 'Day C', focusTitle: 'Full Ankle Excursion (Guardrail-Adapted)', liftsText: 'Standing Dumbbell Calf Raise (or Seated Calf Raise when Plantar/Ankle guard is active).' }
+            ]
+          },
+          {
+            id: 'goal-3d-shoulders',
+            title: 'Defined 3D Shoulders & Deltoid Caps',
+            shortTag: '3D Delts Block',
+            durationWeeks: 8,
+            currentWeek: 1,
+            weeklyTargetSets: 14,
+            focusArea: 'shoulders',
+            description: 'Targets lateral, anterior, and posterior deltoid heads across 3 planes while rotating heavy overhead pressing with high-rep scapular/band work.',
+            primaryLifts: ['Dumbbell Lateral Raise', 'Dumbbell Arnold Press', 'Seated DB Overhead Press'],
+            secondaryLifts: ['Dumbbell Rear Delt Reverse Fly', 'Band Face Pull', 'Band Pull-Apart'],
+            weeklySchedule: [
+              { dayLabel: 'Day A', focusTitle: 'Overhead Press + Scapular Lateral Raise', liftsText: 'Seated DB Overhead Press + Dumbbell Lateral Raise.' },
+              { dayLabel: 'Day B', focusTitle: 'Posterior Delt Cap & Rotator Cuff Recovery', liftsText: 'Avoids consecutive overhead pressing; rotates to Rear Delt Reverse Fly + Band Face Pull.' },
+              { dayLabel: 'Day C', focusTitle: 'Tri-Planar Arnold Press + Band Finisher', liftsText: 'Dumbbell Arnold Press + Band Pull-Apart.' }
+            ]
+          },
+          {
+            id: 'goal-v-taper',
+            title: 'V-Shape Upper Body (Wide Lats & Side Delts)',
+            shortTag: 'V-Taper Block',
+            durationWeeks: 12,
+            currentWeek: 3,
+            weeklyTargetSets: 16,
+            focusArea: 'v_taper',
+            description: 'Maximizes upper-body V-taper by combining lengthened lat pullovers & rows with medial deltoid abduction and waist-tightening anti-extension core work.',
+            primaryLifts: ['Single-Arm Dumbbell Row', 'Chest-Supported Incline Row', 'Dumbbell Pullover', 'Dumbbell Lateral Raise'],
+            secondaryLifts: ['Incline Dumbbell Bench Press', 'Band Pull-Apart', 'Dead Bug'],
+            weeklySchedule: [
+              { dayLabel: 'Day A', focusTitle: 'Lengthened Lat Stretch + Medial Delts', liftsText: 'Dumbbell Pullover + Single-Arm DB Row + Dumbbell Lateral Raise.' },
+              { dayLabel: 'Day B', focusTitle: 'Chest-Supported Upper Back + Clavicular Chest', liftsText: 'Chest-Supported Incline Row + Incline DB Bench Press.' },
+              { dayLabel: 'Day C', focusTitle: 'Core Anti-Extension + Posterior Shoulder Width', liftsText: 'Dead Bug + Band Pull-Apart (unloads lats after back-to-back pulls).' }
+            ]
+          }
+        ];
+
+        const activeGoal = ref({ ...goalPresets[0] });
+        const showPrimaryGoalPicker = ref(false);
+        const customGoalInput = ref('');
+        const customGoalWeeks = ref(10);
+
+        // --- NEW PARAMETER #3: SECONDARY / MAINTENANCE GOAL ---
+        const secondaryGoalOptions = ref([
+          { id: 'none', shortTag: 'None (100% Primary)', subtitle: 'All goal slots focus on primary block', lift: null },
+          { id: 'sec-v-taper', shortTag: 'V-Taper Lats', subtitle: 'Adds Pullover / Supported Row width', lift: 'Dumbbell Pullover' },
+          { id: 'sec-3d-delts', shortTag: '3D Side/Rear Delts', subtitle: 'Adds Scapular Lateral / Face Pulls', lift: 'Band Face Pull' },
+          { id: 'sec-core-pelvis', shortTag: 'Core & Pelvic Armor', subtitle: 'Adds Dead Bug & Glute Medius stability', lift: 'Dead Bug' }
+        ]);
+        const secondaryGoalId = ref('sec-v-taper');
+        const showAddSecondaryGoal = ref(false);
+        const newSecondaryGoalTitle = ref('');
+        const newSecondaryGoalLift = ref('Dumbbell Pullover');
+        const secondaryGoalObj = computed(() => secondaryGoalOptions.value.find(s => s.id === secondaryGoalId.value) || secondaryGoalOptions.value[0]);
+
+        const addCustomSecondaryGoal = () => {
+          const title = newSecondaryGoalTitle.value.trim();
+          if (!title) return;
+          const newId = 'sec-cust-' + Date.now();
+          const newOpt = {
+            id: newId,
+            shortTag: title.slice(0, 24),
+            subtitle: `Maintains ${newSecondaryGoalLift.value}`,
+            lift: newSecondaryGoalLift.value
+          };
+          secondaryGoalOptions.value.push(newOpt);
+          secondaryGoalId.value = newId;
+          newSecondaryGoalTitle.value = '';
+          showAddSecondaryGoal.value = false;
+          saveContextToStorage();
+          showToast(`Added & selected secondary goal: "${newOpt.shortTag}"`);
+        };
+
+        // --- NEW PARAMETER #4: MESOCYCLE PHASE & DELOAD CONTROL ---
+        const mesocyclePhases = [
+          { id: 'accumulation', shortLabel: 'Wk 1-3: Base', label: 'Accumulation Phase', rounds: 3, targetRpe: '7.5–8.0', description: 'Base volume accumulation (3 rounds, RPE 7.5–8.0) to build tendon and muscular work capacity.' },
+          { id: 'intensification', shortLabel: 'Wk 4-7: Push', label: 'Intensification Phase', rounds: 3, targetRpe: '8.5–9.0', description: 'High mechanical tension push (3 rounds, RPE 8.5, strict 3s lower + 2s stretch pause).' },
+          { id: 'deload', shortLabel: 'Deload Week', label: 'Deload & Supercompensation', rounds: 2, targetRpe: '6.5–7.0', description: 'Reduces volume by 33% (2 rounds, RPE 6.5–7.0) to flush joint inflammation and supercompensate tendons.' }
+        ];
+        const mesocyclePhase = ref('accumulation');
+        const currentPhaseDetails = computed(() => mesocyclePhases.find(p => p.id === mesocyclePhase.value) || mesocyclePhases[0]);
+        const mesocyclePhaseLabel = computed(() => currentPhaseDetails.value.label);
+
+        // --- NEW PARAMETER #6: 50-LB DUMBBELL CAP PROGRESSION MODES ---
+        const capProgressionModes = [
+          { id: 'tempo_pause', label: 'Tempo + Pause', desc: '3s slow eccentric + 2s pause at bottom stretch' },
+          { id: 'unilateral', label: 'Unilateral Upgrade', desc: 'Auto-graduates bilateral 50lb lifts to single-leg/arm' },
+          { id: 'band_combo', label: 'Band + DB Combo', desc: 'Loops light band with 50lb DB for peak tension' }
+        ];
+        const capProgressionMode = ref('tempo_pause');
+        const capProgressionModeLabel = computed(() => (capProgressionModes.find(m => m.id === capProgressionMode.value) || capProgressionModes[0]).label);
+
+        // --- NEW PARAMETER #5: FAVORITES (★) & BANNED LIFTS (⊘) ---
+        const allCatalogLiftNames = computed(() => Object.keys(LIFT_PHOTOS));
+        const favoriteLifts = ref(['Dumbbell Pullover', 'Banded Clamshell']);
+        const bannedLifts = ref([]);
+        const isLiftFavorite = (name) => favoriteLifts.value.includes(name);
+        const isLiftBanned = (name) => bannedLifts.value.includes(name);
+        const toggleFavoriteLift = (name) => {
+          bannedLifts.value = bannedLifts.value.filter(n => n !== name);
+          if (isLiftFavorite(name)) favoriteLifts.value = favoriteLifts.value.filter(n => n !== name);
+          else favoriteLifts.value.push(name);
+          saveContextToStorage();
+        };
+        const toggleBannedLift = (name) => {
+          favoriteLifts.value = favoriteLifts.value.filter(n => n !== name);
+          if (isLiftBanned(name)) bannedLifts.value = bannedLifts.value.filter(n => n !== name);
+          else bannedLifts.value.push(name);
+          saveContextToStorage();
+        };
+
+        // --- NEW PARAMETER #2: LOCAL MUSCLE SORENESS (DOMS) MAP ---
+        const sorenessZones = [
+          { id: 'quads', label: 'Quads / Front Thigh' },
+          { id: 'posterior', label: 'Hamstrings & Glutes' },
+          { id: 'calves', label: 'Calves & Shins' },
+          { id: 'chest', label: 'Chest & Front Delts' },
+          { id: 'back', label: 'Lats & Upper Back' },
+          { id: 'shoulders_arms', label: 'Side Delts & Arms' }
+        ];
+        const sorenessMap = ref({ quads: 0, posterior: 0, calves: 1, chest: 0, back: 0, shoulders_arms: 0 });
+        const cycleMuscleSoreness = (zoneId) => {
+          sorenessMap.value[zoneId] = (sorenessMap.value[zoneId] + 1) % 3;
+          saveContextToStorage();
+        };
+        const resetSorenessMap = () => {
+          Object.keys(sorenessMap.value).forEach(k => { sorenessMap.value[k] = 0; });
+          saveContextToStorage();
+          showToast('Reset all muscle soreness zones to Fresh.');
+        };
+
+        // --- NEW PARAMETER #1: NON-GYM REAL-LIFE PHYSICAL LOAD ---
+        const externalLifeLoadList = ref([
+          { id: 'yard_work', label: 'Yard Work / Heavy Labor', effect: 'Pre-taxes lower back & grip; swaps RDLs/free rows for supported lifts', active: false },
+          { id: 'long_travel', label: 'Long Drive / Airport Travel', effect: 'Tightens hips & thoracic spine; prioritizes glute bridges & pullovers', active: false },
+          { id: 'extra_desk', label: '10+ Hr Desk Crunch', effect: 'Injects mandatory hip-flexor & rear-delt postural openers', active: true },
+          { id: 'high_stress', label: 'High Life Stress / Low CNS', effect: 'Caps circuit target RPE at 7.5 to prevent burnout', active: false }
+        ]);
+
+        const temporaryInjuries = ref([
+          { id: 'temp-1', name: 'Mild Right Ankle Sprain', region: 'ankle', severity: 'moderate', createdAt: getLocalIsoDate(-2), expiresAt: getLocalIsoDate(28), active: true }
+        ]);
+        const newInjuryName = ref('');
+        const newInjuryRegion = ref('ankle');
+        const newInjurySeverity = ref('moderate');
+        const newInjuryExpiresAt = ref(getLocalIsoDate(30));
+
+        const limits = ref([
+          { id: 'plantar', region: 'ankle', label: 'Plantar Fasciitis / Heel Strain', description: 'Protects plantar fascia & Achilles; caps incline <= 1.5% and avoids standing calf impact.', active: true },
+          { id: 'shin_splints', region: 'ankle', label: 'Prone to Shin Splints (Medial Tibial Stress)', description: 'Avoids high-impact jumps/runs; pairs bent-knee soleus work with glute-medius hip alignment.', active: true },
+          { id: 'desk_job', region: 'hip', label: 'Prolonged Sitting / Desk Job', description: 'Injects hip-flexor openers, glute activation, and thoracic extension.', active: true },
+          { id: 'lower_back', region: 'lower_back', label: 'Lower Back Sensitivity', description: 'Eliminates unsupported spinal shear when combined with running impact.', active: false },
+          { id: 'shoulder', region: 'shoulder', label: 'Rotator Cuff Caution', description: 'Enforces 45-deg elbow tuck and floor-stopped pressing.', active: false }
+        ]);
+
+        const editingChronicGuards = ref(false);
+        const spokenChronicInput = ref('');
+        const isRecordingChronicVoice = ref(false);
+        const aiSummarizingChronic = ref(false);
+        const newChronicLabel = ref('');
+        const newChronicRegion = ref('ankle');
+        const newChronicDescription = ref('');
+        let speechRecognitionInstance = null;
+
+        const chronicGuardPresets = [
+          { label: 'Prone to Shin Splints', region: 'ankle', description: 'Avoids impact overload; pairs Seated Calf Raises with Banded Clamshells & tibialis prep.' },
+          { label: 'Patellar Knee Tendency', region: 'knee', description: 'Prefers vertical-shin Goblet/Sumo squats & Glute Bridges over deep forward-knee lunges.' },
+          { label: 'Golfer / Tennis Elbow Tendency', region: 'elbow_wrist', description: 'Prioritizes neutral-grip Hammer Curls & straps/bands over heavy supinated curls.' },
+          { label: 'Forward Head / Rounded Shoulders', region: 'shoulder', description: 'Injects Band Pull-Aparts & Face Pulls into Step 0 and upper-body stations.' }
+        ];
+
+        const prefillChronicGuardPreset = (preset) => {
+          spokenChronicInput.value = `${preset.label}: ${preset.description}`;
+          newChronicLabel.value = preset.label;
+          newChronicRegion.value = preset.region;
+          newChronicDescription.value = preset.description;
+        };
+
+        const defaultRuleForRegion = (region, label) => {
+          const rules = {
+            ankle: `Protects shins/ankles (${label}); caps running impact and favors seated soleus & hip-alignment work.`,
+            knee: `Protects knee tracking (${label}); favors hip-dominant hinges, glute bridges, and controlled squat depth.`,
+            hip: `Supports hip & pelvic mobility (${label}); injects glute activation and hip-flexor openers into Step 0.`,
+            lower_back: `Protects lumbar spine (${label}); swaps unsupported hinges/rows for chest-supported and floor-braced lifts.`,
+            shoulder: `Protects shoulder capsule (${label}); enforces 45-deg scapular pressing and rear-delt external rotation.`,
+            elbow_wrist: `Protects elbow/wrist tendons (${label}); favors neutral handshake grips and band accommodating tension.`
+          };
+          return rules[region] || `Ongoing coaching guardrail for ${label}.`;
+        };
+
+        // Local biomechanical fallback parser when offline or instant-parsing spoken input
+        const parseSpokenGuardrailLocally = (rawText) => {
+          const lower = rawText.toLowerCase();
+          let region = 'lower_back';
+          let title = '';
+          let rule = '';
+
+          if (lower.includes('shin') || lower.includes('tibial')) {
+            region = 'ankle';
+            title = 'Prone to Shin Splints (Tibial Stress)';
+            rule = 'Caps running incline/impact; pairs Seated Calf Raises with Banded Clamshells & Step 0 wall tibialis raises.';
+          } else if (lower.includes('ankle') || lower.includes('achilles') || lower.includes('heel') || lower.includes('plantar') || lower.includes('foot')) {
+            region = 'ankle';
+            title = lower.includes('achilles') ? 'Achilles Tendon Sensitivity' : 'Ankle & Foot Stability Guard';
+            rule = 'Avoids explosive jumping and high-incline running; prioritizes seated calf loading and foot/ankle primers.';
+          } else if (lower.includes('knee') || lower.includes('patella') || lower.includes('meniscus') || lower.includes('squat')) {
+            region = 'knee';
+            title = 'Knee & Patellar Tracking Sensitivity';
+            rule = 'Favors vertical-shin Goblet/Sumo squats, Glute Bridges, and Banded Clamshells over high-shear forward lunges.';
+          } else if (lower.includes('hip') || lower.includes('glute') || lower.includes('piriformis') || lower.includes('pelvis') || lower.includes('sit')) {
+            region = 'hip';
+            title = 'Hip Flexor & Pelvic Alignment Guard';
+            rule = 'Injects half-kneeling hip openers, glute bridges, and lateral band work before lower-body compounds.';
+          } else if (lower.includes('shoulder') || lower.includes('rotator') || lower.includes('impinge') || lower.includes('overhead') || lower.includes('neck')) {
+            region = 'shoulder';
+            title = 'Shoulder Capsule & Rotator Cuff Guard';
+            rule = 'Enforces 45-deg scapular pressing, Dumbbell Floor Press stops, and high-rep Band Face Pulls.';
+          } else if (lower.includes('elbow') || lower.includes('wrist') || lower.includes('forearm') || lower.includes('grip') || lower.includes('tendon')) {
+            region = 'elbow_wrist';
+            title = 'Elbow & Wrist Tendon Protection';
+            rule = 'Swaps supinated wrist curls for neutral-grip Hammer Curls and accommodating band resistance.';
+          } else if (lower.includes('back') || lower.includes('lumbar') || lower.includes('sciatic') || lower.includes('disc') || lower.includes('spine')) {
+            region = 'lower_back';
+            title = 'Lumbar Spine & Sciatic Guard';
+            rule = 'Eliminates unsupported spinal shear; swaps free RDLs/bent rows for Chest-Supported Rows & Glute Bridges.';
+          } else {
+            const cleanWords = rawText.trim().replace(/^(i have|i am|i'm|my|sometimes i get)\s+/i, '');
+            title = cleanWords.charAt(0).toUpperCase() + cleanWords.slice(1, 38);
+            rule = defaultRuleForRegion(region, title);
+          }
+          return { title, region, rule };
+        };
+
+        const toggleChronicVoiceRecording = () => {
+          const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRec) {
+            showToast('Voice recognition is not supported in this browser window—type your description and AI will summarize it.');
+            return;
+          }
+          if (isRecordingChronicVoice.value && speechRecognitionInstance) {
+            speechRecognitionInstance.stop();
+            isRecordingChronicVoice.value = false;
+            return;
+          }
+          try {
+            speechRecognitionInstance = new SpeechRec();
+            speechRecognitionInstance.lang = 'en-US';
+            speechRecognitionInstance.interimResults = true;
+            speechRecognitionInstance.continuous = false;
+
+            const baseText = spokenChronicInput.value ? spokenChronicInput.value.trim() + ' ' : '';
+            isRecordingChronicVoice.value = true;
+
+            speechRecognitionInstance.onresult = (event) => {
+              let transcript = '';
+              for (let i = 0; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+              }
+              spokenChronicInput.value = (baseText + transcript).trim();
+            };
+
+            speechRecognitionInstance.onend = () => {
+              isRecordingChronicVoice.value = false;
+              if (spokenChronicInput.value.trim()) {
+                summarizeSpokenChronicGuardWithAi(false);
+              }
+            };
+
+            speechRecognitionInstance.onerror = () => {
+              isRecordingChronicVoice.value = false;
+              showToast('Mic capture ended. Tap "Preview AI Summary" or type your description.');
+            };
+
+            speechRecognitionInstance.start();
+          } catch (e) {
+            isRecordingChronicVoice.value = false;
+          }
+        };
+
+        const summarizeSpokenChronicGuardWithAi = async (commitSave = false) => {
+          const raw = spokenChronicInput.value.trim();
+          if (!raw && commitSave && newChronicLabel.value.trim()) {
+            addChronicGuardrail();
+            return;
+          }
+          if (!raw) return;
+
+          aiSummarizingChronic.value = true;
+          const localParsed = parseSpokenGuardrailLocally(raw);
+
+          try {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const prompt = `The user described an ongoing fitness/joint guardrail in their own words: "${raw}".
+Return ONLY a valid JSON object with:
+- "title": concise 3-5 word clinical/coaching title (e.g., "Prone to Shin Splints", "Patellar Knee Tracking Guard")
+- "region": exactly one of ["ankle", "knee", "hip", "lower_back", "shoulder", "elbow_wrist"]
+- "rule": concise 1-sentence coaching protection rule for a home gym (50 lb dumbbell cap, resistance bands, bodyweight) explaining what exercises to favor or avoid.`;
+
+            const res = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+              })
+            });
+            const data = await res.json();
+            const textOut = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const parsed = JSON.parse(textOut);
+            newChronicLabel.value = parsed.title || localParsed.title;
+            newChronicRegion.value = ['ankle', 'knee', 'hip', 'lower_back', 'shoulder', 'elbow_wrist'].includes(parsed.region) ? parsed.region : localParsed.region;
+            newChronicDescription.value = parsed.rule || localParsed.rule;
+          } catch (e) {
+            newChronicLabel.value = localParsed.title;
+            newChronicRegion.value = localParsed.region;
+            newChronicDescription.value = localParsed.rule;
+          } finally {
+            aiSummarizingChronic.value = false;
+            if (commitSave) {
+              addChronicGuardrail();
+            } else {
+              showToast(`AI titled: "${newChronicLabel.value}"`);
+            }
+          }
+        };
+
+        const addChronicGuardrail = () => {
+          const label = newChronicLabel.value.trim();
+          if (!label) return;
+          const desc = newChronicDescription.value.trim() || defaultRuleForRegion(newChronicRegion.value, label);
+          limits.value.unshift({
+            id: 'chronic-' + Date.now(),
+            region: newChronicRegion.value,
+            label,
+            description: desc,
+            active: true
+          });
+          spokenChronicInput.value = '';
+          newChronicLabel.value = '';
+          newChronicDescription.value = '';
+          saveContextToStorage();
+          showToast(`Added ongoing guardrail: "${label}"`);
+        };
+
+        const removeChronicGuardrail = (id) => {
+          const target = limits.value.find(l => l.id === id);
+          limits.value = limits.value.filter(l => l.id !== id);
+          saveContextToStorage();
+          if (target) showToast(`Removed "${target.label}" from ongoing guardrails.`);
+        };
+
+        const dailyBiometrics = ref({
+          sleepHours: 7.5,
+          sessionMinutesCap: 35,
+          targetDurationMin: 25,
+          targetDurationMax: 40,
+          durationWindowPreset: '25-40'
+        });
+
+        const modalityPreferences = ref({
+          targetDaysPerWeek: 5,
+          cadenceRule: 'pro_trainer_max_2_lifts', // 'pro_trainer_max_2_lifts' | 'alternate_lift_cardio'
+          maxConsecutiveLiftDays: 2,
+          neverRunConsecutiveDays: true,
+          primaryCardio: 'Running',
+          secondaryCardio: 'Rowing',
+          rowingRole: 'full_body_posture_and_variety',
+          targetDurationMin: 25,
+          targetDurationMax: 40,
+          targetWindowLabel: '25–40 min Window'
+        });
+
+        const applyDurationWindowPreset = () => {
+          const val = dailyBiometrics.value.durationWindowPreset;
+          if (val === '20-30') {
+            dailyBiometrics.value.targetDurationMin = 20;
+            dailyBiometrics.value.targetDurationMax = 30;
+            dailyBiometrics.value.sessionMinutesCap = 25;
+          } else if (val === '35-50') {
+            dailyBiometrics.value.targetDurationMin = 35;
+            dailyBiometrics.value.targetDurationMax = 50;
+            dailyBiometrics.value.sessionMinutesCap = 45;
+          } else {
+            dailyBiometrics.value.targetDurationMin = 25;
+            dailyBiometrics.value.targetDurationMax = 40;
+            dailyBiometrics.value.sessionMinutesCap = 35;
+          }
+          modalityPreferences.value.targetDurationMin = dailyBiometrics.value.targetDurationMin;
+          modalityPreferences.value.targetDurationMax = dailyBiometrics.value.targetDurationMax;
+          modalityPreferences.value.targetWindowLabel = `${dailyBiometrics.value.targetDurationMin}–${dailyBiometrics.value.targetDurationMax} min Window`;
+          saveContextToStorage();
+          showToast(`Target workout window set to ${modalityPreferences.value.targetWindowLabel}`);
+        };
+
+        // Athlete Baseline Anthropometrics (DOB: 4/24/1980, Height: 5'11", Weight: 215 lbs)
+        const editingAthleteProfile = ref(false);
+        const athleteProfile = ref({
+          birthDate: '1980-04-24',
+          heightFeet: 5,
+          heightInches: 11,
+          weightLbs: 215
+        });
+
+        const athleteAge = computed(() => {
+          if (!athleteProfile.value.birthDate) return 46;
+          const [y, m, d] = athleteProfile.value.birthDate.split('-').map(Number);
+          const now = new Date();
+          let age = now.getFullYear() - y;
+          if ((now.getMonth() + 1) < m || ((now.getMonth() + 1) === m && now.getDate() < d)) {
+            age--;
+          }
+          return age;
+        });
+
+        const totalHeightInches = computed(() => (Number(athleteProfile.value.heightFeet) || 5) * 12 + (Number(athleteProfile.value.heightInches) || 0));
+        const heightCm = computed(() => Math.round(totalHeightInches.value * 2.54));
+        const athleteBmi = computed(() => {
+          const inches = totalHeightInches.value || 71;
+          const lbs = Number(athleteProfile.value.weightLbs) || 215;
+          return ((lbs / (inches * inches)) * 703).toFixed(1);
+        });
+
+        const simulationScenarios = [
+          {
+            id: 'scen-yesterday-calf-run',
+            label: 'Scenario A: Yesterday = 4.0mi Run + Seated Calf Raise + Goblet Squat',
+            subtext: 'Tests anti-overload rotation + cumulative lower-back/ankle protection',
+            yesterdayLifts: ['Goblet Squat', 'Flat Dumbbell Bench Press', 'Single-Arm Dumbbell Row', 'Seated Calf Raise'],
+            recentRunMiles: 4.0
+          },
+          {
+            id: 'scen-fresh-legs',
+            label: 'Scenario B: Yesterday = Rest Day (0 mi Run, Muscles Fresh)',
+            subtext: 'Tests direct primary goal loading while still respecting active injuries',
+            yesterdayLifts: [],
+            recentRunMiles: 0.0
+          },
+          {
+            id: 'scen-heavy-upper',
+            label: 'Scenario C: Yesterday = Heavy Delts & Lat Pulls (Lateral Raise + Pullover)',
+            subtext: 'Tests upper-body rotation to posterior delts & chest-supported rows',
+            yesterdayLifts: ['Dumbbell Lateral Raise', 'Dumbbell Pullover', 'Incline Dumbbell Bench Press'],
+            recentRunMiles: 1.5
+          }
+        ];
+        const activeScenarioId = ref('scen-yesterday-calf-run');
+        const activeScenario = computed(() => simulationScenarios.find(s => s.id === activeScenarioId.value) || simulationScenarios[0]);
+
+        const isInjuryCurrentlyActive = (inj) => inj.active && (!inj.expiresAt || inj.expiresAt >= todayIso.value);
+        const activeTemporaryInjuries = computed(() => temporaryInjuries.value.filter(isInjuryCurrentlyActive));
+        const activeChronicGuardsCount = computed(() => limits.value.filter(l => l.active).length);
+
+        const daysRemaining = (expiresIso) => {
+          if (!expiresIso) return 0;
+          const diff = Math.ceil((new Date(expiresIso) - new Date(todayIso.value)) / 86400000);
+          return Math.max(0, diff);
+        };
+
+        const readinessScore = computed(() => {
+          let score = 92;
+          if (dailyBiometrics.value.sleepHours < 6.5) score -= 12;
+          if (activeTemporaryInjuries.value.length > 0) score -= 4 * activeTemporaryInjuries.value.length;
+          if (activeScenario.value.recentRunMiles >= 3.5) score -= 4;
+          const activeLife = externalLifeLoadList.value.filter(x => x.active).length;
+          score -= activeLife * 3;
+          const verySoreCount = Object.values(sorenessMap.value).filter(v => v === 2).length;
+          score -= verySoreCount * 4;
+          return Math.max(55, Math.min(98, score));
+        });
+
+        const goalWeeklySetsCompleted = ref(6);
+
+        const setInjuryDurationDays = (days) => {
+          newInjuryExpiresAt.value = getLocalIsoDate(days);
+        };
+
+        const addTemporaryInjury = () => {
+          if (!newInjuryName.value.trim()) return;
+          temporaryInjuries.value.unshift({
+            id: 'temp-' + Date.now(),
+            name: newInjuryName.value.trim(),
+            region: newInjuryRegion.value,
+            severity: newInjurySeverity.value,
+            createdAt: todayIso.value,
+            expiresAt: newInjuryExpiresAt.value,
+            active: true
+          });
+          newInjuryName.value = '';
+          saveContextToStorage();
+          showToast('Saved temporary injury & updated AI circuit parameters.');
+        };
+
+        const toggleTempInjury = (inj) => { inj.active = !inj.active; saveContextToStorage(); };
+        const removeTempInjury = (id) => { temporaryInjuries.value = temporaryInjuries.value.filter(i => i.id !== id); saveContextToStorage(); };
+        const toggleLimit = (limit) => { limit.active = !limit.active; saveContextToStorage(); };
+
+        const getInjuryCoachingImpactText = (inj) => {
+          const map = {
+            ankle: 'Unloads standing axial calf/ankle strain; routes lower-leg goal volume to Seated Calf Raises & side-lying Banded Clamshells.',
+            knee: 'Replaces deep knee-flexion split squats with hip-dominant Glute Bridges and wide Sumo Squats.',
+            hip: 'Avoids deep hip internal rotation; prioritizes neutral-pelvis core and upper-body stations.',
+            lower_back: 'Eliminates unsupported hinge/row shear (swaps RDL & bent rows for Glute Bridge & Chest-Supported Row).',
+            shoulder: 'Restricts overhead and deep-stretch pressing; enforces Dumbbell Floor Press & Band Face Pulls.',
+            elbow_wrist: 'Swaps supinated curls for neutral-grip Hammer Curls and band abduction.'
+          };
+          return map[inj.region] || 'Dynamically filters high-strain stations for this joint vector.';
+        };
+
+        const selectGoalPreset = (preset) => {
+          activeGoal.value = { ...preset };
+          showPrimaryGoalPicker.value = false;
+          saveContextToStorage();
+          showToast(`Primary Goal set to "${preset.title}"`);
+        };
+
+        const buildCustomGoalWithAi = () => {
+          const text = customGoalInput.value.trim();
+          if (!text) return;
+          aiGoalLoading.value = true;
+          const lower = text.toLowerCase();
+          setTimeout(() => {
+            let built;
+            if (lower.includes('calf') || lower.includes('calves') || lower.includes('shin') || lower.includes('ankle')) {
+              built = { ...goalPresets[0], id: 'cust-' + Date.now(), title: text.slice(0, 48), durationWeeks: customGoalWeeks.value, currentWeek: 1 };
+            } else if (lower.includes('shoulder') || lower.includes('delt') || lower.includes('arm')) {
+              built = { ...goalPresets[1], id: 'cust-' + Date.now(), title: text.slice(0, 48), durationWeeks: customGoalWeeks.value, currentWeek: 1 };
+            } else if (lower.includes('v-taper') || lower.includes('lat') || lower.includes('back') || lower.includes('v shape')) {
+              built = { ...goalPresets[2], id: 'cust-' + Date.now(), title: text.slice(0, 48), durationWeeks: customGoalWeeks.value, currentWeek: 1 };
+            } else {
+              built = {
+                ...goalPresets[0],
+                id: 'cust-' + Date.now(),
+                title: text.slice(0, 48),
+                shortTag: 'Custom Block',
+                durationWeeks: customGoalWeeks.value,
+                currentWeek: 1,
+                focusArea: 'custom',
+                description: `AI-structured ${customGoalWeeks.value}-week block tailored to "${text}", alternating primary and secondary lifts across 3 weekly sessions.`
+              };
+            }
+            activeGoal.value = built;
+            customGoalInput.value = '';
+            aiGoalLoading.value = false;
+            showPrimaryGoalPicker.value = false;
+            saveContextToStorage();
+            showToast(`Built ${built.durationWeeks}-week goal block!`);
+          }, 350);
+        };
+
+        const stepZeroPrimers = computed(() => {
+          const drills = [];
+          const addedTitles = new Set();
+          const addDrill = (title, reason, triggerBadge) => {
+            if (!addedTitles.has(title)) {
+              addedTitles.add(title);
+              drills.push({ title, reason, triggerBadge });
+            }
+          };
+
+          // 1. Primary & Secondary Goal-Specific Activation Drills
+          if (activeGoal.value.focusArea === 'calves_shins') {
+            addDrill(
+              'Wall Tibialis Raises & Slow Eccentric Calf Pumps (15 reps)',
+              `Pre-activates anterior tibialis & soleus blood flow for your "${activeGoal.value.shortTag}" block.`,
+              `1° GOAL: ${activeGoal.value.shortTag}`
+            );
+          } else if (activeGoal.value.focusArea === 'shoulders' || secondaryGoalId.value === 'sec-3d-delts') {
+            addDrill(
+              'Band Scapular Wall Slides & External Rotations (12 reps)',
+              'Centrates humeral head and wakes up rotator cuffs before 3D deltoid pressing & abduction.',
+              activeGoal.value.focusArea === 'shoulders' ? '1° GOAL: 3D Delts' : '2° GOAL: 3D Delts'
+            );
+          } else if (activeGoal.value.focusArea === 'v_taper' || secondaryGoalId.value === 'sec-v-taper') {
+            addDrill(
+              'Quadruped Thoracic Rotation & Dead-Hang Lat Stretch (30s/side)',
+              'Opens thoracic spine and ribcage so Dumbbell Pullovers & Rows recruit full lat length.',
+              activeGoal.value.focusArea === 'v_taper' ? '1° GOAL: V-Taper' : '2° GOAL: V-Taper'
+            );
+          }
+
+          if (secondaryGoalId.value === 'sec-core-pelvis') {
+            addDrill(
+              'Supine Pelvic Tilt & Diaphragmatic Rib-Down Breath (8 breaths)',
+              'Locks in rib-to-pelvis stacking for your Secondary Core & Pelvic Armor focus.',
+              '2° GOAL: Core Armor'
+            );
+          }
+
+          // 2. Chronic Guardrails & Active Temporary Injuries
+          const activeAnkleGuards = [
+            ...limits.value.filter(l => l.active && (l.id === 'plantar' || l.region === 'ankle')),
+            ...activeTemporaryInjuries.value.filter(i => i.region === 'ankle')
+          ];
+          if (activeAnkleGuards.length > 0) {
+            const label = activeTemporaryInjuries.value.find(i => i.region === 'ankle')?.name || activeAnkleGuards[0].label;
+            addDrill(
+              'Plantar Fascia Lacrosse Ball Roll & Seated Ankle Circles (45s/foot)',
+              `Releases plantar fascia and warms ankle capsule (${athleteProfile.value.weightLbs} lb body-weight protection) with zero impact.`,
+              `GUARD: ${label.slice(0, 18)}`
+            );
+          }
+
+          const hasDeskOrTravel = limits.value.some(l => l.active && (l.id === 'desk_job' || l.region === 'hip')) ||
+            externalLifeLoadList.value.some(x => x.active && (x.id === 'extra_desk' || x.id === 'long_travel')) ||
+            activeTemporaryInjuries.value.some(i => i.region === 'hip');
+          if (hasDeskOrTravel) {
+            const badge = externalLifeLoadList.value.find(x => x.active && x.id === 'long_travel') ? 'LIFE: Long Travel' : 'GUARD: Desk / Hip';
+            addDrill(
+              'Half-Kneeling Hip Flexor & Psoas Opener (30s/side)',
+              'Releases shortened hip flexors from sitting/travel so your lower back isn’t pulled into hyperextension.',
+              badge
+            );
+          }
+
+          const hasLumbarOrYardWork = limits.value.some(l => l.active && (l.id === 'lower_back' || l.region === 'lower_back')) ||
+            externalLifeLoadList.value.some(x => x.active && x.id === 'yard_work') ||
+            activeTemporaryInjuries.value.some(i => i.region === 'lower_back');
+          if (hasLumbarOrYardWork) {
+            const badge = externalLifeLoadList.value.find(x => x.active && x.id === 'yard_work') ? 'LIFE: Yard Work' : 'GUARD: Lower Back';
+            addDrill(
+              'Cat-Cow Spinal Decompression & Bird-Dog Reach (8/side)',
+              'Unloads lumbar facet compression and pre-fires deep multifidus stabilizers before lifting.',
+              badge
+            );
+          }
+
+          const hasKneeGuard = limits.value.some(l => l.active && l.region === 'knee') ||
+            activeTemporaryInjuries.value.some(i => i.region === 'knee');
+          if (hasKneeGuard) {
+            addDrill(
+              'Spanish Isometric Band Squat Hold or Terminal Knee Extensions (12 reps)',
+              'Warms patellar tendon and vastus medialis (VMO) with zero patellofemoral shear.',
+              'GUARD: Knee Tracking'
+            );
+          }
+
+          const hasShoulderGuard = limits.value.some(l => l.active && (l.id === 'shoulder' || l.region === 'shoulder')) ||
+            activeTemporaryInjuries.value.some(i => i.region === 'shoulder');
+          if (hasShoulderGuard) {
+            addDrill(
+              'Scapular Band Pull-Aparts & No-Money External Rotations (15 light reps)',
+              'Activates infraspinatus and teres minor to protect the shoulder capsule during presses.',
+              'GUARD: Shoulder'
+            );
+          }
+
+          const hasElbowGuard = limits.value.some(l => l.active && l.region === 'elbow_wrist') ||
+            activeTemporaryInjuries.value.some(i => i.region === 'elbow_wrist');
+          if (hasElbowGuard) {
+            addDrill(
+              'Forearm Extensor/Flexor Nerve Glides & Wrist Warm-Up (30s)',
+              'Flushes blood into lateral/medial epicondyle tendons before gripping dumbbells.',
+              'GUARD: Elbow/Wrist'
+            );
+          }
+
+          // 3. Local Muscle Soreness (DOMS) Flush Primers
+          const tightOrSoreZones = sorenessZones.filter(z => sorenessMap.value[z.id] >= 1);
+          if (tightOrSoreZones.length > 0) {
+            const names = tightOrSoreZones.map(z => z.label.split(' ')[0]).join(', ');
+            addDrill(
+              `Targeted Blood-Flow Flush for ${names} (20 Light Bodyweight/Band Reps)`,
+              `You marked ${names} as ${sorenessMap.value[tightOrSoreZones[0].id] === 2 ? 'Very Sore' : 'Tight'}—light rhythmic movement flushes metabolites before Station #1.`,
+              `DOMS: ${names}`
+            );
+          }
+
+          // Fallback if everything is turned off
+          if (drills.length === 0) {
+            addDrill(
+              'Full-Body Dynamic Squat-to-Reach & Band Pull-Aparts (60s)',
+              'Baseline heart-rate and joint-synovial warm-up for a fresh training day.',
+              'BASELINE PRIMER'
+            );
+          }
+
+          return drills;
+        });
+
+        // Simulated 6-Station Circuit based on Primary Goal + Secondary Goal + DOMS + Real-Life Load + 50lb Cap Mode + Banned/Favorites
+        const simulatedStations = computed(() => {
+          const g = activeGoal.value;
+          const scen = activeScenario.value;
+          const ySet = new Set(scen.yesterdayLifts);
+          const hasYardWork = externalLifeLoadList.value.find(x => x.id === 'yard_work')?.active;
+          const hasAnkleGuard = limits.value.some(l => l.active && (l.id === 'plantar' || l.id === 'shin_splints' || l.region === 'ankle')) || activeTemporaryInjuries.value.some(i => i.region === 'ankle');
+          const hasKneeGuard = limits.value.some(l => l.active && l.region === 'knee') || activeTemporaryInjuries.value.some(i => i.region === 'knee');
+          const hasLumbarLoad = limits.value.some(l => l.active && (l.id === 'lower_back' || l.region === 'lower_back')) || activeTemporaryInjuries.value.some(i => i.region === 'lower_back') || scen.recentRunMiles >= 3.0 || hasYardWork;
+          const hasShoulderGuard = limits.value.some(l => l.active && (l.id === 'shoulder' || l.region === 'shoulder')) || activeTemporaryInjuries.value.some(i => i.region === 'shoulder');
+
+          const resolveSafeLift = (preferred, fallback) => isLiftBanned(preferred) ? fallback : preferred;
+
+          const get50lbPrescription = (name, weight) => {
+            if (weight < 45) return '';
+            if (capProgressionMode.value === 'tempo_pause') return '50lb Cap Mode: 3s slow eccentric + 2s bottom stretch pause';
+            if (capProgressionMode.value === 'unilateral') return '50lb Cap Mode: Unilateral single-limb overload';
+            return '50lb Cap Mode: Loop light resistance band with 50lb DB';
+          };
+
+          const pick = (preferredName, fallbackName, reason, isGoalFocus = false, goalBadge = '1° GOAL') => {
+            const name = resolveSafeLift(preferredName, fallbackName);
+            const weight = LIFT_PHOTOS[name]?.weight ?? 25;
+            return {
+              name,
+              weight,
+              reason: isLiftBanned(preferredName) ? `Banned (${preferredName}) overridden → ${name}. ${reason}` : reason,
+              isGoalFocus,
+              goalBadge,
+              isFavorite: isLiftFavorite(name),
+              progressionPrescription: get50lbPrescription(name, weight)
+            };
+          };
+
+          // Station 1: Squat / Quads (Checks Quad DOMS + Knee Guard + 50lb Unilateral Mode + Yesterday)
+          let s1;
+          if (sorenessMap.value.quads === 2 || hasKneeGuard) {
+            s1 = pick('Bodyweight Glute Bridge', 'Band Lateral Walk', hasKneeGuard ? 'Ongoing Knee Guard: Prioritized vertical-shin Glute Bridge over deep knee flexion.' : 'Quad DOMS ("Very Sore"): Skipped heavy knee flexion in favor of glute activation.');
+          } else if (capProgressionMode.value === 'unilateral' && !hasAnkleGuard) {
+            s1 = pick('Dumbbell Bulgarian Split Squat', 'Goblet Squat', '50lb Unilateral Upgrade: Graduated bilateral squat to Bulgarian Split Squat.');
+          } else if (ySet.has('Goblet Squat')) {
+            s1 = pick('Dumbbell Sumo Squat', 'Goblet Squat', 'Anti-Overload: Rotated from yesterday’s Goblet Squat to wide Sumo Squat.');
+          } else {
+            s1 = pick('Goblet Squat', 'Dumbbell Sumo Squat', 'Primary Squat station (Quads fresh).');
+          }
+
+          // Station 2: Push (Checks Chest DOMS + Shoulder Guard + Yesterday)
+          let s2;
+          if (sorenessMap.value.chest === 2 || hasShoulderGuard) {
+            s2 = pick('Dumbbell Floor Press', 'Incline Dumbbell Bench Press', 'Chest DOMS / Shoulder Guard: Floor Press limits extension & protects joints.');
+          } else if (ySet.has('Flat Dumbbell Bench Press')) {
+            s2 = pick('Incline Dumbbell Bench Press', 'Dumbbell Floor Press', 'Anti-Overload: Rotated from yesterday’s Flat Bench to 30-deg Incline Press.');
+          } else {
+            s2 = pick('Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Primary Horizontal Push station.');
+          }
+
+          // Station 3: Hinge (Checks Yard Work + Running Miles + Hamstring DOMS)
+          let s3;
+          if (hasLumbarLoad || sorenessMap.value.posterior === 2) {
+            const why = hasYardWork ? 'Yard Work / Heavy Labor active' : `${scen.recentRunMiles}mi run + spine guard`;
+            s3 = pick('Bodyweight Glute Bridge', 'Band Lateral Walk', `Holistic Guard (${why}): Zero-shear Glute Bridge replaces RDL.`);
+          } else {
+            s3 = pick('Dumbbell Romanian Deadlift (RDL)', 'Bodyweight Glute Bridge', 'Lengthened hamstring hinge.');
+          }
+
+          // Station 4: Upper Pull (Checks Primary V-Taper OR Secondary V-Taper Goal + Yard Work)
+          const wantVTaper = g.focusArea === 'v_taper' || secondaryGoalId.value === 'sec-v-taper';
+          const vBadge = g.focusArea === 'v_taper' ? '1° GOAL' : '2° GOAL';
+          let s4;
+          if (wantVTaper && !ySet.has('Dumbbell Pullover') && sorenessMap.value.back < 2) {
+            s4 = pick('Dumbbell Pullover', 'Chest-Supported Incline Row', `${vBadge} (V-Taper Lats): Lengthened lat pullover stretch with zero lower-back shear.`, true, vBadge);
+          } else if (hasLumbarLoad || ySet.has('Single-Arm Dumbbell Row')) {
+            s4 = pick('Chest-Supported Incline Row', 'Single-Arm Dumbbell Row', 'Unloads lower back & grip while building upper-back width.', wantVTaper, vBadge);
+          } else {
+            s4 = pick('Single-Arm Dumbbell Row', 'Chest-Supported Incline Row', '3-point supported lat row.', wantVTaper, vBadge);
+          }
+
+          // Station 5: Delts / Posture (Checks Primary 3D Delts OR Secondary 3D Delts + DOMS)
+          const wantDelts = g.focusArea === 'shoulders' || secondaryGoalId.value === 'sec-3d-delts';
+          const dBadge = g.focusArea === 'shoulders' ? '1° GOAL' : '2° GOAL';
+          let s5;
+          if (sorenessMap.value.shoulders_arms === 2) {
+            s5 = pick('Band Pull-Apart', 'Band Face Pull', 'Shoulder DOMS ("Very Sore"): Light band flush instead of dumbbell abduction.', wantDelts, dBadge);
+          } else if (ySet.has('Dumbbell Lateral Raise')) {
+            s5 = pick('Dumbbell Rear Delt Reverse Fly', 'Band Face Pull', 'Anti-Overload: Lateral Raise hit yesterday; rotated to Rear Delt Reverse Fly.', wantDelts, dBadge);
+          } else {
+            s5 = pick('Dumbbell Lateral Raise', 'Dumbbell Arnold Press', 'Scapular-plane medial deltoid cap builder.', wantDelts, dBadge);
+          }
+
+          // Station 6: Goal Finisher (Calves/Shin Splints + Calves DOMS check)
+          let s6;
+          if (g.focusArea === 'calves_shins') {
+            if (ySet.has('Seated Calf Raise') || sorenessMap.value.calves === 2) {
+              s6 = pick('Banded Clamshell', 'Band Lateral Walk', '1° Goal (Shin Splints) + Anti-Overload/DOMS: Calves worked/sore; rotates to Banded Clamshell to align hip-to-ankle tracking.', true, '1° GOAL');
+            } else if (hasAnkleGuard || sorenessMap.value.calves === 1) {
+              s6 = pick('Seated Calf Raise', 'Banded Clamshell', '1° Goal (Shin Splints) + Ankle Guard: Bent-knee Seated Calf Raise builds deep soleus without standing Achilles strain.', true, '1° GOAL');
+            } else {
+              s6 = pick('Standing Dumbbell Calf Raise', 'Seated Calf Raise', '1° Goal (Calf & Shin Armor): Full gastrocnemius excursion.', true, '1° GOAL');
+            }
+          } else if (secondaryGoalId.value === 'sec-core-pelvis') {
+            s6 = pick('Dead Bug', 'Banded Clamshell', '2° Goal (Core & Pelvic Armor): Anti-extension core finisher.', true, '2° GOAL');
+          } else {
+            s6 = pick('Band Face Pull', 'Dead Bug', 'Rotator cuff & posture finisher.', true, 'GOAL');
+          }
+
+          return [s1, s2, s3, s4, s5, s6];
+        });
+
+        const applySimulationScenario = (scen) => {
+          activeScenarioId.value = scen.id;
+          geminiCoachBrief.value = '';
+        };
+
+        const askGeminiCoachAnalysis = async () => {
+          aiCoachLoading.value = true;
+          try {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const prompt = `In 2 concise sentences, explain how today's 6-station circuit balances the user's profile (${athleteAge.value}yo, ${athleteProfile.value.heightFeet}'${athleteProfile.value.heightInches}", ${athleteProfile.value.weightLbs} lbs) and 2-3 month goal ("${activeGoal.value.title}") with active injuries (${activeTemporaryInjuries.value.map(i => i.name).join(', ') || 'None'}), chronic guards (${limits.value.filter(l => l.active).map(l => l.label).join(', ')}), and yesterday's workload (${activeScenario.value.label}).`;
+            const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+            const data = await res.json();
+            geminiCoachBrief.value = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Circuit dynamically synthesized across Goal + Guardrails + 48h Muscle Recovery.';
+          } catch (e) {
+            geminiCoachBrief.value = `For your profile (${athleteAge.value} yrs, ${athleteProfile.value.heightFeet}'${athleteProfile.value.heightInches}", ${athleteProfile.value.weightLbs} lb) with "${activeGoal.value.title}" active alongside your ${activeTemporaryInjuries.value.map(i => i.name).join(', ') || 'Plantar/Shin Guardrails'} and ${activeScenario.value.recentRunMiles}mi recent running load, today's lineup rotates away from yesterday's lifts to protect lower-leg tendons while keeping weekly goal volume on track.`;
+          } finally {
+            aiCoachLoading.value = false;
+          }
+        };
+
+        const getExercisePhoto = (name, stage) => {
+          const _v = customCatalogVersion.value;
+          const item = LIFT_PHOTOS[name] || LIFT_PHOTOS['Goblet Squat'];
+          if (stage === 'bottom' && item.customPhotoBottom) return item.customPhotoBottom;
+          if (stage === 'top' && item.customPhotoTop) return item.customPhotoTop;
+          return `${PHOTO_CDN}/${item.slug}/${stage === 'bottom' ? '1.jpg' : '0.jpg'}`;
+        };
+
+        const openFormCardByName = (name) => {
+          const item = LIFT_PHOTOS[name] || LIFT_PHOTOS['Goblet Squat'];
+          activeFormModalLift.value = { name, ...item };
+          showModalPhotoFixer.value = false;
+        };
+
+        // Shared Voice AI Exercise Coach & Gemini TTS inside Module 2 Form Modal
+        const activeTtsSourceId = ref(null);
+        const autoSpeakExerciseAi = ref(true);
+        const exerciseChatHistoryMap = ref({});
+        const exerciseModalQuestionInput = ref('');
+        const isListeningExerciseModal = ref(false);
+        const exerciseAiLoading = ref(false);
+        let currentAudioObj = null;
+
+        const currentExerciseChatList = computed(() => {
+          const name = activeFormModalLift.value?.name;
+          return name ? (exerciseChatHistoryMap.value[name] || []) : [];
+        });
+
+        const stopCurrentAudioPlayback = () => {
+          if (currentAudioObj) { try { currentAudioObj.pause(); } catch (e) {} currentAudioObj = null; }
+          if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+          activeTtsSourceId.value = null;
+        };
+
+        const speakTextOutLoud = async (textToSpeak, sourceId = 'exercise-modal') => {
+          const clean = (textToSpeak || '').replace(/[*#`_~]/g, '').trim();
+          if (!clean) return;
+          stopCurrentAudioPlayback();
+          activeTtsSourceId.value = sourceId;
+          try {
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `Speak naturally like an encouraging personal trainer: ${clean}` }] }],
+                generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } } }
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              if (b64) {
+                const bin = atob(b64);
+                const buf = new ArrayBuffer(44 + bin.length);
+                const view = new DataView(buf);
+                const ws = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+                ws(0, 'RIFF'); view.setUint32(4, 36 + bin.length, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+                view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+                view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+                ws(36, 'data'); view.setUint32(40, bin.length, true);
+                for (let i = 0; i < bin.length; i++) view.setUint8(44 + i, bin.charCodeAt(i));
+                currentAudioObj = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+                currentAudioObj.onended = () => { activeTtsSourceId.value = null; };
+                await currentAudioObj.play();
+                return;
+              }
+            }
+          } catch (e) {}
+          if ('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance(clean);
+            u.onend = () => { activeTtsSourceId.value = null; };
+            window.speechSynthesis.speak(u);
+          } else {
+            activeTtsSourceId.value = null;
+          }
+        };
+
+        const toggleExerciseModalVoiceMic = () => {
+          const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRec) { showToast('Type your question below.'); return; }
+          const rec = new SpeechRec();
+          rec.lang = 'en-US';
+          isListeningExerciseModal.value = true;
+          rec.onresult = (ev) => { exerciseModalQuestionInput.value = ev.results[0][0].transcript; };
+          rec.onend = () => {
+            isListeningExerciseModal.value = false;
+            if (exerciseModalQuestionInput.value.trim()) askAiAboutActiveExercise();
+          };
+          rec.onerror = () => { isListeningExerciseModal.value = false; };
+          rec.start();
+        };
+
+        const askAiAboutActiveExercise = async () => {
+          const ex = activeFormModalLift.value;
+          const q = exerciseModalQuestionInput.value.trim();
+          if (!ex || !q || exerciseAiLoading.value) return;
+          if (!exerciseChatHistoryMap.value[ex.name]) exerciseChatHistoryMap.value[ex.name] = [];
+          exerciseChatHistoryMap.value[ex.name].push({ role: 'user', text: q });
+          exerciseModalQuestionInput.value = '';
+          exerciseAiLoading.value = true;
+          let reply = `For ${ex.name}: ${ex.cue} Watch out for the #1 trap when going too heavy: ${ex.trap}`;
+          try {
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `You are a gym coach answering a question about "${ex.name}" (Cue: ${ex.cue}, Trap: ${ex.trap}). Question: "${q}". Answer in 2 concise spoken sentences.` }] }]
+              })
+            });
+            const data = await res.json();
+            reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || reply;
+          } catch (e) {}
+          exerciseChatHistoryMap.value[ex.name].push({ role: 'coach', text: reply });
+          exerciseAiLoading.value = false;
+          if (autoSpeakExerciseAi.value) speakTextOutLoud(reply, 'exercise-modal');
+        };
+
+        const photoCdn = PHOTO_CDN;
+        const showModalPhotoFixer = ref(false);
+        const modalPhotoSearchQuery = ref('');
+        const externalExerciseDb = ref([
+          { slug: 'Clam', label: 'Clam (Side-Lying Clamshell)', muscles: 'abductors, glutes' },
+          { slug: 'Side_Leg_Raises', label: 'Side Leg Raises (Hip Abduction)', muscles: 'abductors, glutes' },
+          { slug: 'External_Rotation', label: 'External Rotation (Rotator Cuff)', muscles: 'shoulders' },
+          { slug: 'Goblet_Squat', label: 'Goblet Squat', muscles: 'quadriceps, glutes' },
+          { slug: 'Plie_Dumbbell_Squat', label: 'Sumo / Plie DB Squat', muscles: 'adductors, quadriceps' },
+          { slug: 'Split_Squat_with_Dumbbells', label: 'DB Split Squat', muscles: 'quadriceps, glutes' },
+          { slug: 'Dumbbell_Bench_Press', label: 'Flat DB Bench Press', muscles: 'chest, triceps' },
+          { slug: 'Incline_Dumbbell_Press', label: 'Incline DB Press', muscles: 'chest, shoulders' },
+          { slug: 'Dumbbell_Floor_Press', label: 'DB Floor Press', muscles: 'chest, triceps' },
+          { slug: 'Stiff-Legged_Dumbbell_Deadlift', label: 'DB Romanian Deadlift', muscles: 'hamstrings, glutes' },
+          { slug: 'Butt_Lift_Bridge', label: 'Glute Bridge', muscles: 'glutes, hamstrings' },
+          { slug: 'One-Arm_Dumbbell_Row', label: 'Single-Arm DB Row', muscles: 'lats, middle back' },
+          { slug: 'Dumbbell_Incline_Row', label: 'Chest-Supported Incline Row', muscles: 'middle back, lats' },
+          { slug: 'Bent-Arm_Dumbbell_Pullover', label: 'DB Pullover', muscles: 'lats, chest' },
+          { slug: 'Side_Lateral_Raise', label: 'DB Lateral Raise', muscles: 'shoulders' },
+          { slug: 'Seated_Bent-Over_Rear_Delt_Raise', label: 'Rear Delt Reverse Fly', muscles: 'shoulders' },
+          { slug: 'Face_Pull', label: 'Band Face Pull', muscles: 'shoulders, middle back' },
+          { slug: 'Dumbbell_Seated_One-Leg_Calf_Raise', label: 'Seated Calf Raise', muscles: 'calves' },
+          { slug: 'Standing_Dumbbell_Calf_Raise', label: 'Standing DB Calf Raise', muscles: 'calves' },
+          { slug: 'Monster_Walk', label: 'Band Lateral Monster Walk', muscles: 'abductors, glutes' },
+          { slug: 'Dead_Bug', label: 'Dead Bug Core', muscles: 'abdominals' }
+        ]);
+
+        const toggleModalPhotoFixer = () => {
+          showModalPhotoFixer.value = !showModalPhotoFixer.value;
+        };
+
+        const filteredModalPhotoCandidates = computed(() => {
+          const q = modalPhotoSearchQuery.value.trim().toLowerCase();
+          if (!q) return externalExerciseDb.value.slice(0, 36);
+          const terms = q.split(/\s+/).filter(Boolean);
+          return externalExerciseDb.value
+            .filter(c => {
+              const hay = `${c.label} ${c.slug} ${c.muscles || ''}`.toLowerCase();
+              return terms.every(t => hay.includes(t));
+            })
+            .slice(0, 44);
+        });
+
+        const applyModalPhotoSlug = (newSlug) => {
+          if (!activeFormModalLift.value) return;
+          const name = activeFormModalLift.value.name;
+          LIFT_PHOTOS[name] = { ...(LIFT_PHOTOS[name] || {}), slug: newSlug, customPhotoTop: null, customPhotoBottom: null };
+          activeFormModalLift.value = { ...activeFormModalLift.value, slug: newSlug, customPhotoTop: null, customPhotoBottom: null };
+          customCatalogVersion.value++;
+          try {
+            const saved = JSON.parse(localStorage.getItem('basement_custom_catalog') || '[]');
+            const idx = saved.findIndex(x => x.name === name);
+            if (idx >= 0) saved[idx] = { ...saved[idx], slug: newSlug, customPhotoTop: null, customPhotoBottom: null };
+            else saved.push({ name, ...LIFT_PHOTOS[name] });
+            localStorage.setItem('basement_custom_catalog', JSON.stringify(saved));
+          } catch (e) {}
+          showModalPhotoFixer.value = false;
+          showToast(`Updated photo for "${name}" → ${newSlug}`);
+        };
+
+        const buildSharedContractPayload = () => {
+          return {
+            updatedAt: new Date().toISOString(),
+            readinessScore: readinessScore.value,
+            athleteProfile: {
+              ...athleteProfile.value,
+              ageYears: athleteAge.value,
+              totalHeightInches: totalHeightInches.value,
+              bmi: Number(athleteBmi.value)
+            },
+            activeGoal: activeGoal.value,
+            secondaryGoal: secondaryGoalObj.value,
+            mesocyclePhase: currentPhaseDetails.value,
+            capProgressionMode: capProgressionMode.value,
+            exercisePreferences: {
+              favorites: favoriteLifts.value,
+              banned: bannedLifts.value
+            },
+            sorenessMap: sorenessMap.value,
+            externalLifeLoads: externalLifeLoadList.value.filter(x => x.active).map(x => x.id),
+            activeTemporaryInjuries: activeTemporaryInjuries.value,
+            chronicGuardrails: limits.value.filter(l => l.active),
+            dailyBiometrics: dailyBiometrics.value,
+            modalityPreferences: modalityPreferences.value,
+            stepZeroPrimers: stepZeroPrimers.value
+          };
+        };
+
+        const formattedSharedContractJson = computed(() => {
+          return JSON.stringify(buildSharedContractPayload(), null, 2);
+        });
+
+        const saveContextToStorage = () => {
+          try {
+            localStorage.setItem('basement_active_goal', JSON.stringify(activeGoal.value));
+            localStorage.setItem('basement_temp_injuries', JSON.stringify(temporaryInjuries.value));
+            localStorage.setItem('basement_limits', JSON.stringify(limits.value));
+            localStorage.setItem('basement_coach_context', JSON.stringify(buildSharedContractPayload()));
+          } catch (e) {}
+        };
+
+        const loadSharedStateFromStorage = () => {
+          try {
+            const g = localStorage.getItem('basement_active_goal');
+            if (g) activeGoal.value = JSON.parse(g);
+            const t = localStorage.getItem('basement_temp_injuries');
+            if (t) temporaryInjuries.value = JSON.parse(t);
+            const l = localStorage.getItem('basement_limits');
+            if (l) limits.value = JSON.parse(l);
+            const ctxRaw = localStorage.getItem('basement_coach_context');
+            if (ctxRaw) {
+              const parsed = JSON.parse(ctxRaw);
+              if (parsed.athleteProfile) {
+                athleteProfile.value = {
+                  birthDate: parsed.athleteProfile.birthDate || '1980-04-24',
+                  heightFeet: parsed.athleteProfile.heightFeet ?? 5,
+                  heightInches: parsed.athleteProfile.heightInches ?? 11,
+                  weightLbs: parsed.athleteProfile.weightLbs ?? 215
+                };
+              }
+              if (parsed.secondaryGoal?.id) secondaryGoalId.value = parsed.secondaryGoal.id;
+              if (parsed.mesocyclePhase?.id) mesocyclePhase.value = parsed.mesocyclePhase.id;
+              if (parsed.capProgressionMode) capProgressionMode.value = parsed.capProgressionMode;
+              if (parsed.exercisePreferences?.favorites) favoriteLifts.value = parsed.exercisePreferences.favorites;
+              if (parsed.exercisePreferences?.banned) bannedLifts.value = parsed.exercisePreferences.banned;
+              if (parsed.sorenessMap) sorenessMap.value = { ...sorenessMap.value, ...parsed.sorenessMap };
+              if (parsed.dailyBiometrics) dailyBiometrics.value = { ...dailyBiometrics.value, ...parsed.dailyBiometrics };
+              if (parsed.modalityPreferences) modalityPreferences.value = { ...modalityPreferences.value, ...parsed.modalityPreferences };
+            }
+            const customCat = localStorage.getItem('basement_custom_catalog');
+            if (customCat) {
+              const items = JSON.parse(customCat);
+              items.forEach(item => {
+                if (item.name) {
+                  if (item.slug === 'Side_Lying_Hip_Adduction') item.slug = 'Side_Leg_Raises';
+                  if (item.slug === 'External_Rotation_with_Dumbbell') item.slug = 'External_Rotation';
+                  if (item.name === 'Banded Clamshell' && item.slug === 'Side_Bridge') item.slug = 'Clam';
+                  LIFT_PHOTOS[item.name] = { ...(LIFT_PHOTOS[item.name] || {}), ...item };
+                }
+              });
+              customCatalogVersion.value++;
+            }
+          } catch (e) {}
+        };
+
+        onMounted(() => {
+          loadSharedStateFromStorage();
+          saveContextToStorage();
+
+          // Automatic background cross-module sync whenever Module 1 or Module 3 updates photos, custom lifts, or favorites/bans
+          window.addEventListener('storage', (e) => {
+            if (!e.key || e.key.startsWith('basement_')) {
+              loadSharedStateFromStorage();
+            }
+          });
+          window.addEventListener('focus', () => loadSharedStateFromStorage());
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') loadSharedStateFromStorage();
+          });
+        });
+
+        return {
+          todayIso, activeTab, toast, showToast, showContractInspector, activeFormModalLift,
+          activeTtsSourceId, autoSpeakExerciseAi, stopCurrentAudioPlayback, speakTextOutLoud,
+          currentExerciseChatList, exerciseModalQuestionInput, isListeningExerciseModal, exerciseAiLoading,
+          toggleExerciseModalVoiceMic, askAiAboutActiveExercise,
+          athleteProfile, editingAthleteProfile, athleteAge, totalHeightInches, heightCm, athleteBmi,
+          goalPresets, activeGoal, showPrimaryGoalPicker, customGoalInput, customGoalWeeks, aiGoalLoading,
+          secondaryGoalOptions, secondaryGoalId, secondaryGoalObj,
+          showAddSecondaryGoal, newSecondaryGoalTitle, newSecondaryGoalLift, addCustomSecondaryGoal,
+          mesocyclePhases, mesocyclePhase, currentPhaseDetails, mesocyclePhaseLabel,
+          capProgressionModes, capProgressionMode, capProgressionModeLabel,
+          allCatalogLiftNames, favoriteLifts, bannedLifts, isLiftFavorite, isLiftBanned, toggleFavoriteLift, toggleBannedLift,
+          sorenessZones, sorenessMap, cycleMuscleSoreness, resetSorenessMap,
+          externalLifeLoadList,
+          goalWeeklySetsCompleted, selectGoalPreset, buildCustomGoalWithAi,
+          temporaryInjuries, activeTemporaryInjuries, newInjuryName, newInjuryRegion, newInjurySeverity, newInjuryExpiresAt,
+          isInjuryCurrentlyActive, daysRemaining, setInjuryDurationDays, addTemporaryInjury, toggleTempInjury, removeTempInjury, getInjuryCoachingImpactText,
+          limits, activeChronicGuardsCount, toggleLimit,
+          editingChronicGuards, spokenChronicInput, isRecordingChronicVoice, aiSummarizingChronic,
+          newChronicLabel, newChronicRegion, newChronicDescription, chronicGuardPresets,
+          prefillChronicGuardPreset, toggleChronicVoiceRecording, summarizeSpokenChronicGuardWithAi,
+          addChronicGuardrail, removeChronicGuardrail,
+          dailyBiometrics, modalityPreferences, applyDurationWindowPreset, readinessScore, stepZeroPrimers,
+          simulationScenarios, activeScenarioId, applySimulationScenario, simulatedStations,
+          aiCoachLoading, geminiCoachBrief, askGeminiCoachAnalysis,
+          getExercisePhoto, openFormCardByName,
+          photoCdn, showModalPhotoFixer, toggleModalPhotoFixer, modalPhotoSearchQuery, filteredModalPhotoCandidates, applyModalPhotoSlug,
+          formattedSharedContractJson, saveContextToStorage
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

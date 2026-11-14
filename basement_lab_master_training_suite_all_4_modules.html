@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Basement Lab · Master Training Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overflow: hidden;
+    }
+    [v-cloak] { display: none; }
+  </style>
+</head>
+<body class="selection:bg-emerald-500 selection:text-slate-950">
+  <div id="app" v-cloak class="h-screen w-full max-w-md mx-auto flex flex-col bg-slate-950 border-x border-slate-900 shadow-2xl relative overflow-hidden">
+
+    <!-- TOAST NOTIFICATION -->
+    <div v-if="toast" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm px-3.5 py-2 rounded-2xl bg-slate-900/95 border border-emerald-500/60 shadow-2xl flex items-center justify-between gap-2 text-xs backdrop-blur-md">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+        <span class="text-slate-100 font-medium truncate">{{ toast }}</span>
+      </div>
+      <button @click="toast = null" class="text-slate-400 hover:text-white font-bold text-sm px-1">&times;</button>
+    </div>
+
+    <!-- COMPACT MASTER TOP UTILITY BAR (API KEY + BACKUP/RESTORE + MODULE LAUNCHER) -->
+    <header class="px-3 py-2 border-b border-slate-800/90 bg-slate-950/95 flex items-center justify-between gap-2 shrink-0 z-30">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-mono font-black text-emerald-300 uppercase shrink-0">
+          Basement Lab
+        </span>
+        <span class="text-xs font-black text-white truncate">{{ currentModuleObj.title }}</span>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <a
+          :href="currentModuleObj.file"
+          target="_blank"
+          rel="noopener"
+          title="Open active module in full standalone tab"
+          class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-[10px] font-mono text-slate-300 hover:text-white transition"
+        >
+          ↗ Full Tab
+        </a>
+        <button
+          @click="openDataModal"
+          class="px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 hover:border-indigo-400 text-[10px] font-mono font-bold text-indigo-200 transition flex items-center gap-1"
+        >
+          <span>💾 Data &amp; 🔑 Key</span>
+          <span v-if="hasSavedApiKey" class="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Gemini API Key Saved"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- MODULE VIEWPORT: LOADS YOUR 4 STANDALONE GITHUB HTML FILES CLEANLY -->
+    <main class="flex-1 w-full relative bg-slate-950 overflow-hidden">
+      <iframe
+        v-for="mod in modules"
+        :key="mod.id"
+        v-show="activeModuleId === mod.id"
+        :ref="el => setIframeRef(mod.id, el)"
+        :src="mod.file"
+        class="w-full h-full border-0 bg-slate-950"
+        allow="microphone *; autoplay *; clipboard-write *"
+      ></iframe>
+    </main>
+
+    <!-- PERSISTENT 4-MODULE BOTTOM NAVIGATION DOCK -->
+    <nav class="bg-slate-950/95 border-t border-slate-800 px-2.5 py-2 shrink-0 z-30 backdrop-blur-md">
+      <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold">
+        <button
+          v-for="mod in modules"
+          :key="mod.id"
+          @click="switchModule(mod.id)"
+          class="py-2 px-1 rounded-xl flex flex-col items-center justify-center transition"
+          :class="activeModuleId === mod.id ? mod.activeClass : 'text-slate-400 hover:text-white bg-slate-900/60 border border-slate-900'"
+        >
+          <span class="truncate">{{ mod.navLabel }}</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- =================================================================== -->
+    <!-- MASTER DATA BACKUP/RESTORE & LOCAL GEMINI API KEY MODAL             -->
+    <!-- =================================================================== -->
+    <div v-if="showDataModal" @click.self="showDataModal = false" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-indigo-500/50 rounded-2xl w-full max-w-md p-4 space-y-3.5 shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Shared Across All 4 Modules</span>
+            <h3 class="text-sm font-black text-white">Gemini API Key &amp; Master JSON Backup</h3>
+          </div>
+          <button @click="showDataModal = false" class="text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+        </div>
+
+        <!-- 1. Local-Only Gemini API Key (Never Committed to GitHub) -->
+        <div class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">🔑 Gemini API Key (Voice TTS &amp; AI Coach)</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded" :class="hasSavedApiKey ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-400'">
+              {{ hasSavedApiKey ? '✓ Saved in Browser' : 'Not Set' }}
+            </span>
+          </div>
+          <p class="text-[10px] text-slate-400 leading-snug">
+            Saved strictly inside your phone's <code class="text-emerald-300">localStorage["basement_gemini_api_key"]</code> so all 4 standalone modules get live AI coaching &amp; natural <strong>Zephyr</strong> voice replies without ever exposing your key in GitHub.
+          </p>
+          <div class="flex gap-1.5">
+            <input
+              v-model="apiKeyInput"
+              type="password"
+              placeholder="Paste AIzaSy... Gemini API key"
+              class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
+            />
+            <button @click="saveApiKey" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] shrink-0">
+              Save Key
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Full Cross-Module JSON Backup & Restore -->
+        <div class="space-y-1.5 text-xs flex-1 flex flex-col min-h-0">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold uppercase text-slate-400">Master localStorage Snapshot (All 4 Modules)</span>
+            <button @click="refreshBackupJson" class="text-[10px] font-mono text-indigo-300 underline">↻ Refresh</button>
+          </div>
+          <textarea
+            v-model="backupJsonText"
+            rows="7"
+            class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-300 focus:outline-none"
+          ></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button @click="copyBackupJson" class="py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs">
+            📋 Copy Master JSON
+          </button>
+          <button @click="restoreBackupJson" class="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs">
+            📥 Restore &amp; Reload Modules
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    const STORAGE_KEYS = [
+      'basement_coach_context',
+      'basement_active_goal',
+      'basement_temp_injuries',
+      'basement_limits',
+      'basement_logs',
+      'basement_cardio_logs',
+      'basement_sauna_logs',
+      'basement_custom_catalog',
+      'basement_trainer_directives',
+      'basement_trainer_notes'
+    ];
+
+    createApp({
+      setup() {
+        const modules = [
+          {
+            id: 'hub',
+            navLabel: '🏋️ 1. Hub',
+            title: 'Module 1 · Daily Hub & Circuit Coach',
+            file: 'basement-hub-circuit.html',
+            activeClass: 'bg-emerald-500 text-slate-950 font-black shadow'
+          },
+          {
+            id: 'profile',
+            navLabel: '🎯 2. Profile',
+            title: 'Module 2 · Coach Context & Goals',
+            file: 'basement-coach-profile.html',
+            activeClass: 'bg-indigo-500 text-white font-black shadow'
+          },
+          {
+            id: 'catalog',
+            navLabel: '📚 3. Catalog',
+            title: 'Module 3 · Smart Catalog & Form Coach',
+            file: 'basement-catalog.html',
+            activeClass: 'bg-amber-500 text-slate-950 font-black shadow'
+          },
+          {
+            id: 'analytics',
+            navLabel: '📈 4. Trainer',
+            title: 'Module 4 · AI Pro Trainer & Analytics',
+            file: 'basement-analytics.html',
+            activeClass: 'bg-sky-500 text-slate-950 font-black shadow'
+          }
+        ];
+
+        const activeModuleId = ref('hub');
+        const toast = ref(null);
+        const showDataModal = ref(false);
+        const apiKeyInput = ref('');
+        const backupJsonText = ref('');
+        const iframeRefs = {};
+
+        const setIframeRef = (id, el) => {
+          if (el) iframeRefs[id] = el;
+        };
+
+        const currentModuleObj = computed(() =>
+          modules.find(m => m.id === activeModuleId.value) || modules[0]
+        );
+
+        const hasSavedApiKey = computed(() => Boolean(apiKeyInput.value && apiKeyInput.value.trim()));
+
+        const showToast = (msg) => {
+          toast.value = msg;
+          setTimeout(() => { if (toast.value === msg) toast.value = null; }, 3200);
+        };
+
+        // When switching tabs, trigger a focus/storage sync inside the newly shown module iframe
+        // so any changes made in another tab are reflected immediately without a page reload.
+        const switchModule = (id) => {
+          activeModuleId.value = id;
+          const targetFrame = iframeRefs[id];
+          if (targetFrame && targetFrame.contentWindow) {
+            try {
+              targetFrame.contentWindow.dispatchEvent(new Event('focus'));
+              targetFrame.contentWindow.dispatchEvent(new StorageEvent('storage', { key: 'basement_coach_context' }));
+            } catch (e) {}
+          }
+        };
+
+        const refreshBackupJson = () => {
+          const payload = { exportedAt: new Date().toISOString() };
+          STORAGE_KEYS.forEach(k => {
+            try {
+              const raw = localStorage.getItem(k);
+              if (raw) payload[k] = JSON.parse(raw);
+            } catch (e) {}
+          });
+          backupJsonText.value = JSON.stringify(payload, null, 2);
+        };
+
+        const openDataModal = () => {
+          apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
+          refreshBackupJson();
+          showDataModal.value = true;
+        };
+
+        const saveApiKey = () => {
+          const clean = (apiKeyInput.value || '').trim();
+          if (clean) {
+            localStorage.setItem('basement_gemini_api_key', clean);
+            showToast('🔑 Saved Gemini API key to browser storage!');
+          } else {
+            localStorage.removeItem('basement_gemini_api_key');
+            showToast('Cleared local Gemini API key.');
+          }
+        };
+
+        const copyBackupJson = () => {
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = backupJsonText.value;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('📋 Copied master JSON backup to clipboard!');
+          } catch (e) {
+            showToast('Select and copy the JSON text above.');
+          }
+        };
+
+        const restoreBackupJson = () => {
+          try {
+            const parsed = JSON.parse(backupJsonText.value || '{}');
+            STORAGE_KEYS.forEach(k => {
+              if (parsed[k] !== undefined) {
+                localStorage.setItem(k, JSON.stringify(parsed[k]));
+              }
+            });
+            Object.values(iframeRefs).forEach(frame => {
+              if (frame && frame.contentWindow) {
+                try { frame.contentWindow.location.reload(); } catch (e) {}
+              }
+            });
+            showDataModal.value = false;
+            showToast('📥 Restored master JSON & refreshed all 4 modules!');
+          } catch (e) {
+            showToast('⚠️ Invalid JSON — please check the backup text.');
+          }
+        };
+
+        onMounted(() => {
+          apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
+        });
+
+        return {
+          modules,
+          activeModuleId,
+          currentModuleObj,
+          toast,
+          showDataModal,
+          apiKeyInput,
+          hasSavedApiKey,
+          backupJsonText,
+          setIframeRef,
+          switchModule,
+          openDataModal,
+          saveApiKey,
+          refreshBackupJson,
+          copyBackupJson,
+          restoreBackupJson
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Basement Lab · Module 3: Smart Catalog &amp; Visual Form Coach</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    [v-cloak] { display: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="selection:bg-indigo-500 selection:text-white">
+  <div id="app" v-cloak class="min-h-screen flex flex-col justify-between max-w-md mx-auto relative bg-slate-950 border-x border-slate-900 shadow-2xl">
+
+    <!-- TOAST NOTIFICATION -->
+    <div v-if="toast" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm px-3.5 py-2.5 rounded-2xl bg-slate-900/95 border border-indigo-500/60 shadow-2xl flex items-center justify-between gap-2 text-xs backdrop-blur-md">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+        <span class="text-slate-100 font-medium truncate">{{ toast }}</span>
+      </div>
+      <button @click="toast = null" class="text-slate-400 hover:text-white font-bold text-sm px-1">&times;</button>
+    </div>
+
+    <!-- TOP MODULE HEADER & TELEMETRY -->
+    <header class="px-4 pt-3 pb-3 border-b border-slate-800/90 bg-slate-950/90 sticky top-0 z-30 backdrop-blur-md space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">MODULE 3 OF 4</span>
+            <span class="text-[10px] font-bold text-slate-400 font-mono">{{ allExercises.length }} Lifts ({{ customCount }} Custom)</span>
+          </div>
+          <h1 class="text-base font-black tracking-tight text-white mt-0.5">Smart Catalog &amp; Visual Form Coach</h1>
+        </div>
+        <button
+          @click="showQuickAddModal = true"
+          class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition shrink-0"
+        >
+          + AI Add Lift
+        </button>
+      </div>
+
+      <!-- Shared Context Sync Bar -->
+      <div class="flex items-center justify-between gap-1 text-[10px] font-mono bg-slate-900/90 border border-slate-800/90 rounded-xl px-2.5 py-1.5">
+        <span class="text-indigo-300 truncate"><strong>1&deg; Goal:</strong> {{ coachCtx.activeGoal.shortTag }}</span>
+        <span class="text-slate-600">|</span>
+        <span :class="brokenPhotoCount > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'">
+          {{ brokenPhotoCount > 0 ? `⚠️ ${brokenPhotoCount} Photo Issue` : `✓ ${verifiedPhotoCount}/${allExercises.length} Photos Verified` }}
+        </span>
+        <span class="text-slate-600">|</span>
+        <span class="text-amber-300"><strong>Favs:</strong> {{ favoriteLifts.length }} &#9733;</span>
+        <button @click="runFullPhotoAudit()" class="text-emerald-400 underline ml-1">&#8635; Audit</button>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="space-y-2 pt-0.5">
+        <div class="relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search exercise, muscle (e.g., soleus, glute medius, lats), or cue..."
+            class="w-full pl-3 pr-8 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+          <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-sm font-bold">&times;</button>
+        </div>
+
+        <!-- Category Filter Pills -->
+        <div class="flex gap-1 overflow-x-auto no-scrollbar pb-0.5">
+          <button
+            v-for="cat in categories"
+            :key="cat"
+            @click="selectedCategory = cat"
+            class="px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap border transition"
+            :class="selectedCategory === cat ? 'bg-indigo-500 text-white border-indigo-400 shadow' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'"
+          >
+            {{ cat }}
+          </button>
+        </div>
+
+        <!-- Equipment & Status Filter Row -->
+        <div class="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar text-[10px]">
+          <div class="flex gap-1">
+            <button
+              v-for="eq in ['All Equip', 'Dumbbell', 'Band', 'Bodyweight']"
+              :key="eq"
+              @click="selectedEquipment = eq"
+              class="px-2 py-0.5 rounded-md font-mono font-bold border transition whitespace-nowrap"
+              :class="selectedEquipment === eq ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'"
+            >
+              {{ eq }}
+            </button>
+          </div>
+          <div class="flex gap-1 shrink-0">
+            <button
+              @click="filterMode = filterMode === 'favorites' ? 'all' : 'favorites'"
+              class="px-2 py-0.5 rounded-md font-mono font-bold border transition"
+              :class="filterMode === 'favorites' ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-900 text-amber-300 border-slate-800'"
+            >
+              &#9733; Favs
+            </button>
+            <button
+              @click="filterMode = filterMode === 'goal' ? 'all' : 'goal'"
+              class="px-2 py-0.5 rounded-md font-mono font-bold border transition"
+              :class="filterMode === 'goal' ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-slate-900 text-indigo-300 border-slate-800'"
+            >
+              🎯 Goal Lifts
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT: EXERCISE CATALOG LIST -->
+    <main class="flex-1 px-4 pt-3 pb-24 space-y-3">
+
+      <!-- Active Filter Summary & Coverage Audit Banner -->
+      <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2 text-xs">
+        <div class="min-w-0">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Home Gym Constraints Locked</span>
+          <span class="text-[11px] text-slate-300"> Dumbbells (&le;50 lb) &bull; Bands (Yellow&ndash;Black) &bull; Bench &bull; Bodyweight</span>
+        </div>
+        <span class="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono font-bold text-slate-300 shrink-0">
+          Showing {{ filteredExercises.length }}
+        </span>
+      </div>
+
+      <!-- Exercise Cards -->
+      <div class="space-y-3">
+        <div
+          v-for="ex in filteredExercises"
+          :key="ex.name"
+          class="p-3.5 rounded-2xl bg-slate-900 border transition space-y-2.5 shadow-lg"
+          :class="isBanned(ex.name) ? 'border-rose-500/40 opacity-70' : (isFavorite(ex.name) ? 'border-amber-400/50' : (isGoalLift(ex.name) ? 'border-indigo-500/50' : 'border-slate-800'))"
+        >
+          <div class="flex items-start gap-3">
+            <!-- Left: 2-Stage Human Photo Thumbnail Pair (Tap to Open Form Coach & Photo Fixer) -->
+            <div
+              @click="openExerciseDetail(ex)"
+              class="flex gap-0.5 rounded-xl overflow-hidden border shrink-0 w-28 cursor-pointer relative group"
+              :class="photoHealthMap[ex.name] === 'error' ? 'border-rose-500' : 'border-slate-700'"
+            >
+              <img
+                :src="getExercisePhoto(ex, 'top')"
+                @load="markPhotoLoaded(ex.name)"
+                @error="handlePhotoError(ex, 'top', $event)"
+                class="w-1/2 h-16 object-cover bg-slate-950"
+              />
+              <img
+                :src="getExercisePhoto(ex, 'bottom')"
+                @load="markPhotoLoaded(ex.name)"
+                @error="handlePhotoError(ex, 'bottom', $event)"
+                class="w-1/2 h-16 object-cover bg-slate-950"
+              />
+              <span
+                class="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded bg-slate-950/90 text-[8px] font-mono"
+                :class="ex.customPhotoTop ? 'text-amber-300' : 'text-emerald-300'"
+              >
+                {{ ex.customPhotoTop ? '✨ AI/Custom' : '2-Stage ✓' }}
+              </span>
+            </div>
+
+            <!-- Right: Full-Width Info & Quick Cue -->
+            <div class="flex-1 min-w-0 w-full space-y-1">
+              <div class="flex items-start justify-between gap-2 w-full">
+                <div @click="openExerciseDetail(ex)" class="cursor-pointer min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <h2 class="text-xs sm:text-sm font-black text-white underline decoration-dotted leading-snug" :class="isBanned(ex.name) ? 'line-through text-rose-300' : ''">
+                      {{ ex.name }}
+                    </h2>
+                    <span v-if="isGoalLift(ex.name)" class="px-1.5 py-0.2 rounded bg-indigo-500/20 border border-indigo-500/40 text-[8px] font-mono font-bold text-indigo-300">
+                      {{ getGoalBadge(ex.name) }}
+                    </span>
+                    <span v-if="ex.isCustom" class="px-1.5 py-0.2 rounded bg-emerald-500/20 border border-emerald-500/40 text-[8px] font-mono font-bold text-emerald-300">
+                      CUSTOM / AI
+                    </span>
+                  </div>
+                  <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+                    {{ ex.category }} &bull; {{ ex.equipment }}
+                    <span v-if="ex.equipment === 'Dumbbell' && ex.weight > 0" class="text-emerald-400 font-bold">&bull; Default {{ ex.weight }} lb &times; {{ ex.reps }}</span>
+                    <span v-else-if="ex.equipment === 'Band'" class="text-teal-300 font-bold">&bull; Band &times; {{ ex.reps }}</span>
+                    <span v-else class="text-sky-300 font-bold">&bull; {{ ex.reps }} reps</span>
+                  </div>
+                </div>
+
+                <!-- Favorite (★) & Ban (⊘) Quick Toggles (Synced with Module 2) -->
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    @click="toggleFavorite(ex.name)"
+                    title="Boost in AI Circuit (Favorite)"
+                    class="w-7 h-7 rounded-lg border flex items-center justify-center text-xs transition"
+                    :class="isFavorite(ex.name) ? 'bg-amber-500 text-slate-950 border-amber-300 font-black' : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-white'"
+                  >
+                    &#9733;
+                  </button>
+                  <button
+                    @click="toggleBanned(ex.name)"
+                    title="Never Suggest in AI Circuit (Ban)"
+                    class="w-7 h-7 rounded-lg border flex items-center justify-center text-xs transition"
+                    :class="isBanned(ex.name) ? 'bg-rose-500 text-white border-rose-400 font-black' : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-white'"
+                  >
+                    &oslash;
+                  </button>
+                </div>
+              </div>
+
+              <!-- Target Muscles -->
+              <div class="text-[10px] text-indigo-300 font-semibold">
+                🎯 {{ ex.muscles }}
+              </div>
+
+              <!-- Full-Width Untruncated Quick Cue -->
+              <p class="w-full text-[11px] font-semibold text-emerald-300 leading-snug pt-0.5">
+                &#9889; {{ ex.quickCue }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Guardrail / Biomechanical Compatibility Footer -->
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[10px]">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span
+                v-if="getGuardrailWarning(ex.name)"
+                class="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-500/40 text-amber-300 font-medium"
+              >
+                &#9888;&#65039; {{ getGuardrailWarning(ex.name) }}
+              </span>
+              <span
+                v-else
+                class="px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 font-mono"
+              >
+                &#10003; Joint-Safe for Current Guardrails
+              </span>
+              <span v-if="getPersonalBestText(ex.name)" class="text-slate-400 font-mono">
+                &bull; Best: <strong class="text-white">{{ getPersonalBestText(ex.name) }}</strong>
+              </span>
+            </div>
+
+            <button
+              @click="openExerciseDetail(ex)"
+              class="text-[10px] font-black text-indigo-300 hover:text-white underline shrink-0"
+            >
+              Full Form &amp; Photo Fixer &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="filteredExercises.length === 0" class="p-8 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-2">
+        <p class="text-xs text-slate-400">No exercises match "{{ searchQuery }}" under your current filters.</p>
+        <button @click="openQuickAddWithSeed(searchQuery)" class="px-3.5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs">
+          ✨ AI Build "{{ searchQuery || 'New Exercise' }}" &amp; Add to Catalog
+        </button>
+      </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: FULL 2-STAGE FORM COACH + VISUAL PHOTO SLUG FIXER + EDIT     -->
+    <!-- ===================================================================== -->
+    <div v-if="activeExercise" @click.self="activeExercise = null" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-4 space-y-3.5 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono uppercase">
+                {{ activeExercise.equipment }} &bull; {{ activeExercise.category }}
+              </span>
+              <span v-if="isGoalLift(activeExercise.name)" class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">
+                {{ getGoalBadge(activeExercise.name) }}
+              </span>
+            </div>
+            <h3 class="text-base font-black text-white mt-1">{{ activeExercise.name }}</h3>
+          </div>
+          <button @click="activeExercise = null" class="w-7 h-7 rounded-full bg-slate-800 text-slate-300 hover:text-white font-bold text-sm flex items-center justify-center">&times;</button>
+        </div>
+
+        <!-- 2-Stage Human Photos with Instant Photo Fixer Drawer Toggle -->
+        <div class="space-y-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+              <div class="px-2 py-1 bg-slate-900/90 text-[9px] font-mono font-bold text-emerald-400 uppercase">1. Setup / Start (0.jpg)</div>
+              <img
+                :src="getExercisePhoto(activeExercise, 'top')"
+                @error="handlePhotoError(activeExercise, 'top', $event)"
+                class="w-full h-36 object-cover bg-slate-950"
+              />
+              <div class="p-2 text-[10px] text-slate-200 leading-snug">{{ activeExercise.topCue }}</div>
+            </div>
+            <div class="rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+              <div class="px-2 py-1 bg-slate-900/90 text-[9px] font-mono font-bold text-sky-400 uppercase">2. Peak / End (1.jpg)</div>
+              <img
+                :src="getExercisePhoto(activeExercise, 'bottom')"
+                @error="handlePhotoError(activeExercise, 'bottom', $event)"
+                class="w-full h-36 object-cover bg-slate-950"
+              />
+              <div class="p-2 text-[10px] text-slate-200 leading-snug">{{ activeExercise.bottomCue }}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 text-[10px] px-1">
+            <span class="font-mono text-slate-400 truncate">
+              Source: <strong class="text-emerald-300">{{ activeExercise.customPhotoTop ? 'Custom / AI Photo' : activeExercise.slug }}</strong>
+            </span>
+            <button
+              @click="openPhotoFixerDrawer()"
+              class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-black transition shrink-0"
+            >
+              {{ showPhotoFixer ? 'Close Photo Fixer ▲' : '🖼️ Search 870+ DB or AI Generate ▼' }}
+            </button>
+          </div>
+
+          <!-- FULL 873-EXERCISE GLOBAL PHOTO SEARCH + AI EXACT PHOTO GENERATOR + CUSTOM URL -->
+          <div v-if="showPhotoFixer" class="p-3 rounded-xl bg-slate-950 border border-amber-500/50 space-y-3 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <span class="text-[10px] font-black uppercase text-amber-300 block">1. Search Full 873-Exercise Photo Repository</span>
+                <span class="text-[10px] text-slate-400">
+                  {{ externalDbLoaded ? `Loaded ${externalExerciseDb.length} real human exercise photo pairs` : 'Loading full 873-exercise database...' }}
+                </span>
+              </div>
+              <button
+                @click="generateAiExactTwoStagePhotos(activeExercise)"
+                :disabled="aiPhotoGenerating"
+                class="px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] shrink-0 disabled:opacity-40 shadow"
+              >
+                {{ aiPhotoGenerating ? '✨ Generating Photo...' : '✨ AI Generate Exact Photo' }}
+              </button>
+            </div>
+
+            <div class="relative">
+              <input
+                v-model="photoSearchQuery"
+                type="text"
+                placeholder="Search 873+ exercises by name or muscle (e.g., clam, abduction, external rotation, calf, row)..."
+                class="w-full pl-2.5 pr-7 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+              />
+              <button v-if="photoSearchQuery" @click="photoSearchQuery = ''" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white font-bold">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+              <button
+                v-for="cand in filteredPhotoSlugCandidates"
+                :key="cand.slug"
+                @click="applyNewPhotoSlug(activeExercise, cand.slug)"
+                class="p-1.5 rounded-xl border text-left transition space-y-1"
+                :class="activeExercise.slug === cand.slug && !activeExercise.customPhotoTop ? 'bg-amber-500/20 border-amber-400 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'"
+              >
+                <div class="flex gap-0.5 rounded overflow-hidden bg-slate-950">
+                  <img :src="`${photoCdn}/${cand.slug}/0.jpg`" loading="lazy" class="w-1/2 h-14 object-cover" />
+                  <img :src="`${photoCdn}/${cand.slug}/1.jpg`" loading="lazy" class="w-1/2 h-14 object-cover" />
+                </div>
+                <div class="text-[10px] font-bold text-white truncate">{{ cand.label }}</div>
+                <div class="text-[8px] font-mono text-slate-400 truncate">{{ cand.muscles }}</div>
+              </button>
+            </div>
+
+            <!-- Custom Direct Image URL Fallback -->
+            <div class="pt-2 border-t border-slate-800 space-y-1.5">
+              <div class="text-[10px] font-bold uppercase text-slate-400">Or Paste Any Direct Image URLs (Start &amp; Peak):</div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <input v-model="customTopUrlInput" type="text" placeholder="1. Start Photo URL..." class="px-2 py-1.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-white" />
+                <input v-model="customBottomUrlInput" type="text" placeholder="2. Peak Photo URL..." class="px-2 py-1.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-white" />
+              </div>
+              <div class="flex justify-end gap-1.5">
+                <button v-if="activeExercise.customPhotoTop" @click="clearCustomPhotos(activeExercise)" class="px-2 py-1 rounded bg-slate-800 text-[10px] text-rose-300 font-bold">
+                  Revert to DB Slug
+                </button>
+                <button @click="applyCustomPhotoUrls(activeExercise)" :disabled="!customTopUrlInput.trim()" class="px-2.5 py-1 rounded bg-indigo-500 text-white text-[10px] font-black disabled:opacity-40">
+                  Save Custom URLs
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- VOICE-FIRST AI EXERCISE COACH (DIRECTLY BELOW PHOTOS)           -->
+        <!-- =============================================================== -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950/75 via-slate-950 to-slate-950 border-2 border-indigo-500/50 space-y-2.5 text-xs shadow-lg">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300 block">
+                🗣️ Voice AI Exercise Coach &bull; Natural Spoken Replies
+              </span>
+              <h4 class="text-xs font-black text-white">
+                Ask Anything About {{ activeExercise.name }}
+              </h4>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button
+                v-if="activeTtsSourceId === 'exercise-modal'"
+                @click="stopCurrentAudioPlayback"
+                class="px-2 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black animate-pulse"
+              >
+                ⏹ Stop Audio
+              </button>
+              <button
+                @click="autoSpeakExerciseAi = !autoSpeakExerciseAi"
+                class="px-2 py-1 rounded-lg border text-[10px] font-mono font-bold"
+                :class="autoSpeakExerciseAi ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400'"
+              >
+                {{ autoSpeakExerciseAi ? '🔊 Voice ON' : '🔇 Voice OFF' }}
+              </button>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-300 leading-snug">
+            Tap <strong>🎤 Speak</strong> while in the gym (e.g., <em>"What are the symptoms of using too heavy of weights on this?"</em> or <em>"How do I protect my joints?"</em>).
+          </p>
+
+          <!-- Conversation History for This Specific Exercise -->
+          <div v-if="currentExerciseChatList.length > 0" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <div
+              v-for="(msg, idx) in currentExerciseChatList"
+              :key="idx"
+              class="p-2.5 rounded-xl space-y-1"
+              :class="msg.role === 'user' ? 'bg-indigo-600/25 border border-indigo-500/40 ml-4 text-white' : 'bg-slate-900 border border-emerald-500/40 mr-2 text-slate-100'"
+            >
+              <div class="flex items-center justify-between text-[9px] font-mono">
+                <span class="font-black uppercase" :class="msg.role === 'user' ? 'text-indigo-300' : 'text-emerald-400'">
+                  {{ msg.role === 'user' ? 'You Asked' : '🏋️‍♂️ AI Exercise Coach' }}
+                </span>
+                <button
+                  v-if="msg.role === 'coach'"
+                  @click="speakTextOutLoud(msg.text, 'exercise-modal')"
+                  class="text-emerald-300 hover:text-white underline font-bold"
+                >
+                  🔊 Replay Voice
+                </button>
+              </div>
+              <p class="text-[11px] leading-relaxed whitespace-pre-line">{{ msg.text }}</p>
+            </div>
+          </div>
+
+          <div v-if="exerciseAiLoading" class="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/40 text-[11px] font-mono text-emerald-300 animate-pulse">
+            🏋️‍♂️ Coach is analyzing {{ activeExercise.name }} mechanics &amp; preparing voice reply...
+          </div>
+
+          <!-- Voice Mic + Text Input Bar -->
+          <div class="flex gap-1.5">
+            <button
+              @click="toggleExerciseModalVoiceMic"
+              type="button"
+              class="px-3 py-2 rounded-xl border font-mono font-black text-xs transition shrink-0 flex items-center gap-1"
+              :class="isListeningExerciseModal ? 'bg-rose-500 text-white border-rose-300 animate-pulse' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/30'"
+            >
+              <span>{{ isListeningExerciseModal ? '⏹ Stop' : '🎤 Speak' }}</span>
+            </button>
+            <input
+              v-model="exerciseModalQuestionInput"
+              @keyup.enter="askAiAboutActiveExercise"
+              type="text"
+              :placeholder="`Ask about ${activeExercise.name} (e.g., symptoms of too heavy weight)...`"
+              class="flex-1 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-400"
+            />
+            <button
+              @click="askAiAboutActiveExercise"
+              :disabled="!exerciseModalQuestionInput.trim() || exerciseAiLoading"
+              class="px-3 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs shrink-0 disabled:opacity-40 shadow"
+            >
+              Ask
+            </button>
+          </div>
+        </div>
+
+        <!-- Editable Quick-Hit Reminder Cue (BELOW VOICE AI COACH) -->
+        <div class="p-3 rounded-xl bg-emerald-950/25 border-2 border-emerald-500/40 space-y-1.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">&#9889; Guided Player Quick Cue (Remember on Every Rep)</span>
+            <button @click="editingCue = !editingCue" class="text-[10px] font-bold text-slate-300 underline">
+              {{ editingCue ? 'Done' : 'Edit Cue' }}
+            </button>
+          </div>
+          <textarea
+            v-if="editingCue"
+            v-model="activeExercise.quickCue"
+            @change="persistCatalogOverride(activeExercise)"
+            rows="2"
+            class="w-full p-2 rounded-lg bg-slate-950 border border-emerald-500/50 text-xs text-white"
+          ></textarea>
+          <p v-else class="text-xs font-extrabold text-emerald-100 leading-snug">
+            {{ activeExercise.quickCue }}
+          </p>
+        </div>
+
+        <!-- Step-by-Step Good Form, Breakdown Traps & Joint Science -->
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Primary &amp; Secondary Muscles Worked</span>
+            <p class="font-bold text-white mt-0.5">{{ activeExercise.muscles }}</p>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">How to Perform (Step-by-Step Good Form)</span>
+            <p class="text-slate-200 whitespace-pre-line leading-relaxed mt-0.5">{{ activeExercise.cue }}</p>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">What to Watch Out For (Visual Breakdown Traps)</span>
+            <p class="text-amber-100/90 whitespace-pre-line leading-relaxed mt-0.5">{{ activeExercise.trap }}</p>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Basement Lab Joint &amp; Hypertrophy Science</span>
+            <p class="text-slate-400 leading-snug mt-0.5">{{ activeExercise.science }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button
+            v-if="activeExercise.isCustom"
+            @click="deleteCustomExercise(activeExercise.name)"
+            class="px-3 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-xs"
+          >
+            Delete Custom Lift
+          </button>
+          <button @click="activeExercise = null" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">
+            Close Form Card
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: AI QUICK-ADD & BIOMECHANICAL ENRICHMENT ENGINE               -->
+    <!-- ===================================================================== -->
+    <div v-if="showQuickAddModal" @click.self="showQuickAddModal = false" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-slate-900 border border-emerald-500/50 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl my-auto">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">AI Exercise Enrichment Engine</span>
+            <h3 class="text-base font-black text-white">Add New Home-Gym Exercise to Catalog</h3>
+          </div>
+          <button @click="showQuickAddModal = false" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+        </div>
+
+        <p class="text-[11px] text-slate-300 leading-snug">
+          Type any exercise name or target muscle (e.g., <em>"Zottman Curl"</em>, <em>"Single-Leg RDL"</em>, <em>"Band Hip Flexor March"</em>). AI automatically populates the 2-stage human photo slug, quick-hit form cue, numbered steps, and breakdown trap.
+        </p>
+
+        <div class="space-y-2 text-xs">
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Exercise Name</label>
+            <input
+              v-model="newExName"
+              type="text"
+              placeholder="e.g., Dumbbell Hammer Curl, Single-Leg Glute Bridge..."
+              class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"
+            />
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Category</label>
+              <select v-model="newExCategory" class="w-full px-2 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                <option value="Lower">Lower</option>
+                <option value="Upper Push">Upper Push</option>
+                <option value="Upper Pull">Upper Pull</option>
+                <option value="Shoulders">Shoulders</option>
+                <option value="Calves & Hips">Calves &amp; Hips</option>
+                <option value="Core">Core</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Equipment</label>
+              <select v-model="newExEquipment" class="w-full px-2 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white">
+                <option value="Dumbbell">Dumbbell (&le;50 lb)</option>
+                <option value="Band">Resistance Band</option>
+                <option value="Bodyweight">Bodyweight</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Default Load (lb)</label>
+              <input v-model.number="newExWeight" type="number" min="0" max="50" step="2.5" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Optional Notes / Focus</label>
+            <input
+              v-model="newExNotes"
+              type="text"
+              placeholder="e.g., Neutral grip to protect elbows, pause 2s at top..."
+              class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white"
+            />
+          </div>
+        </div>
+
+        <button
+          @click="createEnrichedExercise"
+          :disabled="!newExName.trim() || aiEnrichLoading"
+          class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg disabled:opacity-40"
+        >
+          {{ aiEnrichLoading ? '✨ AI Enriching Form Cues & 2-Stage Photos...' : '✨ AI Enrich & Save to Permanent Catalog' }}
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+    const PHOTO_CDN = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
+    const FULL_DB_JSON_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json';
+
+    // Verified 100% existing slugs in yuhonas/free-exercise-db (zero 404s)
+    const VERIFIED_PHOTO_SLUGS = [
+      { slug: 'Clam', label: 'Clam (Side-Lying Clamshell)', muscles: 'abductors, glutes' },
+      { slug: 'Side_Leg_Raises', label: 'Side Leg Raises (Side-Lying Hip Abduction)', muscles: 'abductors, glutes' },
+      { slug: 'External_Rotation', label: 'External Rotation (Rotator Cuff)', muscles: 'shoulders' },
+      { slug: 'External_Rotation_with_Cable', label: 'External Rotation with Band/Cable', muscles: 'shoulders' },
+      { slug: 'Standing_Hip_Circles', label: 'Standing Hip Abduction / Circles', muscles: 'abductors' },
+      { slug: 'Goblet_Squat', label: 'Goblet Squat', muscles: 'quadriceps, glutes' },
+      { slug: 'Plie_Dumbbell_Squat', label: 'Sumo / Plie DB Squat', muscles: 'adductors, quadriceps' },
+      { slug: 'Split_Squat_with_Dumbbells', label: 'DB Split Squat', muscles: 'quadriceps, glutes' },
+      { slug: 'Dumbbell_Bench_Press', label: 'Flat DB Bench Press', muscles: 'chest, triceps' },
+      { slug: 'Incline_Dumbbell_Press', label: 'Incline DB Press', muscles: 'chest, shoulders' },
+      { slug: 'Dumbbell_Floor_Press', label: 'DB Floor Press', muscles: 'chest, triceps' },
+      { slug: 'Stiff-Legged_Dumbbell_Deadlift', label: 'DB Romanian Deadlift', muscles: 'hamstrings, glutes' },
+      { slug: 'Butt_Lift_Bridge', label: 'Glute Bridge', muscles: 'glutes, hamstrings' },
+      { slug: 'One-Arm_Dumbbell_Row', label: 'Single-Arm DB Row', muscles: 'lats, middle back' },
+      { slug: 'Dumbbell_Incline_Row', label: 'Chest-Supported Incline Row', muscles: 'middle back, lats' },
+      { slug: 'Bent-Arm_Dumbbell_Pullover', label: 'DB Pullover', muscles: 'lats, chest' },
+      { slug: 'Side_Lateral_Raise', label: 'DB Lateral Raise', muscles: 'shoulders' },
+      { slug: 'Arnold_Dumbbell_Press', label: 'DB Arnold Press', muscles: 'shoulders' },
+      { slug: 'Dumbbell_Shoulder_Press', label: 'Seated DB Shoulder Press', muscles: 'shoulders' },
+      { slug: 'Seated_Bent-Over_Rear_Delt_Raise', label: 'Rear Delt Reverse Fly', muscles: 'shoulders' },
+      { slug: 'Face_Pull', label: 'Band Face Pull', muscles: 'shoulders, middle back' },
+      { slug: 'Band_Pull_Apart', label: 'Band Pull-Apart', muscles: 'shoulders, middle back' },
+      { slug: 'Dumbbell_Seated_One-Leg_Calf_Raise', label: 'Seated Calf Raise', muscles: 'calves' },
+      { slug: 'Standing_Dumbbell_Calf_Raise', label: 'Standing DB Calf Raise', muscles: 'calves' },
+      { slug: 'Side_Bridge', label: 'Side Bridge / Copenhagen Plank', muscles: 'abdominals, obliques' },
+      { slug: 'Monster_Walk', label: 'Band Lateral Monster Walk', muscles: 'abductors, glutes' },
+      { slug: 'Dead_Bug', label: 'Dead Bug Core', muscles: 'abdominals' },
+      { slug: 'Standing_Toe_Touches', label: 'Wall Tibialis / Toe Raise', muscles: 'calves, shins' },
+      { slug: 'Farmers_Walk', label: 'DB Suitcase / Farmer Carry', muscles: 'forearms, traps, core' },
+      { slug: 'Hammer_Curls', label: 'DB Hammer Curl', muscles: 'biceps, forearms' }
+    ];
+
+    // Automatic healing map for any previously cached broken or wrong slugs in localStorage
+    const BROKEN_SLUG_MIGRATION_MAP = {
+      'Side_Lying_Hip_Adduction': 'Side_Leg_Raises',
+      'External_Rotation_with_Dumbbell': 'External_Rotation',
+      'Hip_Lift_with_Band': 'Clam'
+    };
+
+    const BASE_CATALOG = [
+      {
+        name: 'Goblet Squat', slug: 'Goblet_Squat', category: 'Lower', equipment: 'Dumbbell', weight: 50, reps: 10,
+        muscles: 'Quadriceps, Glutes & Anterior Core',
+        topCue: 'Hold vertical 50 lb DB snug against sternum; feet shoulder-width.',
+        bottomCue: 'Sit hips down between knees keeping chest tall and elbows inside knees.',
+        quickCue: 'Remember to keep the DB glued against your breastbone, sit your hips straight down between your heels (don’t fold forward like a lawnchair), and push your knees out over your toes.',
+        cue: '1. Cup the top head of a vertical dumbbell tightly against your breastbone with both palms.\n2. Stand shoulder-width apart with toes turned out 15–20 degrees.\n3. Inhale and sit your hips straight down between your heels, letting your elbows brush inside your knees.\n4. Drive through your whole foot to stand tall.',
+        trap: '• The "Folding Lawnchair" Trap: Letting the dumbbell drift away from your chest so your upper back rounds forward and your heels peel off the floor.',
+        science: 'Anterior load counterbalances your center of mass, maximizing quad flexion with minimal lumbar shear.'
+      },
+      {
+        name: 'Dumbbell Sumo Squat', slug: 'Plie_Dumbbell_Squat', category: 'Lower', equipment: 'Dumbbell', weight: 45, reps: 12,
+        muscles: 'Inner Thigh Adductors, Glutes & Quads',
+        topCue: 'Wide stance with toes flared 45 degrees; hold DB vertically.',
+        bottomCue: 'Lower straight down pressing knees outward in line with toes.',
+        quickCue: 'Remember to push your knees wide in line with your 45° flared toes (never let knees cave inward) and lower your torso straight down like an elevator.',
+        cue: '1. Take a wide stance (1.5x shoulder width) and turn your feet out at a 45-degree angle.\n2. Hold the dumbbell hanging vertically or goblet-style at your chest.\n3. Lower your torso straight down like an elevator while pushing knees outward.\n4. Squeeze inner thighs and glutes at the top.',
+        trap: '• The "Valgus Knee Cave" Trap: Letting your knees collapse inward as you stand up.',
+        science: 'Wide abduction angle shifts mechanical tension onto the adductor magnus and glute medius with low ankle dorsiflexion demand.'
+      },
+      {
+        name: 'Dumbbell Bulgarian Split Squat', slug: 'Split_Squat_with_Dumbbells', category: 'Lower', equipment: 'Dumbbell', weight: 25, reps: 10,
+        muscles: 'Unilateral Quads, Glute Max & Hip Stabilizers',
+        topCue: 'Laces of rear foot on bench; 85% of weight on front heel/midfoot.',
+        bottomCue: 'Lower back knee toward floor with slight 10-deg torso lean.',
+        quickCue: 'Remember to keep feet hip-width apart like train tracks (not a tightrope), put 85% of your weight on your front foot, and track your front knee straight over your middle toes.',
+        cue: '1. Stand 2 feet in front of your bench and rest the laces of your back foot on the pad.\n2. Hold dumbbells at your sides and lean torso forward 10 degrees.\n3. Lower straight down over 3 seconds until rear knee hovers 1 inch above the mat.\n4. Drive hard through your front midfoot.',
+        trap: '• The "Tightrope Wobble" Trap: Placing your front foot directly in line with your rear foot like a tightrope.',
+        science: 'Overcomes the 50 lb dumbbell cap by placing full unilateral overload on a single leg with zero spinal compression.'
+      },
+      {
+        name: 'Dumbbell Romanian Deadlift (RDL)', slug: 'Stiff-Legged_Dumbbell_Deadlift', category: 'Lower', equipment: 'Dumbbell', weight: 50, reps: 10,
+        muscles: 'Hamstrings, Glutes & Erector Spinae',
+        topCue: 'Stand tall with soft 15-deg knee bend; DBs resting against thighs.',
+        bottomCue: 'Push hips straight back like closing a car door until DBs reach mid-shin.',
+        quickCue: 'Remember to push your butt straight back like shutting a car door, shave the DBs down your thighs/shins, and stop at mid-shin before your lower back rounds.',
+        cue: '1. Stand hip-width apart with a soft 15-degree knee bend.\n2. Push your hips straight back like closing a car door with your butt.\n3. Slide the dumbbells down your thighs and shins until mid-shin.\n4. Pause 2 seconds at the bottom stretch, then drive hips forward.',
+        trap: '• The "Fishing Rod Spine" Trap: Reaching toward your toes by rounding your lower back.',
+        science: 'Pure hip hinge loads the hamstrings in their lengthened position for high sarcomere hypertrophy.'
+      },
+      {
+        name: 'Bodyweight Glute Bridge', slug: 'Butt_Lift_Bridge', category: 'Lower', equipment: 'Bodyweight', weight: 0, reps: 15,
+        muscles: 'Gluteus Maximus & Posterior Pelvis',
+        topCue: 'Lie on back with heels 6 inches from glutes; flatten lower back.',
+        bottomCue: 'Drive through heels to lift hips and hold a 2s glute squeeze at top.',
+        quickCue: 'Remember to tuck your tailbone ("belt buckle toward chin"), drive through your heels, and hold a 2-second glute squeeze at the top without arching your lower back.',
+        cue: '1. Lie on your back with knees bent and heels 6 inches from your hips.\n2. Tuck your tailbone slightly so your lower back flattens.\n3. Drive through your heels to lift your hips into a straight diagonal line.\n4. Hold a 2-second glute squeeze at the top.',
+        trap: '• The "Belly Flare" Trap: Pushing your belly and ribs up by hyperextending your lower back instead of squeezing glutes.',
+        science: 'Activates glute max and unloads hip flexors with zero axial compression on the lumbar spine or ankles.'
+      },
+      {
+        name: 'Flat Dumbbell Bench Press', slug: 'Dumbbell_Bench_Press', category: 'Upper Push', equipment: 'Dumbbell', weight: 50, reps: 10,
+        muscles: 'Mid-Pectorals, Anterior Delts & Triceps',
+        topCue: 'Pinch shoulder blades into bench; DBs stacked over shoulders.',
+        bottomCue: 'Lower with 45-degree arrow elbow tuck until bells reach chest level.',
+        quickCue: 'Remember to pinch your shoulder blades into your back pockets and tuck your elbows at a 45° arrow angle (↗ ↖) — do NOT flare your elbows 90° wide into a capital "T".',
+        cue: '1. Lie flat on the bench and pull your shoulder blades down and together.\n2. Angle your elbows 45 degrees from your ribs in an arrow shape.\n3. Lower the dumbbells over 3 seconds until handles reach chest level.\n4. Press up and slightly inward over your collarbones.',
+        trap: '• The "Letter T" Flare Trap: Flaring elbows out 90 degrees perpendicular to your torso.',
+        science: 'A 45-degree scapular-plane elbow tuck clears the acromion space while maximizing sternal pectoral stretch.'
+      },
+      {
+        name: 'Incline Dumbbell Bench Press', slug: 'Incline_Dumbbell_Press', category: 'Upper Push', equipment: 'Dumbbell', weight: 45, reps: 10,
+        muscles: 'Upper Clavicular Pectorals & Front Delts',
+        topCue: 'Set bench to 30 degrees; plant feet and retract shoulder blades.',
+        bottomCue: 'Lower DBs to upper chest with 45-degree elbow tuck.',
+        quickCue: 'Remember to use a shallow 30° bench angle, tuck your elbows 45° into an arrow shape (no 90° T-flaring), and keep your ribs and lower back anchored to the pad.',
+        cue: '1. Set adjustable bench to a shallow 30-degree incline.\n2. Pinch shoulder blades into the pad and plant feet.\n3. Lower dumbbells slowly with a 45-degree elbow tuck toward your upper chest.\n4. Drive straight up toward the ceiling.',
+        trap: '• The "Belly Bridge" Trap: Arching your lower back high off the incline pad.',
+        science: '30-degree incline aligns resistance with the upward-sloping clavicular head of the chest.'
+      },
+      {
+        name: 'Dumbbell Floor Press', slug: 'Dumbbell_Floor_Press', category: 'Upper Push', equipment: 'Dumbbell', weight: 45, reps: 12,
+        muscles: 'Mid-Chest & Triceps (Shoulder-Safe Stop)',
+        topCue: 'Lie on floor with knees bent; press DBs over chest.',
+        bottomCue: 'Lower slowly until back of upper arms rest gently on floor for 1s.',
+        quickCue: 'Remember to tuck elbows 45° and pause the backs of your triceps gently on the floor for 1 full second — never bounce your elbows off the mat.',
+        cue: '1. Lie on the mat with knees bent and feet flat.\n2. Tuck elbows at a 45-degree angle.\n3. Lower until backs of triceps gently touch the mat for a 1-second pause.\n4. Press smoothly to lockout.',
+        trap: '• The "Trampoline Elbow" Trap: Dropping weights fast and bouncing elbows off the floor.',
+        science: 'The floor acts as a physical safety stop at 90 degrees, eliminating anterior shoulder capsule strain.'
+      },
+      {
+        name: 'Single-Arm Dumbbell Row', slug: 'One-Arm_Dumbbell_Row', category: 'Upper Pull', equipment: 'Dumbbell', weight: 50, reps: 10,
+        muscles: 'Latissimus Dorsi, Rhomboids & Rear Delts',
+        topCue: 'Support non-working hand on bench; flat back parallel to floor.',
+        bottomCue: 'Sweep DB back in an arc toward your hip pocket, pausing 1s at top.',
+        quickCue: 'Remember to keep your back flat like a table and saw your elbow back in an arc toward your rear hip pocket — don’t yank with your torso or shrug toward your ear.',
+        cue: '1. Place non-working hand on bench with a flat table-top back.\n2. Let dumbbell hang straight down to stretch the lat.\n3. Pull your elbow back in a sweeping arc toward your hip pocket.\n4. Pause 1 second at the top, then lower over 3 seconds.',
+        trap: '• Twisting your torso wildly or pulling straight up to your neck with your upper traps.',
+        science: 'Arcing the elbow toward the hip aligns directly with the lower latissimus fibers.'
+      },
+      {
+        name: 'Chest-Supported Incline Row', slug: 'Dumbbell_Incline_Row', category: 'Upper Pull', equipment: 'Dumbbell', weight: 40, reps: 12,
+        muscles: 'Mid-Back, Lats & Rhomboids (Zero Lumbar Shear)',
+        topCue: 'Lie chest-down on 30-degree incline bench; arms hanging straight.',
+        bottomCue: 'Row elbows past ribs and squeeze shoulder blades together for 1s.',
+        quickCue: 'Remember to keep your breastbone glued to the bench pad the entire rep (no heaving your chest up) and drive your elbows past your ribs for a 1-second squeeze.',
+        cue: '1. Set bench to 30 degrees and lie chest-down on the pad.\n2. Let dumbbells hang straight down.\n3. Drive elbows back past your torso and squeeze shoulder blades for 1 second.\n4. Keep sternum glued to the pad.',
+        trap: '• Lifting your chest off the pad at the top of every rep.',
+        science: 'Chest support removes 100% of lower-back erector fatigue after running or yard work.'
+      },
+      {
+        name: 'Dumbbell Pullover', slug: 'Bent-Arm_Dumbbell_Pullover', category: 'Upper Pull', equipment: 'Dumbbell', weight: 35, reps: 12,
+        muscles: 'Latissimus Dorsi (V-Taper Width) & Serratus Anterior',
+        topCue: 'Lie on bench holding single DB diamond-style over chest; slight elbow bend.',
+        bottomCue: 'Arc DB overhead behind head until biceps pass ears while keeping ribs down.',
+        quickCue: 'Remember to exhale and press your lower ribs flat into the bench as the DB arcs overhead, then pull the weight back using your armpits/lats (don’t flare your back).',
+        cue: '1. Lie flat on bench holding a single dumbbell with a diamond grip over chest.\n2. Keep a fixed 15-degree bend in elbows.\n3. Exhale to lock ribs down and arc the dumbbell overhead for 3 seconds.\n4. Pull back over chest using your lats.',
+        trap: '• Letting your lower back and ribcage pop high off the bench as the weight goes overhead.',
+        science: 'Directly loads the lats in their fully lengthened overhead position for V-taper width.'
+      },
+      {
+        name: 'Dumbbell Lateral Raise', slug: 'Side_Lateral_Raise', category: 'Shoulders', equipment: 'Dumbbell', weight: 20, reps: 14,
+        muscles: 'Lateral (Side) Deltoid Cap',
+        topCue: 'Stand tall; hold DBs slightly in front of thighs in 30-deg scapular plane.',
+        bottomCue: 'Sweep hands out and slightly forward to shoulder height.',
+        quickCue: 'Remember to angle your arms 30° slightly forward (not straight out to the sides) and push your hands OUT toward the side walls without shrugging your shoulders toward your ears.',
+        cue: '1. Stand tall with shoulders relaxed down away from ears.\n2. Angle arms 20–30 degrees forward in the scapular plane.\n3. Push dumbbells outward to shoulder height, pause 1 second, and lower over 3 seconds.',
+        trap: '• Shrugging your upper traps toward your ears and swinging your hips.',
+        science: 'Raising in the 30-degree scapular plane isolates the lateral deltoid while preventing impingement.'
+      },
+      {
+        name: 'Dumbbell Arnold Press', slug: 'Arnold_Dumbbell_Press', category: 'Shoulders', equipment: 'Dumbbell', weight: 35, reps: 10,
+        muscles: 'Anterior, Lateral & Posterior Deltoids',
+        topCue: 'Sit tall; hold DBs at chin height with palms facing you.',
+        bottomCue: 'Sweep elbows open while rotating palms forward and pressing overhead.',
+        quickCue: 'Remember to start with palms facing your chin, smoothly rotate your wrists outward as you press up, and keep your lower back pressed flat against the seat pad.',
+        cue: '1. Sit on bench with back support holding dumbbells at chin level, palms facing you.\n2. Open elbows outward while rotating palms away from you and pressing overhead.\n3. Reverse the rotation smoothly over 3 seconds back to chin level.',
+        trap: '• Arching your lower back off the seat pad to heave the weight up.',
+        science: 'Rotational path recruits all three deltoid heads through a long range of motion.'
+      },
+      {
+        name: 'Seated DB Overhead Press', slug: 'Dumbbell_Shoulder_Press', category: 'Shoulders', equipment: 'Dumbbell', weight: 40, reps: 10,
+        muscles: 'Anterior & Lateral Deltoids, Triceps',
+        topCue: 'Sit upright on bench; hold DBs at ear level in 30-deg scapular plane.',
+        bottomCue: 'Press DBs overhead without arching lower back; lower over 3s.',
+        quickCue: 'Remember to keep your elbows angled 30° slightly forward in the scapular plane and brace your abs tight so your lower back stays glued to the bench pad.',
+        cue: '1. Sit upright with back supported and feet planted.\n2. Hold dumbbells at ear level with elbows angled 30 degrees forward.\n3. Press straight overhead and lower slowly over 3 seconds.',
+        trap: '• Flaring elbows 90 degrees straight back and overarching your spine.',
+        science: 'Seated back support isolates deltoid force output without lumbar compression.'
+      },
+      {
+        name: 'Dumbbell Rear Delt Reverse Fly', slug: 'Seated_Bent-Over_Rear_Delt_Raise', category: 'Shoulders', equipment: 'Dumbbell', weight: 20, reps: 15,
+        muscles: 'Posterior Deltoids & Mid-Traps',
+        topCue: 'Hinge torso forward 45–60 degrees (or chest on incline bench).',
+        bottomCue: 'Sweep arms out wide in a big arc with palms facing floor.',
+        quickCue: 'Remember to keep a soft, fixed bend in your elbows and sweep your hands out wide like spreading wings — don’t bend your elbows 90° into a narrow back row.',
+        cue: '1. Hinge forward at the hips or lie chest-down on a 30-degree incline bench.\n2. Keep a soft fixed elbow bend.\n3. Sweep dumbbells out wide away from each other.\n4. Lower slowly over 3 seconds.',
+        trap: '• Bending your elbows 90 degrees and turning the fly into a narrow row.',
+        science: 'Wide horizontal abduction isolates the posterior deltoid head for 3D shoulder balance.'
+      },
+      {
+        name: 'Band Face Pull', slug: 'Face_Pull', category: 'Shoulders', equipment: 'Band', weight: 0, reps: 15,
+        muscles: 'Rear Delts, Infraspinatus & Lower Traps',
+        topCue: 'Anchor band at eye level; step back with arms extended.',
+        bottomCue: 'Pull band toward forehead while rotating thumbs back into a double-bicep pose.',
+        quickCue: 'Remember to pull the band toward your forehead while rotating your thumbs backward so you finish in a high "double-bicep" pose for 2 seconds — don’t jut your chin forward.',
+        cue: '1. Anchor band at eye level and grab both sides.\n2. Pull toward your forehead while separating your hands.\n3. Rotate thumbs backward into a double-bicep pose for a 2-second hold.',
+        trap: '• Pulling low to your chest or jutting your chin forward.',
+        science: 'Combines horizontal abduction with external rotation to bullet-proof the rotator cuff.'
+      },
+      {
+        name: 'Band Pull-Apart', slug: 'Band_Pull_Apart', category: 'Shoulders', equipment: 'Band', weight: 0, reps: 18,
+        muscles: 'Posterior Deltoids, Rhomboids & Mid-Traps',
+        topCue: 'Hold band at shoulder width straight out in front of chest.',
+        bottomCue: 'Sweep straight arms wide until band touches sternum; pause 2s.',
+        quickCue: 'Remember to keep your shoulders relaxed down away from your ears and sweep your straight arms wide until the band touches your breastbone for a 2-second squeeze.',
+        cue: '1. Stand tall holding a band at shoulder height with arms straight.\n2. Pull the band apart by sweeping your hands wide until the band touches your chest.\n3. Pause 2 seconds and return slowly.',
+        trap: '• Shrugging your upper traps or overarching your lower back.',
+        science: 'High-rep scapular retraction counteracts forward-rounded desk posture.'
+      },
+      {
+        name: 'Seated Calf Raise', slug: 'Dumbbell_Seated_One-Leg_Calf_Raise', category: 'Calves & Hips', equipment: 'Dumbbell', weight: 50, reps: 15,
+        muscles: 'Soleus (Deep Lower Calf) & Achilles Tendon',
+        topCue: 'Sit on bench with balls of feet on 2-inch block/plate; 50 lb DBs on knees.',
+        bottomCue: 'Lower heels into a 2-second deep stretch, then press high onto big toes.',
+        quickCue: 'Remember to lower for 3s and hold a strict 2-second dead-stop pause at the bottom stretch (zero pogo-stick bouncing) before driving straight up through your big-toe knuckle.',
+        cue: '1. Sit tall on bench with balls of feet elevated on a block and 50 lb dumbbells on knees.\n2. Lower heels over 3 seconds into a deep stretch.\n3. Pause 2 full seconds at the bottom.\n4. Drive high onto your big-toe knuckle and squeeze 1 second.',
+        trap: '• Bouncing like a pogo stick out of the bottom stretch.',
+        science: 'A 90-degree bent knee slackens the gastrocnemius, forcing 100% of load onto the soleus.'
+      },
+      {
+        name: 'Standing Dumbbell Calf Raise', slug: 'Standing_Dumbbell_Calf_Raise', category: 'Calves & Hips', equipment: 'Dumbbell', weight: 35, reps: 15,
+        muscles: 'Gastrocnemius (Upper Diamond Calf) & Soleus',
+        topCue: 'Stand with balls of feet on edge of step; hold DB in one hand, other hand for balance.',
+        bottomCue: 'Lower heel below step for 2s stretch, then rise high onto big toe.',
+        quickCue: 'Remember to pause 2s in the bottom heel stretch and drive straight up onto your big-toe knuckle — don’t let your ankles roll outward onto your pinky toes.',
+        cue: '1. Stand with ball of foot on a step holding a dumbbell.\n2. Lower heel over 3 seconds into a full stretch and pause 2 seconds.\n3. Drive straight up onto your big-toe knuckle for a 1-second peak hold.',
+        trap: '• Rolling your ankle outward onto your pinky toes at the top.',
+        science: 'Straight-knee ankle plantarflexion places the gastrocnemius under maximum mechanical stretch.'
+      },
+      {
+        name: 'Banded Clamshell', slug: 'Clam', category: 'Calves & Hips', equipment: 'Band', weight: 0, reps: 15,
+        muscles: 'Gluteus Medius & Deep Hip External Rotators',
+        topCue: 'Lie on side with loop band above knees; hips and heels stacked vertically.',
+        bottomCue: 'Keep heels glued together and open top knee like a clamshell without rolling pelvis back.',
+        quickCue: 'Remember to keep your heels glued together and tilt your top hip bone slightly forward — open your top knee using only your side-glute without rolling your pelvis backward.',
+        cue: '1. Place a loop band just above both knees and lie on your side with knees bent 45 degrees.\n2. Stack your top hip bone directly over your bottom hip bone.\n3. Keeping heels glued together, lift your top knee upward without rolling your pelvis backward.\n4. Hold 2 seconds at the top burn.',
+        trap: '• The "Pelvic Roll-Back" Trap: Rolling your whole torso and pelvis backward to fake higher knee opening.',
+        science: 'Strengthens hip external rotation so your thigh and knee don’t collapse inward during running foot-strike.'
+      },
+      {
+        name: 'Band Lateral Walk', slug: 'Monster_Walk', category: 'Calves & Hips', equipment: 'Band', weight: 0, reps: 14,
+        muscles: 'Glute Medius, Minimus & Tensor Fasciae Latae (TFL)',
+        topCue: 'Loop band around ankles or above knees; sit into quarter-squat.',
+        bottomCue: 'Step sideways keeping feet parallel and constant tension on band.',
+        quickCue: 'Remember to stay low in an athletic quarter-squat with toes pointed straight ahead (never flared out like a duck) and step sideways without rocking your shoulders.',
+        cue: '1. Place a loop band around your ankles or above your knees and sink into a quarter-squat.\n2. Point your toes straight ahead.\n3. Take controlled 8-inch sideways steps while keeping constant tension on the band.',
+        trap: '• The "Duck-Foot Waddle" Trap: Turning toes outward and swaying your shoulders side to side.',
+        science: 'Trains frontal-plane pelvic stability under weight-bearing load.'
+      },
+      {
+        name: 'Side-Lying Hip Abduction (Straight-Leg Raise)', slug: 'Side_Leg_Raises', category: 'Calves & Hips', equipment: 'Band', weight: 0, reps: 15,
+        muscles: 'Gluteus Medius (Posterior Fibers) & Hip Abductors',
+        topCue: 'Lie on side with top leg straight and slightly behind body line; toe pointed slightly down.',
+        bottomCue: 'Lift straight top leg 30–40 degrees toward ceiling with heel leading.',
+        quickCue: 'Remember to keep your top leg 5° behind your torso and lead upward with your heel (big toe tilted slightly down toward the floor) so your side-glute does 100% of the work.',
+        cue: '1. Lie on your side with bottom leg bent and top leg completely straight.\n2. Move your top leg 5–10 degrees behind your torso and tilt your big toe slightly downward toward the floor.\n3. Lift your top heel toward the ceiling about 35 degrees and hold 2 seconds.',
+        trap: '• The "Front-Pocket Kick" Trap: Letting your top leg drift forward with toes pointing up, shifting work onto the hip flexors.',
+        science: 'Leading with the heel in slight hip extension isolates the posterior glute medius—preventing pelvic drop and shin-splint torsion.'
+      },
+      {
+        name: 'Weighted Wall Tibialis Raise', slug: 'Standing_Toe_Touches', category: 'Calves & Hips', equipment: 'Bodyweight', weight: 0, reps: 18,
+        muscles: 'Anterior Tibialis (Front Shin Muscle)',
+        topCue: 'Lean butt and shoulders against wall with heels 14–18 inches out in front.',
+        bottomCue: 'Pull toes and forefeet as high up toward shins as possible; hold 2s.',
+        quickCue: 'Remember to keep your knees locked straight, pull your toes as high up toward your shins as possible, and hold for 2 full seconds at the top shin burn.',
+        cue: '1. Stand with your back and butt leaning flat against a wall and walk your heels 14–18 inches forward.\n2. Keep your knees straight and pull your toes as high up toward your shins as possible.\n3. Hold 2 seconds at the top squeeze, then lower slowly.',
+        trap: '• The "Knee-Bend Cheat" Trap: Bending your knees and bouncing your hips instead of flexing the ankle.',
+        science: 'Directly strengthens the anterior tibialis tendon that decelerates foot strike during running.'
+      },
+      {
+        name: 'Copenhagen Side-Plank Hip Adduction', slug: 'Side_Bridge', category: 'Calves & Hips', equipment: 'Bodyweight', weight: 0, reps: 10,
+        muscles: 'Inner-Thigh Adductors & Obliques',
+        topCue: 'Side-plank on forearm with top inner knee/shin resting on bench pad.',
+        bottomCue: 'Press down through top leg on bench to lift hips into a straight line.',
+        quickCue: 'Remember to rest your inner knee on the bench pad (short lever) and drive down through your top knee to lift your hips straight up without twisting your shoulders.',
+        cue: '1. Lie on your side facing your bench and prop yourself on your bottom forearm.\n2. Rest the inside of your top knee on the bench pad.\n3. Press your top knee down into the bench to lift your hips off the floor for a 2-second hold.',
+        trap: '• Letting your top shoulder and hip sag forward toward the floor.',
+        science: 'Balances lateral hip strength with medial adductor stability to protect the groin and medial knee.'
+      },
+      {
+        name: 'Side-Lying Dumbbell External Rotation', slug: 'External_Rotation', category: 'Shoulders', equipment: 'Dumbbell', weight: 10, reps: 15,
+        muscles: 'Infraspinatus & Teres Minor (Rotator Cuff)',
+        topCue: 'Lie on side; pin top elbow against ribs at 90-degree angle with light DB.',
+        bottomCue: 'Rotate forearm upward in an arc like opening a gate while elbow stays glued.',
+        quickCue: 'Remember to keep your top elbow pinned tightly against your ribs like a hinge and rotate your forearm upward across your body without swinging your shoulder.',
+        cue: '1. Lie on your side holding a light (5–12.5 lb) dumbbell in your top hand.\n2. Bend your top elbow 90 degrees and pin it against your ribs.\n3. Rotate your forearm upward toward the ceiling and lower over 3 seconds.',
+        trap: '• Using a heavy dumbbell and lifting your elbow away from your ribs.',
+        science: 'Strengthens posterior rotator cuff external rotation across gravity.'
+      },
+      {
+        name: 'Dumbbell Suitcase Carry (50 lb Single-Arm)', slug: 'Farmers_Walk', category: 'Core', equipment: 'Dumbbell', weight: 50, reps: 12,
+        muscles: 'Quadratus Lumborum (QL), Obliques, Glute Medius & Grip',
+        topCue: 'Hold single 50 lb DB in one hand like a heavy suitcase; stand tall.',
+        bottomCue: 'Walk 12 slow steps per side without leaning or letting shoulders tilt.',
+        quickCue: 'Remember to walk slow and tall as if balancing a glass of water on your head — do NOT let the 50 lb dumbbell pull your shoulders sideways or lean like a teapot.',
+        cue: '1. Pick up a single 50 lb dumbbell in one hand only.\n2. Level your shoulders so you neither sag toward the weight nor lean sideways.\n3. Walk 12 slow heel-to-toe steps per side.',
+        trap: '• Tilting your torso sideways like a teapot.',
+        science: 'Unilateral 50 lb load forces the opposite-side Quadratus Lumborum (QL) and glute medius to fire isometrically.'
+      },
+      {
+        name: 'Dead Bug', slug: 'Dead_Bug', category: 'Core', equipment: 'Bodyweight', weight: 0, reps: 12,
+        muscles: 'Transverse Abdominis & Anterior Core (Anti-Extension)',
+        topCue: 'Lie on back with knees at 90-deg tabletop and arms reaching to ceiling.',
+        bottomCue: 'Crush lower back into mat while extending opposite arm and leg slowly.',
+        quickCue: 'Remember to exhale hard and crush your lower back flat into the mat the entire set — never let a hollow tunnel form under your spine as your leg reaches out.',
+        cue: '1. Lie on your back with arms pointing to the ceiling and knees at 90-degree tabletop.\n2. Exhale hard and press your lower back flat into the mat.\n3. Slowly reach your right arm behind your head and left heel toward the floor.\n4. Return and alternate sides while keeping your lower back glued down.',
+        trap: '• Letting your lower back arch off the mat as your leg extends.',
+        science: 'Builds true core stiffness and pelvic control without repetitive spinal flexion.'
+      }
+    ];
+
+    createApp({
+      setup() {
+        const photoCdn = PHOTO_CDN;
+        const toast = ref(null);
+        const searchQuery = ref('');
+        const selectedCategory = ref('All');
+        const selectedEquipment = ref('All Equip');
+        const filterMode = ref('all'); // 'all' | 'favorites' | 'goal'
+        const categories = ['All', 'Lower', 'Upper Push', 'Upper Pull', 'Shoulders', 'Calves & Hips', 'Core'];
+
+        const allExercises = ref([...BASE_CATALOG]);
+        const workoutLogs = ref([]);
+        const coachCtx = ref({
+          activeGoal: {
+            shortTag: 'Calf & Shin Armor',
+            primaryLifts: ['Seated Calf Raise', 'Standing Dumbbell Calf Raise'],
+            secondaryLifts: ['Banded Clamshell', 'Band Lateral Walk', 'Bodyweight Glute Bridge']
+          },
+          secondaryGoal: {
+            shortTag: 'V-Taper Lats',
+            lift: 'Dumbbell Pullover'
+          },
+          chronicGuardrails: [
+            { id: 'plantar', region: 'ankle', label: 'Plantar Fasciitis / Heel Strain' },
+            { id: 'shin_splints', region: 'ankle', label: 'Prone to Shin Splints' }
+          ],
+          activeTemporaryInjuries: [
+            { id: 'temp-1', name: 'Mild Right Ankle Sprain', region: 'ankle' }
+          ]
+        });
+
+        const favoriteLifts = ref(['Dumbbell Pullover', 'Banded Clamshell']);
+        const bannedLifts = ref([]);
+
+        const activeExercise = ref(null);
+        const showPhotoFixer = ref(false);
+        const photoSearchQuery = ref('');
+        const editingCue = ref(false);
+        const externalExerciseDb = ref([...VERIFIED_PHOTO_SLUGS]);
+        const externalDbLoaded = ref(false);
+        const photoHealthMap = ref({});
+        const aiPhotoGenerating = ref(false);
+        const customTopUrlInput = ref('');
+        const customBottomUrlInput = ref('');
+
+        const showQuickAddModal = ref(false);
+        const newExName = ref('');
+        const newExCategory = ref('Lower');
+        const newExEquipment = ref('Dumbbell');
+        const newExWeight = ref(35);
+        const newExNotes = ref('');
+        const aiEnrichLoading = ref(false);
+
+        const showToast = (msg) => {
+          toast.value = msg;
+          setTimeout(() => { if (toast.value === msg) toast.value = null; }, 3500);
+        };
+
+        const verifiedPhotoCount = computed(() => {
+          return allExercises.value.filter(ex => photoHealthMap.value[ex.name] === 'ok').length;
+        });
+
+        const brokenPhotoCount = computed(() => {
+          return allExercises.value.filter(ex => photoHealthMap.value[ex.name] === 'error').length;
+        });
+
+        // Loads all 873 exercises from the yuhonas/free-exercise-db master index so Photo Fixer searches the entire open-source library
+        const loadFullExternalExerciseDb = async () => {
+          if (externalDbLoaded.value) return;
+          try {
+            const res = await fetch(FULL_DB_JSON_URL);
+            if (!res.ok) return;
+            const list = await res.json();
+            if (Array.isArray(list) && list.length > 0) {
+              externalExerciseDb.value = list
+                .filter(item => item.id && Array.isArray(item.images) && item.images.length >= 2)
+                .map(item => ({
+                  slug: item.id,
+                  label: item.name,
+                  muscles: [...(item.primaryMuscles || []), ...(item.secondaryMuscles || [])].join(', '),
+                  equipment: item.equipment || ''
+                }));
+              externalDbLoaded.value = true;
+            }
+          } catch (e) {
+            // Keeps VERIFIED_PHOTO_SLUGS if offline
+          }
+        };
+
+        const markPhotoLoaded = (exerciseName) => {
+          photoHealthMap.value[exerciseName] = 'ok';
+        };
+
+        // Automatic self-healing if an image ever fails to load (with loop guard)
+        const handlePhotoError = (ex, stage, event) => {
+          if (!ex) return;
+          if (BROKEN_SLUG_MIGRATION_MAP[ex.slug]) {
+            ex.slug = BROKEN_SLUG_MIGRATION_MAP[ex.slug];
+            persistCatalogOverride(ex, false);
+            return;
+          }
+          if (ex.name === 'Banded Clamshell' && ex.slug !== 'Clam') {
+            ex.slug = 'Clam';
+            persistCatalogOverride(ex, false);
+            return;
+          }
+          const fallback = pickBestPhotoSlugLocally(ex.name, ex.category, ex.equipment);
+          if (ex.slug !== fallback && !ex._triedFallback) {
+            ex._triedFallback = true;
+            ex.slug = fallback;
+            persistCatalogOverride(ex, false);
+          } else {
+            photoHealthMap.value[ex.name] = 'error';
+          }
+        };
+
+        const runFullPhotoAudit = () => {
+          let healed = 0;
+          allExercises.value.forEach(ex => {
+            if (BROKEN_SLUG_MIGRATION_MAP[ex.slug]) {
+              ex.slug = BROKEN_SLUG_MIGRATION_MAP[ex.slug];
+              persistCatalogOverride(ex, false);
+              healed++;
+            } else if (ex.name === 'Banded Clamshell' && ex.slug === 'Side_Bridge') {
+              ex.slug = 'Clam';
+              persistCatalogOverride(ex, false);
+              healed++;
+            }
+          });
+          showToast(healed > 0 ? `Auto-healed ${healed} exercise photo slug(s)!` : `All ${allExercises.value.length} exercise photos verified ✓`);
+        };
+
+        const customCount = computed(() => allExercises.value.filter(x => x.isCustom).length);
+
+        const isFavorite = (name) => favoriteLifts.value.includes(name);
+        const isBanned = (name) => bannedLifts.value.includes(name);
+
+        const isGoalLift = (name) => {
+          const g = coachCtx.value.activeGoal || {};
+          const sec = coachCtx.value.secondaryGoal || {};
+          return (g.primaryLifts || []).includes(name) ||
+            (g.secondaryLifts || []).includes(name) ||
+            sec.lift === name;
+        };
+
+        const getGoalBadge = (name) => {
+          const g = coachCtx.value.activeGoal || {};
+          if ((g.primaryLifts || []).includes(name)) return '1° GOAL DRIVER';
+          if ((g.secondaryLifts || []).includes(name)) return '1° GOAL SUPPORT';
+          if (coachCtx.value.secondaryGoal?.lift === name) return '2° GOAL';
+          return '';
+        };
+
+        const getGuardrailWarning = (name) => {
+          const hasAnkle = (coachCtx.value.chronicGuardrails || []).some(g => g.region === 'ankle' || g.id === 'plantar') ||
+            (coachCtx.value.activeTemporaryInjuries || []).some(i => i.region === 'ankle');
+          if (name === 'Standing Dumbbell Calf Raise' && hasAnkle) {
+            return 'Ankle/Plantar Guard: Prefer Seated Calf Raise on flare-up days';
+          }
+          return '';
+        };
+
+        const getPersonalBestText = (name) => {
+          const matching = workoutLogs.value.filter(l => l.exercise === name);
+          if (matching.length === 0) return '';
+          const top = matching.reduce((best, cur) => {
+            const curScore = (Number(cur.weight) || 0) * (1 + (Number(cur.reps) || 0) / 30);
+            const bestScore = (Number(best.weight) || 0) * (1 + (Number(best.reps) || 0) / 30);
+            return curScore >= bestScore ? cur : best;
+          }, matching[0]);
+          if (top.bandLevel) return `${top.bandLevel.split(' ')[0]} Band × ${top.reps}`;
+          if (top.weight > 0) return `${top.weight} lb × ${top.reps}`;
+          return `${top.reps} reps`;
+        };
+
+        const filteredExercises = computed(() => {
+          const q = searchQuery.value.trim().toLowerCase();
+          return allExercises.value.filter(ex => {
+            if (selectedCategory.value !== 'All' && ex.category !== selectedCategory.value) return false;
+            if (selectedEquipment.value !== 'All Equip' && ex.equipment !== selectedEquipment.value) return false;
+            if (filterMode.value === 'favorites' && !isFavorite(ex.name)) return false;
+            if (filterMode.value === 'goal' && !isGoalLift(ex.name)) return false;
+            if (!q) return true;
+            return ex.name.toLowerCase().includes(q) ||
+              (ex.muscles || '').toLowerCase().includes(q) ||
+              (ex.quickCue || '').toLowerCase().includes(q) ||
+              (ex.category || '').toLowerCase().includes(q);
+          });
+        });
+
+        const getExercisePhoto = (ex, stage = 'top') => {
+          if (!ex) return `${PHOTO_CDN}/Goblet_Squat/0.jpg`;
+          if (stage === 'bottom' && ex.customPhotoBottom) return ex.customPhotoBottom;
+          if (stage === 'top' && ex.customPhotoTop) return ex.customPhotoTop;
+          const slug = BROKEN_SLUG_MIGRATION_MAP[ex.slug] || ex.slug || 'Goblet_Squat';
+          return `${PHOTO_CDN}/${slug}/${stage === 'bottom' ? '1.jpg' : '0.jpg'}`;
+        };
+
+        const openExerciseDetail = (ex) => {
+          activeExercise.value = ex;
+          showPhotoFixer.value = false;
+          editingCue.value = false;
+          customTopUrlInput.value = ex.customPhotoTop || '';
+          customBottomUrlInput.value = ex.customPhotoBottom || '';
+        };
+
+        const openPhotoFixerDrawer = () => {
+          showPhotoFixer.value = !showPhotoFixer.value;
+          if (showPhotoFixer.value) {
+            loadFullExternalExerciseDb();
+          }
+        };
+
+        // =====================================================================
+        // CENTRALIZED ZERO-BLOAT AI VOICE INTERACTION & GEMINI TTS ENGINE
+        // =====================================================================
+        const activeTtsSourceId = ref(null);
+        const autoSpeakExerciseAi = ref(true);
+        const exerciseChatHistoryMap = ref({});
+        const exerciseModalQuestionInput = ref('');
+        const isListeningExerciseModal = ref(false);
+        const exerciseAiLoading = ref(false);
+        let currentAudioObj = null;
+
+        const currentExerciseChatList = computed(() => {
+          const name = activeExercise.value?.name;
+          return name ? (exerciseChatHistoryMap.value[name] || []) : [];
+        });
+
+        const stopCurrentAudioPlayback = () => {
+          if (currentAudioObj) { try { currentAudioObj.pause(); } catch (e) {} currentAudioObj = null; }
+          if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+          activeTtsSourceId.value = null;
+        };
+
+        const speakTextOutLoud = async (textToSpeak, sourceId = 'exercise-modal') => {
+          const clean = (textToSpeak || '').replace(/[*#`_~]/g, '').trim();
+          if (!clean) return;
+          stopCurrentAudioPlayback();
+          activeTtsSourceId.value = sourceId;
+          try {
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `Speak naturally like an encouraging personal trainer in a gym: ${clean}` }] }],
+                generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } } }
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              if (b64) {
+                const bin = atob(b64);
+                const buf = new ArrayBuffer(44 + bin.length);
+                const view = new DataView(buf);
+                const ws = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+                ws(0, 'RIFF'); view.setUint32(4, 36 + bin.length, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+                view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+                view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+                ws(36, 'data'); view.setUint32(40, bin.length, true);
+                for (let i = 0; i < bin.length; i++) view.setUint8(44 + i, bin.charCodeAt(i));
+                currentAudioObj = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+                currentAudioObj.onended = () => { activeTtsSourceId.value = null; };
+                await currentAudioObj.play();
+                return;
+              }
+            }
+          } catch (e) {}
+          if ('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance(clean);
+            u.rate = 1.03;
+            u.onend = () => { activeTtsSourceId.value = null; };
+            window.speechSynthesis.speak(u);
+          } else {
+            activeTtsSourceId.value = null;
+          }
+        };
+
+        const toggleExerciseModalVoiceMic = () => {
+          const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRec) { showToast('Browser mic unavailable—type your question below.'); return; }
+          const rec = new SpeechRec();
+          rec.lang = 'en-US';
+          isListeningExerciseModal.value = true;
+          rec.onresult = (ev) => { exerciseModalQuestionInput.value = ev.results[0][0].transcript; };
+          rec.onend = () => {
+            isListeningExerciseModal.value = false;
+            if (exerciseModalQuestionInput.value.trim()) askAiAboutActiveExercise();
+          };
+          rec.onerror = () => { isListeningExerciseModal.value = false; };
+          rec.start();
+        };
+
+        const askAiAboutActiveExercise = async () => {
+          const ex = activeExercise.value;
+          const question = exerciseModalQuestionInput.value.trim();
+          if (!ex || !question || exerciseAiLoading.value) return;
+          if (!exerciseChatHistoryMap.value[ex.name]) exerciseChatHistoryMap.value[ex.name] = [];
+          exerciseChatHistoryMap.value[ex.name].push({ role: 'user', text: question });
+          exerciseModalQuestionInput.value = '';
+          exerciseAiLoading.value = true;
+
+          let reply = `Signs your weight is too heavy on ${ex.name}: ${ex.trap.replace(/^•\s*/, '')} Stick to "${ex.quickCue}" so the tension stays in your ${ex.muscles}.`;
+          try {
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `You are a gym coach standing next to a 46yo client (215 lb, 50 lb DB cap) looking at "${ex.name}" (Muscles: ${ex.muscles}, Quick Cue: "${ex.quickCue}", Breakdown Trap: "${ex.trap}"). Answer his question in 2-3 spoken-friendly sentences: "${question}"` }] }]
+              })
+            });
+            const data = await res.json();
+            reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || reply;
+          } catch (e) {}
+
+          exerciseChatHistoryMap.value[ex.name].push({ role: 'coach', text: reply });
+          exerciseAiLoading.value = false;
+          if (autoSpeakExerciseAi.value) speakTextOutLoud(reply, 'exercise-modal');
+        };
+
+        const filteredPhotoSlugCandidates = computed(() => {
+          const q = photoSearchQuery.value.trim().toLowerCase();
+          const sourceList = externalExerciseDb.value;
+          if (!q) return sourceList.slice(0, 40);
+          const terms = q.split(/\s+/).filter(Boolean);
+          return sourceList
+            .filter(c => {
+              const hay = `${c.label} ${c.slug} ${c.muscles || ''} ${c.equipment || ''}`.toLowerCase();
+              return terms.every(t => hay.includes(t));
+            })
+            .slice(0, 50);
+        });
+
+        const persistCatalogOverride = (ex, notify = true) => {
+          try {
+            const customList = JSON.parse(localStorage.getItem('basement_custom_catalog') || '[]');
+            const idx = customList.findIndex(item => item.name === ex.name);
+            if (idx >= 0) {
+              customList[idx] = { ...ex };
+            } else {
+              customList.push({ ...ex });
+            }
+            localStorage.setItem('basement_custom_catalog', JSON.stringify(customList));
+            if (notify) showToast(`Saved updated form settings for "${ex.name}"`);
+          } catch (e) {}
+        };
+
+        const applyNewPhotoSlug = (ex, newSlug) => {
+          ex.slug = newSlug;
+          ex.customPhotoTop = null;
+          ex.customPhotoBottom = null;
+          photoHealthMap.value[ex.name] = 'ok';
+          persistCatalogOverride(ex, false);
+          showPhotoFixer.value = false;
+          showToast(`Updated 2-stage photo for "${ex.name}" → ${newSlug}`);
+        };
+
+        const applyCustomPhotoUrls = (ex) => {
+          if (!customTopUrlInput.value.trim()) return;
+          ex.customPhotoTop = customTopUrlInput.value.trim();
+          ex.customPhotoBottom = customBottomUrlInput.value.trim() || customTopUrlInput.value.trim();
+          photoHealthMap.value[ex.name] = 'ok';
+          persistCatalogOverride(ex, false);
+          showPhotoFixer.value = false;
+          showToast(`Saved custom 2-stage photo URLs for "${ex.name}"`);
+        };
+
+        const clearCustomPhotos = (ex) => {
+          ex.customPhotoTop = null;
+          ex.customPhotoBottom = null;
+          customTopUrlInput.value = '';
+          customBottomUrlInput.value = '';
+          persistCatalogOverride(ex, false);
+          showToast(`Reverted "${ex.name}" to repository photo slug (${ex.slug})`);
+        };
+
+        // Generates an exact custom 2-stage instructional exercise photo using gemini-3.1-flash-image when DB photos don't match
+        const generateAiExactTwoStagePhotos = async (ex) => {
+          if (!ex || aiPhotoGenerating.value) return;
+          aiPhotoGenerating.value = true;
+          try {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+
+            const buildStagePrompt = (stageLabel, cueText) =>
+              `Photorealistic fitness instructional photo of an athletic adult in a clean dark home gym performing "${ex.name}" (${ex.equipment}). Show ${stageLabel}: ${cueText}. Clear full-body anatomical angle, crisp studio lighting, no text overlays.`;
+
+            const [res1, res2] = await Promise.all([
+              fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ role: 'user', parts: [{ text: buildStagePrompt('Stage 1 Starting Setup Position', ex.topCue) }] }],
+                  generationConfig: { responseModalities: ['IMAGE'] }
+                })
+              }),
+              fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ role: 'user', parts: [{ text: buildStagePrompt('Stage 2 Peak Contraction / End Position', ex.bottomCue) }] }],
+                  generationConfig: { responseModalities: ['IMAGE'] }
+                })
+              })
+            ]);
+
+            const data1 = await res1.json();
+            const data2 = await res2.json();
+            const part1 = data1?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+            const part2 = data2?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+
+            if (part1?.inlineData?.data) {
+              ex.customPhotoTop = `data:${part1.inlineData.mimeType || 'image/png'};base64,${part1.inlineData.data}`;
+              ex.customPhotoBottom = part2?.inlineData?.data
+                ? `data:${part2.inlineData.mimeType || 'image/png'};base64,${part2.inlineData.data}`
+                : ex.customPhotoTop;
+              photoHealthMap.value[ex.name] = 'ok';
+              persistCatalogOverride(ex, false);
+              showPhotoFixer.value = false;
+              showToast(`✨ Generated exact 2-stage AI photos for "${ex.name}"!`);
+            } else {
+              showToast('Could not generate AI image right now—try selecting from the 873-exercise library below.');
+            }
+          } catch (e) {
+            showToast('AI image generation unavailable—use the 873-exercise search below.');
+          } finally {
+            aiPhotoGenerating.value = false;
+          }
+        };
+
+        const savePreferencesToSharedContext = () => {
+          try {
+            const raw = localStorage.getItem('basement_coach_context');
+            const parsed = raw ? JSON.parse(raw) : { ...coachCtx.value };
+            parsed.exercisePreferences = {
+              favorites: favoriteLifts.value,
+              banned: bannedLifts.value
+            };
+            localStorage.setItem('basement_coach_context', JSON.stringify(parsed));
+          } catch (e) {}
+        };
+
+        const toggleFavorite = (name) => {
+          bannedLifts.value = bannedLifts.value.filter(n => n !== name);
+          if (isFavorite(name)) {
+            favoriteLifts.value = favoriteLifts.value.filter(n => n !== name);
+            showToast(`Removed "${name}" from Favorites`);
+          } else {
+            favoriteLifts.value.push(name);
+            showToast(`★ Marked "${name}" as Favorite (boosted in AI circuits)`);
+          }
+          savePreferencesToSharedContext();
+        };
+
+        const toggleBanned = (name) => {
+          favoriteLifts.value = favoriteLifts.value.filter(n => n !== name);
+          if (isBanned(name)) {
+            bannedLifts.value = bannedLifts.value.filter(n => n !== name);
+            showToast(`Restored "${name}" to active AI pool`);
+          } else {
+            bannedLifts.value.push(name);
+            showToast(`⊘ Banned "${name}" — AI will auto-swap to safe alternatives`);
+          }
+          savePreferencesToSharedContext();
+        };
+
+        const openQuickAddWithSeed = (seedText) => {
+          newExName.value = seedText || '';
+          showQuickAddModal.value = true;
+        };
+
+        const pickBestPhotoSlugLocally = (name, category, equipment) => {
+          const lower = name.toLowerCase();
+          if (lower.includes('clamshell') || lower.includes('clam')) return 'Clam';
+          if (lower.includes('abduction') || lower.includes('side-lying') || lower.includes('hip raise') || lower.includes('leg raise')) return 'Side_Leg_Raises';
+          if (lower.includes('external rotation') || lower.includes('rotator cuff')) return 'External_Rotation';
+          if (lower.includes('copenhagen') || lower.includes('side-plank') || lower.includes('side plank')) return 'Side_Bridge';
+          if (lower.includes('curl')) return 'Hammer_Curls';
+          if (lower.includes('carry') || lower.includes('suitcase') || lower.includes('farmer')) return 'Farmers_Walk';
+          if (lower.includes('tibialis') || lower.includes('shin')) return 'Standing_Toe_Touches';
+          if (lower.includes('bridge') || lower.includes('thrust')) return 'Butt_Lift_Bridge';
+          if (lower.includes('rdl') || lower.includes('deadlift') || lower.includes('hinge')) return 'Stiff-Legged_Dumbbell_Deadlift';
+          if (lower.includes('split') || lower.includes('lunge')) return 'Split_Squat_with_Dumbbells';
+          if (lower.includes('sumo')) return 'Plie_Dumbbell_Squat';
+          if (lower.includes('squat')) return 'Goblet_Squat';
+          if (lower.includes('incline') && lower.includes('row')) return 'Dumbbell_Incline_Row';
+          if (lower.includes('row')) return 'One-Arm_Dumbbell_Row';
+          if (lower.includes('pullover')) return 'Bent-Arm_Dumbbell_Pullover';
+          if (lower.includes('floor')) return 'Dumbbell_Floor_Press';
+          if (lower.includes('incline')) return 'Incline_Dumbbell_Press';
+          if (lower.includes('bench') || lower.includes('press')) return 'Dumbbell_Bench_Press';
+          if (lower.includes('face pull')) return 'Face_Pull';
+          if (lower.includes('lateral walk') || lower.includes('monster')) return 'Monster_Walk';
+          if (lower.includes('lateral')) return 'Side_Lateral_Raise';
+          if (lower.includes('calf')) return 'Dumbbell_Seated_One-Leg_Calf_Raise';
+          if (equipment === 'Band') return 'Band_Pull_Apart';
+          if (category === 'Core') return 'Dead_Bug';
+          return 'Goblet_Squat';
+        };
+
+        const createEnrichedExercise = async () => {
+          const cleanName = newExName.value.trim();
+          if (!cleanName) return;
+          aiEnrichLoading.value = true;
+
+          const fallbackSlug = pickBestPhotoSlugLocally(cleanName, newExCategory.value, newExEquipment.value);
+          let enriched = {
+            name: cleanName,
+            slug: fallbackSlug,
+            category: newExCategory.value,
+            equipment: newExEquipment.value,
+            weight: newExEquipment.value === 'Dumbbell' ? Math.min(50, Number(newExWeight.value) || 25) : 0,
+            reps: 12,
+            muscles: `${newExCategory.value} Prime Movers & Stabilizers`,
+            topCue: `Set stable posture for ${cleanName}; brace core before moving.`,
+            bottomCue: `Pause 1–2s at peak tension without joint compensation.`,
+            quickCue: `Remember to use a controlled 3-second eccentric and pause 1–2 seconds at peak contraction ${newExNotes.value ? '(' + newExNotes.value + ')' : 'without using momentum'}.`,
+            cue: `1. Set up in a balanced stance with core braced.\n2. Execute the concentric phase smoothly without jerking the weight.\n3. Pause 1–2 seconds at peak muscle contraction.\n4. Lower over a strict 3-second count.`,
+            trap: `• Rushing the lowering phase or swinging your lower back to move the load.`,
+            science: ` maximises mechanical tension within the 50 lb basement home-gym cap via controlled tempo.`,
+            isCustom: true
+          };
+
+          try {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const slugOptions = VERIFIED_PHOTO_SLUGS.map(s => s.slug).join(', ');
+            const prompt = `Create a home-gym catalog entry for "${cleanName}" (Category: ${newExCategory.value}, Equipment: ${newExEquipment.value}, Notes: "${newExNotes.value}").
+Return ONLY a valid JSON object with:
+- "slug": choose the closest visual match from [${slugOptions}]
+- "muscles": target muscles worked
+- "topCue": 1-line setup cue for photo 1
+- "bottomCue": 1-line peak/end cue for photo 2
+- "quickCue": 1-sentence "Remember to..." biomechanical cue for the Guided Player
+- "cue": 4 numbered steps ("1. ...\\n2. ...")
+- "trap": 1 bullet describing the #1 visual form breakdown trap
+- "science": 1 concise sentence on joint/hypertrophy science.`;
+
+            const res = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+              })
+            });
+            const data = await res.json();
+            const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+            if (parsed.quickCue) {
+              enriched = {
+                ...enriched,
+                slug: VERIFIED_PHOTO_SLUGS.some(s => s.slug === parsed.slug) ? parsed.slug : fallbackSlug,
+                muscles: parsed.muscles || enriched.muscles,
+                topCue: parsed.topCue || enriched.topCue,
+                bottomCue: parsed.bottomCue || enriched.bottomCue,
+                quickCue: parsed.quickCue || enriched.quickCue,
+                cue: parsed.cue || enriched.cue,
+                trap: parsed.trap || enriched.trap,
+                science: parsed.science || enriched.science
+              };
+            }
+          } catch (e) {
+            // Uses rich local biomechanical enrichment when offline
+          } finally {
+            aiEnrichLoading.value = false;
+            const existingIdx = allExercises.value.findIndex(x => x.name.toLowerCase() === cleanName.toLowerCase());
+            if (existingIdx >= 0) {
+              allExercises.value[existingIdx] = enriched;
+            } else {
+              allExercises.value.unshift(enriched);
+            }
+            persistCatalogOverride(enriched);
+            showQuickAddModal.value = false;
+            newExName.value = '';
+            newExNotes.value = '';
+            showToast(`Added "${enriched.name}" to shared catalog!`);
+          }
+        };
+
+        const deleteCustomExercise = (name) => {
+          allExercises.value = allExercises.value.filter(x => x.name !== name);
+          try {
+            const customList = JSON.parse(localStorage.getItem('basement_custom_catalog') || '[]').filter(x => x.name !== name);
+            localStorage.setItem('basement_custom_catalog', JSON.stringify(customList));
+          } catch (e) {}
+          activeExercise.value = null;
+          showToast(`Removed "${name}" from custom catalog`);
+        };
+
+        const syncFromSharedStorage = (notify = false) => {
+          try {
+            const ctxRaw = localStorage.getItem('basement_coach_context');
+            if (ctxRaw) {
+              const parsed = JSON.parse(ctxRaw);
+              coachCtx.value = { ...coachCtx.value, ...parsed };
+              if (parsed.exercisePreferences?.favorites) favoriteLifts.value = parsed.exercisePreferences.favorites;
+              if (parsed.exercisePreferences?.banned) bannedLifts.value = parsed.exercisePreferences.banned;
+            }
+            const logsRaw = localStorage.getItem('basement_logs');
+            if (logsRaw) {
+              workoutLogs.value = JSON.parse(logsRaw);
+            }
+            const customRaw = localStorage.getItem('basement_custom_catalog');
+            if (customRaw) {
+              const customItems = JSON.parse(customRaw);
+              const merged = [...BASE_CATALOG];
+              let migratedAny = false;
+              customItems.forEach(item => {
+                // Heal any old broken slugs that were saved in localStorage earlier
+                if (BROKEN_SLUG_MIGRATION_MAP[item.slug]) {
+                  item.slug = BROKEN_SLUG_MIGRATION_MAP[item.slug];
+                  migratedAny = true;
+                }
+                if (item.name === 'Banded Clamshell' && item.slug === 'Side_Bridge') {
+                  item.slug = 'Clam';
+                  migratedAny = true;
+                }
+                const idx = merged.findIndex(m => m.name === item.name);
+                if (idx >= 0) {
+                  merged[idx] = { ...merged[idx], ...item };
+                } else {
+                  merged.unshift({ ...item, isCustom: true });
+                }
+              });
+              if (migratedAny) {
+                localStorage.setItem('basement_custom_catalog', JSON.stringify(customItems));
+              }
+              allExercises.value = merged;
+            }
+          } catch (e) {}
+          if (notify) showToast('Synced Catalog with Module 1 & Module 2!');
+        };
+
+        onMounted(() => {
+          syncFromSharedStorage(false);
+          loadFullExternalExerciseDb();
+
+          // Automatic background cross-module sync whenever Module 1 or Module 2 updates shared storage or tab regains focus
+          window.addEventListener('storage', (e) => {
+            if (!e.key || e.key.startsWith('basement_')) {
+              syncFromSharedStorage(false);
+            }
+          });
+          window.addEventListener('focus', () => syncFromSharedStorage(false));
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') syncFromSharedStorage(false);
+          });
+        });
+
+        return {
+          photoCdn, toast, searchQuery, selectedCategory, selectedEquipment, filterMode, categories,
+          allExercises, customCount, filteredExercises, coachCtx, favoriteLifts, bannedLifts,
+          verifiedPhotoCount, brokenPhotoCount, photoHealthMap, markPhotoLoaded, handlePhotoError, runFullPhotoAudit,
+          isFavorite, isBanned, isGoalLift, getGoalBadge, getGuardrailWarning, getPersonalBestText,
+          toggleFavorite, toggleBanned, getExercisePhoto,
+          activeExercise, openExerciseDetail, showPhotoFixer, openPhotoFixerDrawer, photoSearchQuery,
+          activeTtsSourceId, autoSpeakExerciseAi, stopCurrentAudioPlayback, speakTextOutLoud,
+          currentExerciseChatList, exerciseModalQuestionInput, isListeningExerciseModal, exerciseAiLoading,
+          toggleExerciseModalVoiceMic, askAiAboutActiveExercise,
+          externalExerciseDb, externalDbLoaded, filteredPhotoSlugCandidates,
+          applyNewPhotoSlug, customTopUrlInput, customBottomUrlInput, applyCustomPhotoUrls, clearCustomPhotos,
+          aiPhotoGenerating, generateAiExactTwoStagePhotos,
+          editingCue, persistCatalogOverride, deleteCustomExercise,
+          showQuickAddModal, openQuickAddWithSeed, newExName, newExCategory, newExEquipment, newExWeight, newExNotes,
+          aiEnrichLoading, createEnrichedExercise, syncFromSharedStorage
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
