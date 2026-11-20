@@ -13,7 +13,8 @@
     'basement_active_goal',
     'basement_temp_injuries',
     'basement_limits',
-    'basement_trainer_directives'
+    'basement_trainer_directives',
+    'basement_gemini_api_key'
   ];
 
   const ALL_SYNC_KEYS = [
@@ -149,7 +150,13 @@
         const stateMap = {};
         stateRes.data.forEach((row) => {
           stateMap[row.key] = row.value;
-          safeSet(row.key, JSON.stringify(row.value));
+          if (row.key === 'basement_gemini_api_key') {
+            const strVal = typeof row.value === 'string' ? row.value : (row.value?.key || '');
+            if (strVal) safeSet(row.key, strVal);
+            else safeRemove(row.key);
+          } else {
+            safeSet(row.key, JSON.stringify(row.value));
+          }
         });
         STATE_KEYS.forEach((k) => {
           if (!(k in stateMap) && hasCloudData) safeRemove(k);
@@ -234,6 +241,21 @@
     if (!client || !userId) return;
 
     const raw = safeGet(key);
+
+    if (key === 'basement_gemini_api_key') {
+      if (!raw) {
+        await client.from('user_state').delete().eq('user_id', userId).eq('key', key);
+      } else {
+        await client.from('user_state').upsert({
+          user_id: userId,
+          key,
+          value: { key: raw },
+          updated_at: new Date().toISOString()
+        });
+      }
+      return;
+    }
+
     if (!raw) return;
 
     if (STATE_KEYS.includes(key)) {
