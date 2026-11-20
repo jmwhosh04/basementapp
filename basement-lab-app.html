@@ -9,6 +9,8 @@
   <title>Basement Lab · Master Suite</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="basement-db.js"></script>
   <style>
     html, body {
       margin: 0;
@@ -18,14 +20,14 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overscroll-behavior-y: none;
     }
-    /* Hide scrollbars cleanly while keeping touch scroll fluid */
+    [v-cloak] { display: none; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
-  <div id="app" class="min-h-[100dvh] flex flex-col max-w-md mx-auto relative bg-slate-950 border-x border-slate-900 shadow-2xl">
-    
+  <div id="app" v-cloak class="min-h-[100dvh] flex flex-col max-w-md mx-auto relative bg-slate-950 border-x border-slate-900 shadow-2xl">
+
     <!-- Top Compact Master Suite Header -->
     <header class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800/90 px-3 py-2.5 flex items-center justify-between gap-2 pt-[max(0.625rem,env(safe-area-inset-top))]">
       <div class="flex items-center gap-2 min-w-0">
@@ -38,38 +40,61 @@
       </div>
 
       <div class="flex items-center gap-1.5 shrink-0">
-        <!-- Active User Pill (Josh / Heather) -->
+        <!-- Signed-in Athlete Pill or Sign-In Button -->
         <button
-          @click="toggleUser"
-          title="Switch Active Athlete Profile"
-          class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition flex items-center gap-1.5"
-          :class="activeUser === 'Josh'
-            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-            : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40'"
+          v-if="sessionUser"
+          @click="openDataModal"
+          title="Signed in via Google · Tap for Sync & Settings"
+          class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
         >
-          <span class="w-1.5 h-1.5 rounded-full" :class="activeUser === 'Josh' ? 'bg-emerald-400' : 'bg-indigo-400'"></span>
-          <span>{{ activeUser }}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span class="max-w-[76px] truncate">{{ displayUserName }}</span>
+        </button>
+        <button
+          v-else
+          @click="handleGoogleSignIn"
+          :disabled="authLoading"
+          class="px-2.5 py-1 rounded-full text-[11px] font-bold border transition bg-emerald-500 text-slate-950 border-emerald-400 hover:bg-emerald-400 disabled:opacity-50"
+        >
+          {{ authLoading ? 'Signing in...' : 'Sign In' }}
         </button>
 
-        <!-- Quick Sync / Refresh Active Module -->
+        <!-- Force Cloud Push + Pull Sync Button -->
         <button
-          @click="syncAllModules"
-          title="Sync Context Across Modules"
-          class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-300 text-xs transition active:scale-95"
+          @click="forceCloudSync"
+          :disabled="syncing"
+          title="Push & Pull Supabase Sync Now"
+          class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-300 text-xs transition active:scale-95 disabled:opacity-50"
         >
-          ↻
+          <span :class="syncing ? 'animate-spin' : ''">↻</span>
         </button>
 
-        <!-- Master JSON Data Backup / Inspect Modal Trigger -->
+        <!-- Master JSON Data Backup / Gemini Key / Account Modal Trigger -->
         <button
           @click="openDataModal"
-          title="Backup, Restore or Inspect Shared JSON Data"
+          title="Cloud Sync, API Key & JSON Backup"
           class="h-7 px-2 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/70 border border-indigo-500/40 flex items-center justify-center text-indigo-300 text-xs font-semibold transition active:scale-95"
         >
           💾
         </button>
       </div>
     </header>
+
+    <!-- Non-Blocking Sign-In Banner if Logged Out -->
+    <div
+      v-if="!sessionUser && !authChecking"
+      class="bg-indigo-950/80 border-b border-indigo-500/40 px-3 py-2 flex items-center justify-between gap-2 text-[11px]"
+    >
+      <span class="text-indigo-200 leading-tight">
+        Sign in with Google to sync workouts &amp; AI catalog photos across devices.
+      </span>
+      <button
+        @click="handleGoogleSignIn"
+        class="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black shrink-0 text-[10px]"
+      >
+        Google Sign-In
+      </button>
+    </div>
 
     <!-- Main Dynamic Viewport Container (Module Iframe with Bottom Dock Clearance) -->
     <main class="flex-1 flex flex-col relative w-full pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
@@ -106,17 +131,19 @@
       </div>
     </nav>
 
-    <!-- Shared Data Bus Backup / Restore / JSON Modal -->
+    <!-- Cloud Sync, Gemini API Key & Master JSON Backup Modal -->
     <div
       v-if="showDataModal"
       class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-3"
       @click.self="showDataModal = false"
     >
-      <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85dvh]">
+      <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88dvh]">
         <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Shared LocalStorage Bus</span>
-            <h2 class="text-sm font-bold text-white">Master Data Backup & Sync ({{ activeUser }})</h2>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Supabase Cloud &amp; Local Bus</span>
+            <h2 class="text-sm font-bold text-white">
+              {{ sessionUser ? `${displayUserName} (${sessionUser.email})` : 'Guest / Local Mode' }}
+            </h2>
           </div>
           <button
             @click="showDataModal = false"
@@ -126,17 +153,61 @@
           </button>
         </div>
 
-        <div class="p-4 space-y-3 overflow-y-auto text-xs">
-          <p class="text-slate-300 leading-relaxed">
-            Export or restore all 6 shared Basement Lab keys (<code class="text-emerald-400">basement_logs</code>, <code class="text-emerald-400">basement_cardio_logs</code>, <code class="text-emerald-400">basement_sauna_logs</code>, <code class="text-emerald-400">basement_coach_context</code>, <code class="text-emerald-400">basement_custom_catalog</code>, <code class="text-emerald-400">basement_trainer_directives</code>).
-          </p>
+        <div class="p-4 space-y-3.5 overflow-y-auto text-xs">
+          <!-- Google Account / Cloud Sync Status -->
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-200">
+                {{ sessionUser ? '🟢 Cloud Auto-Sync Active (3s)' : '⚪ Not Signed In' }}
+              </span>
+              <button
+                v-if="sessionUser"
+                @click="handleSignOut"
+                class="px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/40 text-rose-300 font-bold text-[10px]"
+              >
+                Sign Out
+              </button>
+              <button
+                v-else
+                @click="handleGoogleSignIn"
+                class="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black text-[10px]"
+              >
+                Sign In with Google
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Your logs &amp; profile stay isolated to your Google account, while custom exercises &amp; AI photos in <code class="text-emerald-400">custom_catalog</code> automatically share across household accounts.
+            </p>
+          </div>
 
+          <!-- Gemini API Key Manager -->
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+            <label class="block text-[11px] font-bold text-indigo-300">
+              🔑 Gemini API Key (Synced to Your Private Account)
+            </label>
+            <div class="flex gap-1.5">
+              <input
+                v-model="geminiKeyInput"
+                type="password"
+                placeholder="AIzaSy..."
+                class="flex-1 rounded-lg bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                @click="saveGeminiKey"
+                class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual JSON Backup / Restore -->
           <div class="grid grid-cols-2 gap-2">
             <button
               @click="downloadBackupJson"
-              class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition"
+              class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 font-bold text-xs transition"
             >
-              ⬇ Download JSON Backup
+              ⬇ Download JSON
             </button>
             <button
               @click="copyBackupJson"
@@ -152,7 +223,7 @@
             </label>
             <textarea
               v-model="jsonPayload"
-              rows="8"
+              rows="6"
               class="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 font-mono text-[11px] text-emerald-300 focus:outline-none focus:border-emerald-500"
             ></textarea>
           </div>
@@ -182,13 +253,16 @@
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+    const { createApp, ref, computed, onMounted } = Vue;
 
     const SHARED_KEYS = [
       'basement_logs',
       'basement_cardio_logs',
       'basement_sauna_logs',
       'basement_coach_context',
+      'basement_active_goal',
+      'basement_temp_injuries',
+      'basement_limits',
       'basement_custom_catalog',
       'basement_trainer_directives',
       'basement_trainer_notes'
@@ -228,11 +302,15 @@
         ];
 
         const activeTab = ref(localStorage.getItem('basement_active_tab') || 'hub');
-        const activeUser = ref(localStorage.getItem('basement_active_user') || 'Josh');
+        const sessionUser = ref(null);
+        const authChecking = ref(true);
+        const authLoading = ref(false);
+        const syncing = ref(false);
         const frameKey = ref(0);
         const moduleFrame = ref(null);
         const showDataModal = ref(false);
         const jsonPayload = ref('');
+        const geminiKeyInput = ref(localStorage.getItem('basement_gemini_api_key') || '');
         const copied = ref(false);
         const statusMsg = ref('');
 
@@ -240,19 +318,19 @@
           return modules.find(m => m.id === activeTab.value) || modules[0];
         });
 
+        const displayUserName = computed(() => {
+          if (!sessionUser.value) return 'Guest';
+          const meta = sessionUser.value.user_metadata || {};
+          const full = meta.full_name || meta.name || sessionUser.value.email || 'Athlete';
+          return full.split(' ')[0].split('@')[0];
+        });
+
         function selectModule(id) {
           activeTab.value = id;
           localStorage.setItem('basement_active_tab', id);
         }
 
-        function toggleUser() {
-          activeUser.value = activeUser.value === 'Josh' ? 'Heather' : 'Josh';
-          localStorage.setItem('basement_active_user', activeUser.value);
-          syncAllModules();
-        }
-
-        function syncAllModules() {
-          // Broadcast storage/focus update to active iframe and reload cleanly
+        function reloadActiveFrame() {
           try {
             if (moduleFrame.value && moduleFrame.value.contentWindow) {
               moduleFrame.value.contentWindow.dispatchEvent(new Event('storage'));
@@ -262,8 +340,61 @@
           frameKey.value += 1;
         }
 
+        async function hydrateSession(session) {
+          sessionUser.value = session?.user || null;
+          if (sessionUser.value && window.BasementDB) {
+            syncing.value = true;
+            try {
+              await window.BasementDB.pullFromCloud(sessionUser.value.id);
+              geminiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
+              window.BasementDB.startAutoSync(sessionUser.value.id);
+              reloadActiveFrame();
+            } catch (err) {
+              console.warn('Cloud pull error:', err);
+            } finally {
+              syncing.value = false;
+            }
+          } else if (window.BasementDB) {
+            window.BasementDB.stopAutoSync();
+          }
+        }
+
+        async function handleGoogleSignIn() {
+          if (!window.BasementDB) return;
+          authLoading.value = true;
+          try {
+            await window.BasementDB.signInWithGoogle();
+          } catch (err) {
+            statusMsg.value = 'Sign-in error: ' + (err.message || err);
+            authLoading.value = false;
+          }
+        }
+
+        async function handleSignOut() {
+          if (!window.BasementDB) return;
+          await window.BasementDB.signOut();
+          sessionUser.value = null;
+          showDataModal.value = false;
+          reloadActiveFrame();
+        }
+
+        async function forceCloudSync() {
+          syncing.value = true;
+          try {
+            if (sessionUser.value && window.BasementDB) {
+              await window.BasementDB.pushAllToCloud(sessionUser.value.id);
+              await window.BasementDB.pullFromCloud(sessionUser.value.id);
+              statusMsg.value = 'Synced with Supabase cloud ✓';
+            }
+            reloadActiveFrame();
+          } catch (err) {
+            statusMsg.value = 'Sync warning: ' + (err.message || err);
+          } finally {
+            syncing.value = false;
+          }
+        }
+
         function onFrameLoad() {
-          // Ensure iframe inner body also expands smoothly on mobile viewports
           try {
             const doc = moduleFrame.value?.contentDocument;
             if (doc && doc.body) {
@@ -281,7 +412,7 @@
         function buildSnapshot() {
           const bundle = {
             exportedAt: new Date().toISOString(),
-            activeUser: activeUser.value,
+            userEmail: sessionUser.value?.email || 'local',
             data: {}
           };
           SHARED_KEYS.forEach(k => {
@@ -297,8 +428,23 @@
         function openDataModal() {
           statusMsg.value = '';
           copied.value = false;
+          geminiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
           jsonPayload.value = buildSnapshot();
           showDataModal.value = true;
+        }
+
+        async function saveGeminiKey() {
+          const clean = geminiKeyInput.value.trim();
+          if (clean) {
+            localStorage.setItem('basement_gemini_api_key', clean);
+          } else {
+            localStorage.removeItem('basement_gemini_api_key');
+          }
+          if (sessionUser.value && window.BasementDB) {
+            await window.BasementDB.pushAllToCloud(sessionUser.value.id);
+          }
+          statusMsg.value = 'Gemini API Key saved & synced!';
+          reloadActiveFrame();
         }
 
         function downloadBackupJson() {
@@ -307,7 +453,7 @@
           const a = document.createElement('a');
           const dateStr = new Date().toISOString().slice(0, 10);
           a.href = url;
-          a.download = `basement-lab-backup-${activeUser.value.toLowerCase()}-${dateStr}.json`;
+          a.download = `basement-lab-backup-${displayUserName.value.toLowerCase()}-${dateStr}.json`;
           a.click();
           URL.revokeObjectURL(url);
           statusMsg.value = 'Backup JSON downloaded.';
@@ -323,7 +469,7 @@
           }
         }
 
-        function restoreBackupJson() {
+        async function restoreBackupJson() {
           try {
             const parsed = JSON.parse(jsonPayload.value);
             const source = parsed.data ? parsed.data : parsed;
@@ -333,47 +479,50 @@
                 localStorage.setItem(k, val);
               }
             });
-            if (parsed.activeUser) {
-              activeUser.value = parsed.activeUser;
-              localStorage.setItem('basement_active_user', parsed.activeUser);
-            }
-            statusMsg.value = 'Restored shared keys! Syncing active module...';
-            syncAllModules();
+            statusMsg.value = 'Restored shared keys! Pushing to cloud...';
+            await forceCloudSync();
           } catch (err) {
             statusMsg.value = 'Invalid JSON format — please check syntax and try again.';
           }
         }
 
-        function handleStorageSync(e) {
-          if (e.key === 'basement_active_user' && e.newValue) {
-            activeUser.value = e.newValue;
+        onMounted(async () => {
+          if (window.BasementDB) {
+            const existingSession = await window.BasementDB.getSession();
+            await hydrateSession(existingSession);
+            authChecking.value = false;
+
+            window.BasementDB.onAuthStateChange(async (newSession) => {
+              await hydrateSession(newSession);
+            });
+          } else {
+            authChecking.value = false;
           }
-        }
-
-        onMounted(() => {
-          window.addEventListener('storage', handleStorageSync);
-        });
-
-        onUnmounted(() => {
-          window.removeEventListener('storage', handleStorageSync);
         });
 
         return {
           modules,
           activeTab,
-          activeUser,
+          sessionUser,
+          authChecking,
+          authLoading,
+          syncing,
+          displayUserName,
           activeModule,
           frameKey,
           moduleFrame,
           showDataModal,
           jsonPayload,
+          geminiKeyInput,
           copied,
           statusMsg,
           selectModule,
-          toggleUser,
-          syncAllModules,
+          handleGoogleSignIn,
+          handleSignOut,
+          forceCloudSync,
           onFrameLoad,
           openDataModal,
+          saveGeminiKey,
           downloadBackupJson,
           copyBackupJson,
           restoreBackupJson

@@ -919,7 +919,7 @@
     </div>
 
     <!-- SHARED JSON CONTRACT INSPECTOR MODAL -->
-    <div v-if="showContractInspector" @click.self="showContractInspector = false" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div v-if="showContractInspector" @click.self="showContractInspector = false" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-start justify-center p-3 pt-4 pb-24 overflow-y-auto">
       <div class="bg-slate-900 border border-indigo-500/50 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-black text-white">Shared localStorage["basement_coach_context"]</h3>
@@ -930,8 +930,8 @@
     </div>
 
     <!-- UNIVERSAL 2-STAGE HUMAN PHOTO FORM CARD MODAL (WITH BUILT-IN PHOTO CHANGER) -->
-    <div v-if="activeFormModalLift" @click.self="activeFormModalLift = null" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+    <div v-if="activeFormModalLift" @click.self="activeFormModalLift = null" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-start justify-center p-3 pt-4 pb-24 overflow-y-auto">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl">
         <div class="flex items-start justify-between">
           <div>
             <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono uppercase">{{ activeFormModalLift.equipment }}</span>
@@ -2260,6 +2260,12 @@ Return ONLY valid JSON with:
         const openFormCardByName = (name) => {
           const item = LIFT_PHOTOS[name] || LIFT_PHOTOS['Goblet Squat'];
           activeFormModalLift.value = { name, ...item };
+          try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (window.parent && window.parent !== window) {
+              window.parent.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          } catch (e) {}
           showModalPhotoFixer.value = false;
         };
 

@@ -45,7 +45,7 @@
           <h1 class="text-base font-black tracking-tight text-white mt-0.5">Smart Catalog &amp; Visual Form Coach</h1>
         </div>
         <button
-          @click="showQuickAddModal = true"
+          @click="openQuickAddWithSeed('')"
           class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition shrink-0"
         >
           + AI Add Lift
@@ -1129,12 +1129,22 @@
           return `${PHOTO_CDN}/${slug}/${stage === 'bottom' ? '1.jpg' : '0.jpg'}`;
         };
 
+        const scrollViewportToTop = () => {
+          try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (window.parent && window.parent !== window) {
+              window.parent.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          } catch (e) {}
+        };
+
         const openExerciseDetail = (ex) => {
           activeExercise.value = ex;
           showPhotoFixer.value = false;
           editingCue.value = false;
           customTopUrlInput.value = ex.customPhotoTop || '';
           customBottomUrlInput.value = ex.customPhotoBottom || '';
+          scrollViewportToTop();
         };
 
         const openPhotoFixerDrawer = () => {
@@ -1450,6 +1460,7 @@
         const openQuickAddWithSeed = (seedText) => {
           newExName.value = seedText || '';
           showQuickAddModal.value = true;
+          scrollViewportToTop();
         };
 
         const pickBestPhotoSlugLocally = (name, category, equipment) => {
