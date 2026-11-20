@@ -100,7 +100,6 @@
     <main class="flex-1 flex flex-col relative w-full pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
       <iframe
         ref="moduleFrame"
-        :key="frameKey"
         :src="activeModule.file"
         @load="onFrameLoad"
         class="w-full flex-1 border-0 bg-slate-950 block"
@@ -340,21 +339,40 @@
           frameKey.value += 1;
         }
 
-        async function hydrateSession(session) {
-          sessionUser.value = session?.user || null;
-          if (sessionUser.value && window.BasementDB) {
+        let hydratedUserId = null;
+        let isHydrating = false;
+
+        function notifyActiveFrame() {
+          try {
+            if (moduleFrame.value && moduleFrame.value.contentWindow) {
+              moduleFrame.value.contentWindow.dispatchEvent(new Event('storage'));
+            }
+          } catch (e) {}
+        }
+
+        async function hydrateSession(session, forcePull = false) {
+          const nextUser = session?.user || null;
+          sessionUser.value = nextUser;
+          if (nextUser && window.BasementDB) {
+            if (!forcePull && (isHydrating || hydratedUserId === nextUser.id)) {
+              return;
+            }
+            isHydrating = true;
             syncing.value = true;
             try {
-              await window.BasementDB.pullFromCloud(sessionUser.value.id);
+              await window.BasementDB.pullFromCloud(nextUser.id);
+              hydratedUserId = nextUser.id;
               geminiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
-              window.BasementDB.startAutoSync(sessionUser.value.id);
-              reloadActiveFrame();
+              window.BasementDB.startAutoSync(nextUser.id);
+              notifyActiveFrame();
             } catch (err) {
               console.warn('Cloud pull error:', err);
             } finally {
+              isHydrating = false;
               syncing.value = false;
             }
           } else if (window.BasementDB) {
+            hydratedUserId = null;
             window.BasementDB.stopAutoSync();
           }
         }
@@ -375,7 +393,7 @@
           await window.BasementDB.signOut();
           sessionUser.value = null;
           showDataModal.value = false;
-          reloadActiveFrame();
+          notifyActiveFrame();
         }
 
         async function forceCloudSync() {
@@ -386,7 +404,7 @@
               await window.BasementDB.pullFromCloud(sessionUser.value.id);
               statusMsg.value = 'Synced with Supabase cloud ✓';
             }
-            reloadActiveFrame();
+            notifyActiveFrame();
           } catch (err) {
             statusMsg.value = 'Sync warning: ' + (err.message || err);
           } finally {
@@ -394,17 +412,24 @@
           }
         }
 
+        let activeResizeObserver = null;
         function onFrameLoad() {
           try {
+            if (activeResizeObserver) {
+              activeResizeObserver.disconnect();
+              activeResizeObserver = null;
+            }
             const doc = moduleFrame.value?.contentDocument;
             if (doc && doc.body) {
-              const resizeObserver = new ResizeObserver(() => {
+              let lastHeight = 0;
+              activeResizeObserver = new ResizeObserver(() => {
                 const h = doc.documentElement.scrollHeight;
-                if (h > 400 && moduleFrame.value) {
+                if (h > 400 && Math.abs(h - lastHeight) > 8 && moduleFrame.value) {
+                  lastHeight = h;
                   moduleFrame.value.style.minHeight = h + 'px';
                 }
               });
-              resizeObserver.observe(doc.body);
+              activeResizeObserver.observe(doc.body);
             }
           } catch (e) {}
         }
@@ -444,7 +469,7 @@
             await window.BasementDB.pushAllToCloud(sessionUser.value.id);
           }
           statusMsg.value = 'Gemini API Key saved & synced!';
-          reloadActiveFrame();
+          notifyActiveFrame();
         }
 
         function downloadBackupJson() {
