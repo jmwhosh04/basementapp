@@ -2158,7 +2158,7 @@ Reply in 2-3 concise, spoken-friendly sentences citing his actual numbers.`;
         const runAiCorrelationSynthesis = async () => {
           aiCorrelationLoading.value = true;
           try {
-            const apiKey = "";
+            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
             const prompt = `Analyze this 46yo, 5'11", 215 lb home-gym athlete's data: 7-day sets=${sevenDayStats.value.sets}, 7-day run=${sevenDayStats.value.runMiles}mi, 7-day row=${sevenDayStats.value.rowMins}m, sauna sessions=${saunaLogs.value.length}, Primary Goal="${coachCtx.value.activeGoal.shortTag}". Write 2 concise sentences of pro-trainer correlation advice.`;
             const res = await fetch(apiUrl, {

@@ -1306,7 +1306,7 @@
           if (!ex || aiPhotoGenerating.value) return;
           aiPhotoGenerating.value = true;
           try {
-            const apiKey = "";
+            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
 
             const buildStagePrompt = (stageLabel, cueText) =>
@@ -1449,7 +1449,7 @@
           };
 
           try {
-            const apiKey = "";
+            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
             const slugOptions = VERIFIED_PHOTO_SLUGS.map(s => s.slug).join(', ');
             const prompt = `Create a home-gym catalog entry for "${cleanName}" (Category: ${newExCategory.value}, Equipment: ${newExEquipment.value}, Notes: "${newExNotes.value}").
