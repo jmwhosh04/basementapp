@@ -7,6 +7,7 @@
 
   const SUPABASE_URL = 'https://flroxptovfxuzwpoyisf.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tsAgCyDK0xMchdMW4lH8BA_rys4KouJ';
+  const ACTIVE_USER_KEY = 'basement_active_user_id';
 
   const STATE_KEYS = [
     'basement_coach_context',
@@ -27,7 +28,6 @@
   ];
 
   let sb = null;
-  let lastSyncedUserId = null;
   let lastSnapshots = {};
   let syncTimer = null;
   let isPulling = false;
@@ -61,6 +61,11 @@
     }
   }
 
+  function clearAllLocalProfileData() {
+    ALL_SYNC_KEYS.forEach(safeRemove);
+    lastSnapshots = {};
+  }
+
   function getClient() {
     if (!sb && global.supabase && typeof global.supabase.createClient === 'function') {
       sb = global.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -81,12 +86,12 @@
 
   async function signOut() {
     const client = getClient();
-    if (!client) return;
     stopAutoSync();
-    await client.auth.signOut();
-    lastSyncedUserId = null;
-    lastSnapshots = {};
-    ALL_SYNC_KEYS.forEach(safeRemove);
+    if (client) {
+      await client.auth.signOut();
+    }
+    safeRemove(ACTIVE_USER_KEY);
+    clearAllLocalProfileData();
   }
 
   async function getSession() {
@@ -105,13 +110,20 @@
     });
   }
 
-  // Pull all tables for the signed-in user and hydrate localStorage
+  // Pull all tables for the signed-in user and hydrate localStorage.
+  // Never auto-seeds a new user's cloud account from another user's leftover browser storage.
   async function pullFromCloud(userId) {
     const client = getClient();
     if (!client || !userId) return { imported: false };
 
     isPulling = true;
     try {
+      const previousUserId = safeGet(ACTIVE_USER_KEY);
+      if (previousUserId !== userId) {
+        clearAllLocalProfileData();
+      }
+      safeSet(ACTIVE_USER_KEY, userId);
+
       const [stateRes, strengthRes, cardioRes, saunaRes, notesRes, catalogRes] = await Promise.all([
         client.from('user_state').select('key, value').eq('user_id', userId),
         client.from('strength_logs').select('*').eq('user_id', userId).order('date', { ascending: false }),
@@ -128,22 +140,20 @@
         (saunaRes.data && saunaRes.data.length > 0) ||
         (notesRes.data && notesRes.data.length > 0);
 
-      // First-time sign-in: if cloud is empty but this browser has existing logs, seed cloud automatically
-      const hasLocalLogs = ALL_SYNC_KEYS.some((k) => {
-        const raw = safeGet(k);
-        return raw && raw !== '[]' && raw !== '{}';
-      });
-
-      if (!hasCloudData && hasLocalLogs) {
-        await pushAllToCloud(userId);
-        lastSyncedUserId = userId;
+      if (!hasCloudData) {
+        clearAllLocalProfileData();
+        // Still load shared custom catalog items if any exist
+        if (catalogRes.data && catalogRes.data.length > 0) {
+          const mapped = catalogRes.data.map((r) => ({
+            ...(r.data || {}),
+            id: r.id,
+            owner_id: r.owner_id,
+            is_shared: r.is_shared
+          }));
+          safeSet('basement_custom_catalog', JSON.stringify(mapped));
+        }
         snapshotCurrentLocal();
-        return { seededFromLocal: true };
-      }
-
-      // Clear previous user's localStorage before hydrating current user's cloud data
-      if (lastSyncedUserId && lastSyncedUserId !== userId) {
-        ALL_SYNC_KEYS.forEach(safeRemove);
+        return { freshProfile: true };
       }
 
       if (stateRes.data) {
@@ -159,7 +169,7 @@
           }
         });
         STATE_KEYS.forEach((k) => {
-          if (!(k in stateMap) && hasCloudData) safeRemove(k);
+          if (!(k in stateMap)) safeRemove(k);
         });
       }
 
@@ -228,9 +238,29 @@
         safeSet('basement_custom_catalog', JSON.stringify(mapped));
       }
 
-      lastSyncedUserId = userId;
       snapshotCurrentLocal();
       return { hydrated: true };
+    } finally {
+      isPulling = false;
+    }
+  }
+
+  async function resetUserCloudAndLocal(userId) {
+    const client = getClient();
+    stopAutoSync();
+    isPulling = true;
+    try {
+      clearAllLocalProfileData();
+      if (client && userId) {
+        await Promise.all([
+          client.from('user_state').delete().eq('user_id', userId),
+          client.from('strength_logs').delete().eq('user_id', userId),
+          client.from('cardio_logs').delete().eq('user_id', userId),
+          client.from('sauna_logs').delete().eq('user_id', userId),
+          client.from('trainer_notes').delete().eq('user_id', userId)
+        ]);
+      }
+      snapshotCurrentLocal();
     } finally {
       isPulling = false;
     }
@@ -406,6 +436,7 @@
     onAuthStateChange,
     pullFromCloud,
     pushAllToCloud,
+    resetUserCloudAndLocal,
     startAutoSync,
     stopAutoSync,
     safeGet,

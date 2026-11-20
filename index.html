@@ -211,6 +211,24 @@
             📥 Restore &amp; Sync
           </button>
         </div>
+
+        <div class="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+          <span class="text-[10px] text-slate-400">Want a clean slate for this account?</span>
+          <button
+            v-if="!confirmResetProfile"
+            @click="confirmResetProfile = true"
+            class="px-2.5 py-1 rounded-lg bg-slate-950 border border-rose-500/40 text-[10px] font-bold text-rose-300 hover:bg-rose-500/20"
+          >
+            🗑️ Reset Account Data
+          </button>
+          <button
+            v-else
+            @click="handleResetAccountData"
+            class="px-2.5 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black"
+          >
+            Confirm Wipe &amp; Reload
+          </button>
+        </div>
       </div>
     </div>
 
@@ -276,6 +294,7 @@
         const authBusy = ref(false);
         const session = ref(null);
         const localOnlyMode = ref(false);
+        const confirmResetProfile = ref(false);
 
         const setIframeRef = (id, el) => {
           if (el) iframeRefs[id] = el;
@@ -337,6 +356,7 @@
             apiKeyInput.value = '';
           }
           refreshBackupJson();
+          confirmResetProfile.value = false;
           showDataModal.value = true;
         };
 
@@ -406,6 +426,19 @@
           showToast('Signed out.');
         };
 
+        const handleResetAccountData = async () => {
+          if (window.BasementDB) {
+            await window.BasementDB.resetUserCloudAndLocal(session.value?.user?.id || null);
+            if (session.value?.user?.id) {
+              window.BasementDB.startAutoSync(session.value.user.id);
+            }
+          }
+          confirmResetProfile.value = false;
+          showDataModal.value = false;
+          reloadAllIframes();
+          showToast('🧹 Cleared account profile & logs—starting fresh!');
+        };
+
         const hydrateUserSession = async (newSession) => {
           session.value = newSession;
           if (newSession?.user?.id && window.BasementDB) {
@@ -464,6 +497,8 @@
           refreshBackupJson,
           copyBackupJson,
           restoreBackupJson,
+          confirmResetProfile,
+          handleResetAccountData,
           handleGoogleSignIn,
           handleSignOut
         };
