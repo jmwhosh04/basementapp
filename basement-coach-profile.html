@@ -52,7 +52,7 @@
       <div class="flex items-center justify-between gap-1 text-[10px] font-mono bg-slate-900/90 border border-slate-800/90 rounded-xl px-2.5 py-1.5">
         <span class="text-indigo-300 truncate"><strong>1°:</strong> {{ activeGoal.shortTag }}<span v-if="secondaryGoalId !== 'none'" class="text-sky-300"> + {{ secondaryGoalObj.shortTag }}</span></span>
         <span class="text-slate-600">|</span>
-        <span class="text-emerald-300"><strong>{{ athleteAge }}y</strong> &bull; {{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}" &bull; {{ athleteProfile.weightLbs }}lb</span>
+        <span class="text-emerald-300">{{ athleteSummaryChip }}</span>
         <span class="text-slate-600">|</span>
         <span class="text-rose-300"><strong>Guards:</strong> {{ activeChronicGuardsCount + activeTemporaryInjuries.length }}</span>
         <button @click="showContractInspector = !showContractInspector" class="text-emerald-400 underline ml-1">JSON</button>
@@ -78,6 +78,62 @@
         </button>
       </div>
 
+
+      <!-- AI PROFILE INTERVIEW (FIRST-TIME ONBOARDING OR RE-RUN) -->
+      <div v-if="showOnboardingCard" class="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 via-slate-900 to-indigo-950/50 border border-emerald-500/50 space-y-3 shadow-xl text-xs">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">✨ AI Profile Setup</span>
+            <h2 class="text-sm font-black text-white mt-0.5">Tell Me About You</h2>
+          </div>
+          <button
+            @click="dismissOnboarding"
+            class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white shrink-0"
+          >
+            {{ isProfileEmpty ? 'Fill Manually' : 'Close ×' }}
+          </button>
+        </div>
+
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Share your <strong>height, weight, birthday</strong>, any <strong>chronic joint/back issues</strong>, your <strong>lifestyle</strong> (desk job, yard work, travel), and your <strong>fitness goals</strong>—then AI will populate your profile so you can add or delete anything anytime.
+        </p>
+
+        <div class="flex items-center justify-between gap-2">
+          <button
+            @click="toggleVoiceMic('onboarding')"
+            class="px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 transition"
+            :class="activeVoiceTarget === 'onboarding' ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 text-emerald-300 border border-emerald-500/40'"
+          >
+            <span>🎤 {{ activeVoiceTarget === 'onboarding' ? 'Listening... (Tap to Stop)' : 'Speak to AI' }}</span>
+          </button>
+          <span class="text-[10px] text-slate-400 font-mono">Voice or type below</span>
+        </div>
+
+        <textarea
+          v-model="onboardingInput"
+          rows="3"
+          placeholder="e.g., I'm 5'5&quot;, 140 lbs, born June 12 1984. I sit at a desk all day, do yard work on weekends, have mild lower back tightness, and want to tone my arms and build core strength."
+          class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-400"
+        ></textarea>
+
+        <button
+          @click="runAiOnboarding"
+          :disabled="!onboardingInput.trim() || onboardingLoading"
+          class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition disabled:opacity-40"
+        >
+          {{ onboardingLoading ? 'AI Populating Your Profile...' : '✨ Populate My Profile with AI' }}
+        </button>
+      </div>
+
+      <div v-else class="flex justify-end">
+        <button
+          @click="showOnboardingCard = true"
+          class="px-2.5 py-1 rounded-xl bg-slate-900 border border-emerald-500/30 hover:border-emerald-400 text-[10px] font-bold text-emerald-300 transition"
+        >
+          🎤 AI Profile Interview
+        </button>
+      </div>
+
       <!-- ===================================================================== -->
       <!-- TAB 1: 2–3 MONTH AI GOAL BLOCK + SECONDARY GOAL + 50LB STRATEGY       -->
       <!-- ===================================================================== -->
@@ -85,16 +141,28 @@
         <!-- Active Goal Banner Card + Switch / Custom Builder -->
         <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/50 via-slate-900 to-slate-900 border border-indigo-500/40 space-y-3 shadow-lg">
           <div class="flex items-start justify-between gap-2">
-            <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Primary Goal Block (~70% Focus &bull; Wk {{ activeGoal.currentWeek }}/{{ activeGoal.durationWeeks }})</span>
-              <h2 class="text-base font-black text-white mt-0.5">{{ activeGoal.title }}</h2>
+            <div class="min-w-0">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">
+                {{ activeGoal.id === 'none' ? 'Primary Goal Block (Not Set)' : 'Primary Goal Block (~70% Focus · Wk ' + activeGoal.currentWeek + '/' + activeGoal.durationWeeks + ')' }}
+              </span>
+              <h2 class="text-base font-black text-white mt-0.5 truncate">{{ activeGoal.title }}</h2>
             </div>
-            <button
-              @click="showPrimaryGoalPicker = !showPrimaryGoalPicker"
-              class="px-2.5 py-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-[10px] flex-shrink-0 shadow transition"
-            >
-              {{ showPrimaryGoalPicker ? 'Close ▲' : 'Change 1° Goal ▼' }}
-            </button>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                v-if="activeGoal.id !== 'none'"
+                @click="removePrimaryGoal"
+                title="Remove Primary Goal"
+                class="px-2 py-1 rounded-xl bg-slate-900 border border-rose-500/40 hover:bg-rose-500/20 text-rose-300 font-bold text-[10px] transition"
+              >
+                🗑️ Remove
+              </button>
+              <button
+                @click="showPrimaryGoalPicker = !showPrimaryGoalPicker"
+                class="px-2.5 py-1 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-[10px] shadow transition"
+              >
+                {{ showPrimaryGoalPicker ? 'Close ▲' : (activeGoal.id === 'none' ? '+ Set 1° Goal ▼' : 'Change ▼') }}
+              </button>
+            </div>
           </div>
 
           <!-- COLLAPSIBLE PRIMARY GOAL DROPDOWN (Presets + Custom AI Goal Builder) -->
@@ -150,7 +218,7 @@
           <p class="text-xs text-slate-300 leading-relaxed">{{ activeGoal.description }}</p>
 
           <!-- Weekly Goal Volume Progress Bar -->
-          <div class="space-y-1">
+          <div v-if="activeGoal.id !== 'none'" class="space-y-1">
             <div class="flex justify-between text-[10px] font-mono">
               <span class="text-slate-400">Weekly Goal Stimulus Target ({{ goalWeeklySetsCompleted }}/{{ activeGoal.weeklyTargetSets }} sets)</span>
               <span class="text-indigo-300 font-bold">{{ Math.min(100, Math.round((goalWeeklySetsCompleted / activeGoal.weeklyTargetSets) * 100)) }}% Complete</span>
@@ -161,7 +229,7 @@
           </div>
 
           <!-- Primary & Secondary Anti-Overload Rotation Lifts (Clickable for 2-Stage Human Photos) -->
-          <div class="grid grid-cols-2 gap-2 pt-1">
+          <div v-if="activeGoal.id !== 'none'" class="grid grid-cols-2 gap-2 pt-1">
             <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5">
               <div class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Primary Drivers (Day A/C)</div>
               <div class="space-y-1">
@@ -223,24 +291,39 @@
               </span>
               <h3 class="text-xs font-black text-white">Pair a 2nd Focus or Choose "None"</h3>
             </div>
-            <button
-              @click="showAddSecondaryGoal = !showAddSecondaryGoal"
-              class="px-2 py-1 rounded-lg bg-slate-950 border border-sky-500/40 text-[10px] font-bold text-sky-300 hover:text-white shrink-0"
-            >
-              {{ showAddSecondaryGoal ? 'Close ▲' : '+ Add New' }}
-            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                v-if="secondaryGoalId !== 'none'"
+                @click="secondaryGoalId = 'none'; saveContextToStorage(); showToast('Cleared Secondary Goal (100% Primary Focus)')"
+                class="px-2 py-1 rounded-lg bg-slate-950 border border-rose-500/40 text-[10px] font-bold text-rose-300 hover:bg-rose-500/20"
+              >
+                Clear
+              </button>
+              <button
+                @click="showAddSecondaryGoal = !showAddSecondaryGoal"
+                class="px-2 py-1 rounded-lg bg-slate-950 border border-sky-500/40 text-[10px] font-bold text-sky-300 hover:text-white"
+              >
+                {{ showAddSecondaryGoal ? 'Close ▲' : '+ Add New' }}
+              </button>
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-1.5 text-xs">
-            <button
+            <div
               v-for="sec in secondaryGoalOptions"
               :key="sec.id"
               @click="secondaryGoalId = sec.id; saveContextToStorage(); showToast(sec.id === 'none' ? 'Deselected Secondary Goal (100% Primary Focus)' : 'Secondary goal set to ' + sec.shortTag)"
-              class="p-2 rounded-xl border text-left transition"
+              class="p-2 rounded-xl border text-left transition cursor-pointer relative group"
               :class="secondaryGoalId === sec.id ? 'bg-sky-950/40 border-sky-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'"
             >
-              <div class="font-bold text-[11px] truncate">{{ sec.shortTag }}</div>
+              <button
+                v-if="sec.id !== 'none'"
+                @click.stop="removeSecondaryGoalOption(sec.id)"
+                title="Delete secondary goal"
+                class="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-900/90 text-slate-400 hover:text-rose-400 text-[11px] leading-none flex items-center justify-center"
+              >&times;</button>
+              <div class="font-bold text-[11px] truncate pr-4">{{ sec.shortTag }}</div>
               <div class="text-[9px] text-slate-400 truncate">{{ sec.subtitle }}</div>
-            </button>
+            </div>
           </div>
 
           <!-- Add Custom Secondary Goal Drawer -->
@@ -398,33 +481,42 @@
       <!-- TAB 3: LIFE, DOMS, CHRONIC GUARDRAILS, ANTHROPOMETRICS & STEP 0       -->
       <!-- ===================================================================== -->
       <main v-if="activeTab === 'guards'" class="space-y-4">
-        <!-- Athlete Baseline Anthropometrics (DOB 4/24/80, 5'11", 215 lbs + Future Weight Module Hook) -->
+        <!-- Athlete Baseline Anthropometrics (Clean per-user profile + Voice AI input) -->
         <div class="p-4 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-3 text-xs">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-2">
             <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Athlete Baseline Context &amp; Future Weight Hook</span>
-              <h3 class="text-sm font-black text-white">Age ({{ athleteAge }}), Height ({{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}") &amp; Body Weight ({{ athleteProfile.weightLbs }} lb)</h3>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Athlete Baseline Context</span>
+              <h3 class="text-sm font-black text-white">{{ athleteBaselineHeadline }}</h3>
             </div>
-            <button @click="editingAthleteProfile = !editingAthleteProfile" class="px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white">
-              {{ editingAthleteProfile ? 'Done' : 'Edit' }}
-            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                @click="toggleVoiceMic('baseline')"
+                class="px-2 py-1 rounded-xl font-bold text-[10px] transition"
+                :class="activeVoiceTarget === 'baseline' ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 border border-emerald-500/40 text-emerald-300'"
+              >
+                🎤 {{ activeVoiceTarget === 'baseline' ? 'Stop' : 'Speak' }}
+              </button>
+              <button @click="editingAthleteProfile = !editingAthleteProfile" class="px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 hover:text-white">
+                {{ editingAthleteProfile ? 'Done' : 'Edit' }}
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-3 gap-2 text-center">
             <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
               <div class="text-[9px] font-bold uppercase text-slate-400">Birthday / Age</div>
-              <div class="text-xs font-mono font-black text-white mt-0.5">04/24/1980</div>
-              <div class="text-[10px] font-mono text-emerald-400">{{ athleteAge }} yrs (Masters)</div>
+              <div class="text-xs font-mono font-black text-white mt-0.5">{{ formattedBirthDate || '—' }}</div>
+              <div class="text-[10px] font-mono text-emerald-400">{{ athleteAge ? athleteAge + ' yrs' : 'Not set' }}</div>
             </div>
             <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
               <div class="text-[9px] font-bold uppercase text-slate-400">Height</div>
-              <div class="text-sm font-mono font-black text-white mt-0.5">{{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}"</div>
-              <div class="text-[10px] font-mono text-slate-400">{{ totalHeightInches }} in ({{ heightCm }} cm)</div>
+              <div class="text-sm font-mono font-black text-white mt-0.5">{{ athleteProfile.heightFeet ? athleteProfile.heightFeet + "'" + (athleteProfile.heightInches ?? 0) + '"' : '—' }}</div>
+              <div class="text-[10px] font-mono text-slate-400">{{ totalHeightInches ? totalHeightInches + ' in (' + heightCm + ' cm)' : 'Not set' }}</div>
             </div>
             <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
               <div class="text-[9px] font-bold uppercase text-slate-400">Current Weight</div>
-              <div class="text-sm font-mono font-black text-sky-400 mt-0.5">{{ athleteProfile.weightLbs }} lb</div>
-              <div class="text-[10px] font-mono text-slate-400">BMI {{ athleteBmi }}</div>
+              <div class="text-sm font-mono font-black text-sky-400 mt-0.5">{{ athleteProfile.weightLbs ? athleteProfile.weightLbs + ' lb' : '—' }}</div>
+              <div class="text-[10px] font-mono text-slate-400">{{ athleteBmi ? 'BMI ' + athleteBmi : 'Not set' }}</div>
             </div>
           </div>
 
@@ -449,8 +541,8 @@
             </div>
           </div>
 
-          <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-[11px] text-slate-300 leading-snug">
-            <strong class="text-emerald-400">How AI Coach Uses This:</strong> At <strong>{{ athleteAge }} yrs</strong> and <strong>{{ athleteProfile.weightLbs }} lb</strong> ({{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches }}"), running impact and standing calf loads place ~2.5&times; body weight (~{{ Math.round(athleteProfile.weightLbs * 2.5) }} lb) across your Achilles, plantar fascia, and tibialis. The coach enforces 48h tendon recovery windows and scales bodyweight/dumbbell density accordingly.
+          <div v-if="athleteProfile.weightLbs && athleteAge" class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-[11px] text-slate-300 leading-snug">
+            <strong class="text-emerald-400">How AI Coach Uses This:</strong> At <strong>{{ athleteAge }} yrs</strong> and <strong>{{ athleteProfile.weightLbs }} lb</strong> ({{ athleteProfile.heightFeet }}'{{ athleteProfile.heightInches ?? 0 }}"), running impact places ~2.5&times; body weight (~{{ Math.round(athleteProfile.weightLbs * 2.5) }} lb) across lower-leg tendons. The coach scales recovery windows and dumbbell density accordingly.
           </div>
         </div>
 
@@ -461,7 +553,16 @@
               <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">Local Muscle Soreness (DOMS) Map</span>
               <h3 class="text-sm font-black text-white">Tap Any Muscle to Cycle: Fresh &rarr; Tight &rarr; Very Sore</h3>
             </div>
-            <button @click="resetSorenessMap" class="px-2 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 hover:text-white">Reset All</button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                @click="toggleVoiceMic('doms')"
+                class="px-2 py-1 rounded-lg font-bold text-[10px] transition"
+                :class="activeVoiceTarget === 'doms' ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 border border-amber-500/40 text-amber-300'"
+              >
+                🎤 {{ activeVoiceTarget === 'doms' ? 'Stop' : 'Speak' }}
+              </button>
+              <button @click="resetSorenessMap" class="px-2 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 hover:text-white">Reset</button>
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-1.5">
             <button
@@ -479,17 +580,71 @@
           </div>
         </div>
 
-        <!-- Non-Gym Real-Life Physical Load -->
+        <!-- Non-Gym Real-Life Physical Load (Add, Speak to AI, Toggle, Delete) -->
         <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5 text-xs">
-          <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Non-Gym "Real Life" Physical Load</span>
-            <h3 class="text-sm font-black text-white">Yard Work, Travel &amp; Desk Fatigue</h3>
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Non-Gym "Real Life" Physical Load</span>
+              <h3 class="text-sm font-black text-white">Yard Work, Travel &amp; Desk Fatigue</h3>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                @click="toggleVoiceMic('lifeload')"
+                class="px-2 py-1 rounded-xl font-bold text-[10px] transition"
+                :class="activeVoiceTarget === 'lifeload' ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 border border-sky-500/40 text-sky-300'"
+              >
+                🎤 {{ activeVoiceTarget === 'lifeload' ? 'Stop' : 'Speak' }}
+              </button>
+              <button @click="editingLifeLoads = !editingLifeLoads" class="px-2.5 py-1 rounded-xl bg-sky-500/15 border border-sky-500/40 text-[10px] font-bold text-sky-300">
+                {{ editingLifeLoads ? 'Done' : '+ Add' }}
+              </button>
+            </div>
           </div>
-          <div class="space-y-1.5">
+
+          <!-- Quick Add / Manual / AI Drawer -->
+          <div v-if="editingLifeLoads" class="p-3 rounded-xl bg-slate-950 border border-sky-500/40 space-y-2">
+            <div class="flex flex-wrap gap-1">
+              <button
+                v-for="p in externalLifeLoadPresets"
+                :key="p.id"
+                @click="addLifeLoadItem(p.label, p.effect)"
+                class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[9px] text-slate-300 hover:border-sky-400"
+              >
+                + {{ p.label }}
+              </button>
+            </div>
+            <input
+              v-model="newLifeLoadLabel"
+              type="text"
+              placeholder="e.g., Yard work, long flight, 10h desk day..."
+              class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white"
+            />
+            <div class="flex gap-1.5">
+              <input
+                v-model="newLifeLoadEffect"
+                type="text"
+                placeholder="Optional coaching note (e.g., light lower back)"
+                class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white"
+              />
+              <button
+                @click="addLifeLoadItem(newLifeLoadLabel, newLifeLoadEffect)"
+                :disabled="!newLifeLoadLabel.trim()"
+                class="px-3 py-1.5 rounded-lg bg-sky-500 text-slate-950 font-black text-[10px] disabled:opacity-40"
+              >
+                + Add
+              </button>
+            </div>
+          </div>
+
+          <div v-if="externalLifeLoadList.length === 0" class="p-3 rounded-xl bg-slate-950 border border-dashed border-slate-800 text-[11px] text-slate-400 text-center">
+            No lifestyle loads added yet. Tap <strong>🎤 Speak</strong> or <strong>+ Add</strong> above to log yard work, travel, or desk fatigue.
+          </div>
+
+          <div v-else class="space-y-1.5">
             <div
               v-for="item in externalLifeLoadList"
               :key="item.id"
-              @click="item.active = !item.active; saveContextToStorage(); showToast((item.active ? 'Enabled: ' : 'Cleared: ') + item.label)"
+              @click="item.active = !item.active; saveContextToStorage(); showToast((item.active ? 'Enabled: ' : 'Paused: ') + item.label)"
               class="p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between gap-2"
               :class="item.active ? 'bg-sky-950/30 border-sky-500/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
             >
@@ -497,9 +652,16 @@
                 <div class="text-xs font-bold">{{ item.label }}</div>
                 <div class="text-[10px] text-slate-400 truncate">{{ item.effect }}</div>
               </div>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold flex-shrink-0" :class="item.active ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-500'">
-                {{ item.active ? 'ON' : 'OFF' }}
-              </span>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold" :class="item.active ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-500'">
+                  {{ item.active ? 'ON' : 'OFF' }}
+                </span>
+                <button
+                  @click.stop="removeLifeLoadItem(item.id)"
+                  title="Delete lifestyle item"
+                  class="text-slate-500 hover:text-rose-400 font-bold px-1 text-sm"
+                >&times;</button>
+              </div>
             </div>
           </div>
         </div>
@@ -570,7 +732,11 @@
             </div>
           </div>
 
-          <div class="space-y-2">
+          <div v-if="limits.length === 0" class="p-3 rounded-xl bg-slate-950 border border-dashed border-slate-800 text-[11px] text-slate-400 text-center">
+            No chronic issues added yet. Tap <strong>+ Add / Edit</strong> to speak or pick any joint or postural tendency.
+          </div>
+
+          <div v-else class="space-y-2">
             <div v-for="limit in limits" :key="limit.id" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
               <div class="min-w-0 pr-2">
                 <div class="font-bold text-white flex items-center gap-1.5">
@@ -583,7 +749,7 @@
                 <button @click="toggleLimit(limit)" class="px-2.5 py-1 rounded-lg text-[10px] font-bold" :class="limit.active ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'">
                   {{ limit.active ? 'ACTIVE' : 'OFF' }}
                 </button>
-                <button v-if="editingChronicGuards" @click="removeChronicGuardrail(limit.id)" class="text-slate-500 hover:text-rose-400 font-bold px-1 text-sm">&times;</button>
+                <button @click="removeChronicGuardrail(limit.id)" title="Delete chronic guardrail" class="text-slate-500 hover:text-rose-400 font-bold px-1 text-sm">&times;</button>
               </div>
             </div>
           </div>
@@ -686,25 +852,6 @@
           </div>
         </div>
 
-        <!-- Dynamically Assembled Step 0 Mobility Primer Preview (100% Reactive with Source Badges) -->
-        <div class="p-4 rounded-2xl bg-slate-900 border border-teal-500/30 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-[10px] font-bold uppercase tracking-wider text-teal-400">Dynamically Assembled Step 0 Primer ({{ stepZeroPrimers.length }} Drills)</div>
-              <div class="text-[10px] text-slate-400">Updates live as you change Goals, DOMS, Life Loads, or Guardrails</div>
-            </div>
-            <span class="px-2 py-0.5 rounded bg-teal-500/15 border border-teal-500/30 text-[9px] font-mono font-bold text-teal-300">Live Reactive</span>
-          </div>
-          <div class="space-y-2">
-            <div v-for="(drill, dIdx) in stepZeroPrimers" :key="drill.title + dIdx" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
-              <div class="flex items-center justify-between gap-2">
-                <span class="font-bold text-teal-300">{{ dIdx + 1 }}. {{ drill.title }}</span>
-                <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-teal-500/30 text-[9px] font-mono text-teal-200 flex-shrink-0">{{ drill.triggerBadge }}</span>
-              </div>
-              <div class="text-[11px] text-slate-400 leading-snug">{{ drill.reason }}</div>
-            </div>
-          </div>
-        </div>
       </main>
 
       <!-- ===================================================================== -->
@@ -1047,7 +1194,25 @@
           }
         ];
 
-        const activeGoal = ref({ ...goalPresets[0] });
+        const EMPTY_PRIMARY_GOAL = {
+          id: 'none',
+          title: 'No Primary Goal Set',
+          shortTag: 'No 1° Goal',
+          durationWeeks: 10,
+          currentWeek: 1,
+          weeklyTargetSets: 12,
+          focusArea: 'general',
+          description: 'Choose a preset, describe a custom goal, or use the AI Profile Interview to set your primary focus.',
+          primaryLifts: [],
+          secondaryLifts: [],
+          weeklySchedule: []
+        };
+        const activeGoal = ref({ ...EMPTY_PRIMARY_GOAL });
+        const removePrimaryGoal = () => {
+          activeGoal.value = { ...EMPTY_PRIMARY_GOAL };
+          saveContextToStorage();
+          showToast('Removed primary goal.');
+        };
         const showPrimaryGoalPicker = ref(false);
         const customGoalInput = ref('');
         const customGoalWeeks = ref(10);
@@ -1059,7 +1224,7 @@
           { id: 'sec-3d-delts', shortTag: '3D Side/Rear Delts', subtitle: 'Adds Scapular Lateral / Face Pulls', lift: 'Band Face Pull' },
           { id: 'sec-core-pelvis', shortTag: 'Core & Pelvic Armor', subtitle: 'Adds Dead Bug & Glute Medius stability', lift: 'Dead Bug' }
         ]);
-        const secondaryGoalId = ref('sec-v-taper');
+        const secondaryGoalId = ref('none');
         const showAddSecondaryGoal = ref(false);
         const newSecondaryGoalTitle = ref('');
         const newSecondaryGoalLift = ref('Dumbbell Pullover');
@@ -1081,6 +1246,13 @@
           showAddSecondaryGoal.value = false;
           saveContextToStorage();
           showToast(`Added & selected secondary goal: "${newOpt.shortTag}"`);
+        };
+        const removeSecondaryGoalOption = (secId) => {
+          if (secId === 'none') return;
+          secondaryGoalOptions.value = secondaryGoalOptions.value.filter(s => s.id !== secId);
+          if (secondaryGoalId.value === secId) secondaryGoalId.value = 'none';
+          saveContextToStorage();
+          showToast('Removed secondary goal option.');
         };
 
         // --- NEW PARAMETER #4: MESOCYCLE PHASE & DELOAD CONTROL ---
@@ -1130,7 +1302,7 @@
           { id: 'back', label: 'Lats & Upper Back' },
           { id: 'shoulders_arms', label: 'Side Delts & Arms' }
         ];
-        const sorenessMap = ref({ quads: 0, posterior: 0, calves: 1, chest: 0, back: 0, shoulders_arms: 0 });
+        const sorenessMap = ref({ quads: 0, posterior: 0, calves: 0, chest: 0, back: 0, shoulders_arms: 0 });
         const cycleMuscleSoreness = (zoneId) => {
           sorenessMap.value[zoneId] = (sorenessMap.value[zoneId] + 1) % 3;
           saveContextToStorage();
@@ -1142,28 +1314,53 @@
         };
 
         // --- NEW PARAMETER #1: NON-GYM REAL-LIFE PHYSICAL LOAD ---
-        const externalLifeLoadList = ref([
-          { id: 'yard_work', label: 'Yard Work / Heavy Labor', effect: 'Pre-taxes lower back & grip; swaps RDLs/free rows for supported lifts', active: false },
-          { id: 'long_travel', label: 'Long Drive / Airport Travel', effect: 'Tightens hips & thoracic spine; prioritizes glute bridges & pullovers', active: false },
-          { id: 'extra_desk', label: '10+ Hr Desk Crunch', effect: 'Injects mandatory hip-flexor & rear-delt postural openers', active: true },
-          { id: 'high_stress', label: 'High Life Stress / Low CNS', effect: 'Caps circuit target RPE at 7.5 to prevent burnout', active: false }
-        ]);
+        const externalLifeLoadPresets = [
+          { id: 'yard_work', label: 'Yard Work / Heavy Labor', effect: 'Pre-taxes lower back & grip; swaps RDLs/free rows for supported lifts' },
+          { id: 'long_travel', label: 'Long Drive / Airport Travel', effect: 'Tightens hips & thoracic spine; prioritizes glute bridges & pullovers' },
+          { id: 'extra_desk', label: '10+ Hr Desk Crunch', effect: 'Injects mandatory hip-flexor & rear-delt postural openers' },
+          { id: 'high_stress', label: 'High Life Stress / Low CNS', effect: 'Caps circuit target RPE at 7.5 to prevent burnout' }
+        ];
+        const externalLifeLoadList = ref([]);
+        const editingLifeLoads = ref(false);
+        const newLifeLoadLabel = ref('');
+        const newLifeLoadEffect = ref('');
 
-        const temporaryInjuries = ref([
-          { id: 'temp-1', name: 'Mild Right Ankle Sprain', region: 'ankle', severity: 'moderate', createdAt: getLocalIsoDate(-2), expiresAt: getLocalIsoDate(28), active: true }
-        ]);
+        const addLifeLoadItem = (labelText, effectText) => {
+          const cleanLabel = (labelText || '').trim();
+          if (!cleanLabel) return;
+          const existing = externalLifeLoadList.value.find(x => x.label.toLowerCase() === cleanLabel.toLowerCase());
+          if (existing) {
+            existing.active = true;
+            saveContextToStorage();
+            showToast(`Activated "${existing.label}"`);
+            return;
+          }
+          externalLifeLoadList.value.unshift({
+            id: 'life-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+            label: cleanLabel,
+            effect: (effectText || '').trim() || 'AI adjusts daily fatigue & exercise selection around this load.',
+            active: true
+          });
+          newLifeLoadLabel.value = '';
+          newLifeLoadEffect.value = '';
+          saveContextToStorage();
+          showToast(`Added "${cleanLabel}"`);
+        };
+
+        const removeLifeLoadItem = (id) => {
+          const target = externalLifeLoadList.value.find(x => x.id === id);
+          externalLifeLoadList.value = externalLifeLoadList.value.filter(x => x.id !== id);
+          saveContextToStorage();
+          if (target) showToast(`Deleted "${target.label}"`);
+        };
+
+        const temporaryInjuries = ref([]);
         const newInjuryName = ref('');
         const newInjuryRegion = ref('ankle');
         const newInjurySeverity = ref('moderate');
         const newInjuryExpiresAt = ref(getLocalIsoDate(30));
 
-        const limits = ref([
-          { id: 'plantar', region: 'ankle', label: 'Plantar Fasciitis / Heel Strain', description: 'Protects plantar fascia & Achilles; caps incline <= 1.5% and avoids standing calf impact.', active: true },
-          { id: 'shin_splints', region: 'ankle', label: 'Prone to Shin Splints (Medial Tibial Stress)', description: 'Avoids high-impact jumps/runs; pairs bent-knee soleus work with glute-medius hip alignment.', active: true },
-          { id: 'desk_job', region: 'hip', label: 'Prolonged Sitting / Desk Job', description: 'Injects hip-flexor openers, glute activation, and thoracic extension.', active: true },
-          { id: 'lower_back', region: 'lower_back', label: 'Lower Back Sensitivity', description: 'Eliminates unsupported spinal shear when combined with running impact.', active: false },
-          { id: 'shoulder', region: 'shoulder', label: 'Rotator Cuff Caution', description: 'Enforces 45-deg elbow tuck and floor-stopped pressing.', active: false }
-        ]);
+        const limits = ref([]);
 
         const editingChronicGuards = ref(false);
         const spokenChronicInput = ref('');
@@ -1301,7 +1498,7 @@
           const localParsed = parseSpokenGuardrailLocally(raw);
 
           try {
-            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
+            const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
             const prompt = `The user described an ongoing fitness/joint guardrail in their own words: "${raw}".
 Return ONLY a valid JSON object with:
@@ -1405,18 +1602,25 @@ Return ONLY a valid JSON object with:
           showToast(`Target workout window set to ${modalityPreferences.value.targetWindowLabel}`);
         };
 
-        // Athlete Baseline Anthropometrics (DOB: 4/24/1980, Height: 5'11", Weight: 215 lbs)
+        // Athlete Baseline Anthropometrics (Clean per-user start)
         const editingAthleteProfile = ref(false);
         const athleteProfile = ref({
-          birthDate: '1980-04-24',
-          heightFeet: 5,
-          heightInches: 11,
-          weightLbs: 215
+          birthDate: '',
+          heightFeet: null,
+          heightInches: null,
+          weightLbs: null
+        });
+
+        const formattedBirthDate = computed(() => {
+          if (!athleteProfile.value.birthDate) return '';
+          const parts = athleteProfile.value.birthDate.split('-');
+          return parts.length === 3 ? `${parts[1]}/${parts[2]}/${parts[0]}` : athleteProfile.value.birthDate;
         });
 
         const athleteAge = computed(() => {
-          if (!athleteProfile.value.birthDate) return 46;
+          if (!athleteProfile.value.birthDate) return null;
           const [y, m, d] = athleteProfile.value.birthDate.split('-').map(Number);
+          if (!y || !m || !d) return null;
           const now = new Date();
           let age = now.getFullYear() - y;
           if ((now.getMonth() + 1) < m || ((now.getMonth() + 1) === m && now.getDate() < d)) {
@@ -1425,13 +1629,235 @@ Return ONLY a valid JSON object with:
           return age;
         });
 
-        const totalHeightInches = computed(() => (Number(athleteProfile.value.heightFeet) || 5) * 12 + (Number(athleteProfile.value.heightInches) || 0));
-        const heightCm = computed(() => Math.round(totalHeightInches.value * 2.54));
+        const totalHeightInches = computed(() => {
+          const ft = Number(athleteProfile.value.heightFeet);
+          if (!ft) return null;
+          return ft * 12 + (Number(athleteProfile.value.heightInches) || 0);
+        });
+        const heightCm = computed(() => totalHeightInches.value ? Math.round(totalHeightInches.value * 2.54) : null);
         const athleteBmi = computed(() => {
-          const inches = totalHeightInches.value || 71;
-          const lbs = Number(athleteProfile.value.weightLbs) || 215;
+          const inches = totalHeightInches.value;
+          const lbs = Number(athleteProfile.value.weightLbs);
+          if (!inches || !lbs) return null;
           return ((lbs / (inches * inches)) * 703).toFixed(1);
         });
+
+        const athleteSummaryChip = computed(() => {
+          const parts = [];
+          if (athleteAge.value) parts.push(`${athleteAge.value}y`);
+          if (athleteProfile.value.heightFeet) parts.push(`${athleteProfile.value.heightFeet}'${athleteProfile.value.heightInches ?? 0}"`);
+          if (athleteProfile.value.weightLbs) parts.push(`${athleteProfile.value.weightLbs}lb`);
+          return parts.length ? parts.join(' · ') : 'New Profile';
+        });
+
+        const athleteBaselineHeadline = computed(() => {
+          const parts = [];
+          if (athleteAge.value) parts.push(`Age ${athleteAge.value}`);
+          if (athleteProfile.value.heightFeet) parts.push(`${athleteProfile.value.heightFeet}'${athleteProfile.value.heightInches ?? 0}"`);
+          if (athleteProfile.value.weightLbs) parts.push(`${athleteProfile.value.weightLbs} lb`);
+          return parts.length ? parts.join(' · ') : 'Set Your Baseline Stats';
+        });
+
+        // --- FIRST-TIME AI ONBOARDING & PER-SECTION VOICE INPUT ---
+        const isProfileEmpty = computed(() =>
+          !athleteProfile.value.birthDate &&
+          !athleteProfile.value.weightLbs &&
+          activeGoal.value.id === 'none' &&
+          limits.value.length === 0 &&
+          externalLifeLoadList.value.length === 0
+        );
+        const onboardingDismissed = ref(false);
+        const showOnboardingCard = ref(false);
+        const onboardingInput = ref('');
+        const onboardingLoading = ref(false);
+        const activeVoiceTarget = ref(null);
+        let sectionSpeechRec = null;
+
+        const dismissOnboarding = () => {
+          onboardingDismissed.value = true;
+          showOnboardingCard.value = false;
+        };
+
+        const applyBaselineTextLocally = (text) => {
+          const hMatch = text.match(/(\d)\s*(?:'|ft|foot|feet)\s*(\d{1,2})?/i);
+          if (hMatch) {
+            athleteProfile.value.heightFeet = Number(hMatch[1]);
+            athleteProfile.value.heightInches = Number(hMatch[2] || 0);
+          }
+          const wMatch = text.match(/(\d{2,3}(?:\.\d+)?)\s*(?:lb|lbs|pounds)/i);
+          if (wMatch) athleteProfile.value.weightLbs = Number(wMatch[1]);
+          const dobMatch = text.match(/(\d{4})-(\d{2})-(\d{2})/) || text.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+          if (dobMatch) {
+            if (dobMatch[1].length === 4) {
+              athleteProfile.value.birthDate = `${dobMatch[1]}-${dobMatch[2]}-${dobMatch[3]}`;
+            } else {
+              athleteProfile.value.birthDate = `${dobMatch[3]}-${dobMatch[1].padStart(2, '0')}-${dobMatch[2].padStart(2, '0')}`;
+            }
+          }
+        };
+
+        const applyDomsTextLocally = (text) => {
+          const lower = text.toLowerCase();
+          const sev = (lower.includes('very sore') || lower.includes('wrecked') || lower.includes('destroyed') || lower.includes('really sore')) ? 2 : 1;
+          if (lower.includes('quad') || lower.includes('thigh')) sorenessMap.value.quads = sev;
+          if (lower.includes('hamstring') || lower.includes('glute') || lower.includes('butt')) sorenessMap.value.posterior = sev;
+          if (lower.includes('calf') || lower.includes('calves') || lower.includes('shin')) sorenessMap.value.calves = sev;
+          if (lower.includes('chest') || lower.includes('pec')) sorenessMap.value.chest = sev;
+          if (lower.includes('back') || lower.includes('lat')) sorenessMap.value.back = sev;
+          if (lower.includes('shoulder') || lower.includes('arm') || lower.includes('bicep') || lower.includes('tricep')) sorenessMap.value.shoulders_arms = sev;
+        };
+
+        const applyLifeLoadTextLocally = (text) => {
+          const lower = text.toLowerCase();
+          if (lower.includes('yard') || lower.includes('mow') || lower.includes('shovel') || lower.includes('garden')) {
+            addLifeLoadItem('Yard Work / Heavy Labor', 'Pre-taxes lower back & grip; favors supported lifts');
+          }
+          if (lower.includes('travel') || lower.includes('flight') || lower.includes('drive') || lower.includes('airport')) {
+            addLifeLoadItem('Long Drive / Airport Travel', 'Tightens hips & thoracic spine; prioritizes glute bridges & pullovers');
+          }
+          if (lower.includes('desk') || lower.includes('sit') || lower.includes('office') || lower.includes('computer')) {
+            addLifeLoadItem('Desk Fatigue / Prolonged Sitting', 'Injects hip-flexor & rear-delt postural openers');
+          }
+          if (lower.includes('stress') || lower.includes('tired') || lower.includes('sleep')) {
+            addLifeLoadItem('High Life Stress / Low CNS', 'Caps circuit target RPE at 7.5 to prevent burnout');
+          }
+          if (!lower.match(/yard|mow|shovel|garden|travel|flight|drive|airport|desk|sit|office|computer|stress|tired|sleep/)) {
+            addLifeLoadItem(text.trim().slice(0, 42), 'Logged via voice input');
+          }
+        };
+
+        const runAiOnboarding = async () => {
+          const raw = onboardingInput.value.trim();
+          if (!raw || onboardingLoading.value) return;
+          onboardingLoading.value = true;
+          try {
+            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
+            if (apiKey) {
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+              const prompt = `Extract a fitness profile from this user introduction: "${raw}"
+Return ONLY valid JSON with:
+{
+  "birthDate": "YYYY-MM-DD or empty string",
+  "heightFeet": number or null,
+  "heightInches": number or null,
+  "weightLbs": number or null,
+  "primaryGoalTitle": "concise 3-6 word goal title or empty string",
+  "primaryGoalFocus": "one of calves_shins, shoulders, v_taper, general",
+  "chronicIssues": [{"label": "3-5 word title", "region": "ankle|knee|hip|lower_back|shoulder|elbow_wrist", "description": "1-sentence rule"}],
+  "lifeLoads": [{"label": "2-5 word label", "effect": "1-sentence coaching adjustment"}]
+}`;
+              const res = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { responseMimeType: 'application/json' }
+                })
+              });
+              const data = await res.json();
+              const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+              if (parsed.birthDate) athleteProfile.value.birthDate = parsed.birthDate;
+              if (parsed.heightFeet) athleteProfile.value.heightFeet = Number(parsed.heightFeet);
+              if (parsed.heightInches !== null && parsed.heightInches !== undefined) athleteProfile.value.heightInches = Number(parsed.heightInches);
+              if (parsed.weightLbs) athleteProfile.value.weightLbs = Number(parsed.weightLbs);
+              if (parsed.primaryGoalTitle) {
+                const matchedPreset = goalPresets.find(g => g.focusArea === parsed.primaryGoalFocus);
+                if (matchedPreset && parsed.primaryGoalFocus !== 'general') {
+                  activeGoal.value = { ...matchedPreset, title: parsed.primaryGoalTitle };
+                } else {
+                  activeGoal.value = {
+                    ...EMPTY_PRIMARY_GOAL,
+                    id: 'goal-ai-' + Date.now(),
+                    title: parsed.primaryGoalTitle,
+                    shortTag: parsed.primaryGoalTitle.slice(0, 18),
+                    focusArea: parsed.primaryGoalFocus || 'general',
+                    description: `Custom AI block built from your profile: ${parsed.primaryGoalTitle}.`,
+                    primaryLifts: ['Goblet Squat', 'Flat Dumbbell Bench Press', 'Single-Arm Dumbbell Row'],
+                    secondaryLifts: ['Dead Bug', 'Band Pull-Apart', 'Bodyweight Glute Bridge']
+                  };
+                }
+              }
+              if (Array.isArray(parsed.chronicIssues)) {
+                parsed.chronicIssues.forEach(c => {
+                  if (c.label) {
+                    limits.value.push({
+                      id: 'chronic-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                      region: c.region || 'lower_back',
+                      label: c.label,
+                      description: c.description || defaultRuleForRegion(c.region || 'lower_back', c.label),
+                      active: true
+                    });
+                  }
+                });
+              }
+              if (Array.isArray(parsed.lifeLoads)) {
+                parsed.lifeLoads.forEach(l => {
+                  if (l.label) addLifeLoadItem(l.label, l.effect);
+                });
+              }
+            } else {
+              applyBaselineTextLocally(raw);
+              applyLifeLoadTextLocally(raw);
+              const lower = raw.toLowerCase();
+              if (lower.match(/back|knee|shin|plantar|shoulder|elbow|hip/)) {
+                const parsed = parseSpokenGuardrailLocally(raw);
+                limits.value.push({ id: 'chronic-' + Date.now(), region: parsed.region, label: parsed.title, description: parsed.rule, active: true });
+              }
+            }
+            saveContextToStorage();
+            showOnboardingCard.value = false;
+            onboardingDismissed.value = true;
+            showToast('✨ Profile populated! You can add or remove any item.');
+          } catch (e) {
+            applyBaselineTextLocally(raw);
+            applyLifeLoadTextLocally(raw);
+            saveContextToStorage();
+            showOnboardingCard.value = false;
+            showToast('Populated profile locally—you can edit any section below.');
+          } finally {
+            onboardingLoading.value = false;
+          }
+        };
+
+        const toggleVoiceMic = (target) => {
+          const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRec) {
+            showToast('Voice dictation is not supported in this browser—type your update instead.');
+            return;
+          }
+          if (activeVoiceTarget.value === target && sectionSpeechRec) {
+            sectionSpeechRec.stop();
+            activeVoiceTarget.value = null;
+            return;
+          }
+          if (sectionSpeechRec) {
+            try { sectionSpeechRec.stop(); } catch (e) {}
+          }
+          sectionSpeechRec = new SpeechRec();
+          sectionSpeechRec.lang = 'en-US';
+          sectionSpeechRec.interimResults = false;
+          activeVoiceTarget.value = target;
+          sectionSpeechRec.onresult = (evt) => {
+            const transcript = evt.results?.[0]?.[0]?.transcript || '';
+            if (!transcript) return;
+            if (target === 'onboarding') {
+              onboardingInput.value = onboardingInput.value ? `${onboardingInput.value} ${transcript}` : transcript;
+            } else if (target === 'baseline') {
+              applyBaselineTextLocally(transcript);
+              saveContextToStorage();
+              showToast('Updated baseline stats from voice.');
+            } else if (target === 'doms') {
+              applyDomsTextLocally(transcript);
+              saveContextToStorage();
+              showToast('Updated DOMS soreness from voice.');
+            } else if (target === 'lifeload') {
+              applyLifeLoadTextLocally(transcript);
+            }
+          };
+          sectionSpeechRec.onerror = () => { activeVoiceTarget.value = null; };
+          sectionSpeechRec.onend = () => { activeVoiceTarget.value = null; };
+          sectionSpeechRec.start();
+        };
 
         const simulationScenarios = [
           {
@@ -1806,7 +2232,7 @@ Return ONLY a valid JSON object with:
         const askGeminiCoachAnalysis = async () => {
           aiCoachLoading.value = true;
           try {
-            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
+            const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
             const prompt = `In 2 concise sentences, explain how today's 6-station circuit balances the user's profile (${athleteAge.value}yo, ${athleteProfile.value.heightFeet}'${athleteProfile.value.heightInches}", ${athleteProfile.value.weightLbs} lbs) and 2-3 month goal ("${activeGoal.value.title}") with active injuries (${activeTemporaryInjuries.value.map(i => i.name).join(', ') || 'None'}), chronic guards (${limits.value.filter(l => l.active).map(l => l.label).join(', ')}), and yesterday's workload (${activeScenario.value.label}).`;
             const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
@@ -2018,6 +2444,7 @@ Return ONLY a valid JSON object with:
             },
             sorenessMap: sorenessMap.value,
             externalLifeLoads: externalLifeLoadList.value.filter(x => x.active).map(x => x.id),
+            externalLifeLoadItems: externalLifeLoadList.value,
             activeTemporaryInjuries: activeTemporaryInjuries.value,
             chronicGuardrails: limits.value.filter(l => l.active),
             dailyBiometrics: dailyBiometrics.value,
@@ -2052,11 +2479,14 @@ Return ONLY a valid JSON object with:
               const parsed = JSON.parse(ctxRaw);
               if (parsed.athleteProfile) {
                 athleteProfile.value = {
-                  birthDate: parsed.athleteProfile.birthDate || '1980-04-24',
-                  heightFeet: parsed.athleteProfile.heightFeet ?? 5,
-                  heightInches: parsed.athleteProfile.heightInches ?? 11,
-                  weightLbs: parsed.athleteProfile.weightLbs ?? 215
+                  birthDate: parsed.athleteProfile.birthDate || '',
+                  heightFeet: parsed.athleteProfile.heightFeet ?? null,
+                  heightInches: parsed.athleteProfile.heightInches ?? null,
+                  weightLbs: parsed.athleteProfile.weightLbs ?? null
                 };
+              }
+              if (Array.isArray(parsed.externalLifeLoadItems)) {
+                externalLifeLoadList.value = parsed.externalLifeLoadItems;
               }
               if (parsed.secondaryGoal?.id) secondaryGoalId.value = parsed.secondaryGoal.id;
               if (parsed.mesocyclePhase?.id) mesocyclePhase.value = parsed.mesocyclePhase.id;
@@ -2085,6 +2515,9 @@ Return ONLY a valid JSON object with:
 
         onMounted(() => {
           loadSharedStateFromStorage();
+          if (isProfileEmpty.value && !onboardingDismissed.value) {
+            showOnboardingCard.value = true;
+          }
           saveContextToStorage();
 
           // Automatic background cross-module sync whenever Module 1 or Module 3 updates photos, custom lifts, or favorites/bans
@@ -2104,7 +2537,11 @@ Return ONLY a valid JSON object with:
           activeTtsSourceId, autoSpeakExerciseAi, stopCurrentAudioPlayback, speakTextOutLoud,
           currentExerciseChatList, exerciseModalQuestionInput, isListeningExerciseModal, exerciseAiLoading,
           toggleExerciseModalVoiceMic, askAiAboutActiveExercise,
-          athleteProfile, editingAthleteProfile, athleteAge, totalHeightInches, heightCm, athleteBmi,
+          athleteProfile, editingAthleteProfile, formattedBirthDate, athleteAge, totalHeightInches, heightCm, athleteBmi,
+          athleteSummaryChip, athleteBaselineHeadline, isProfileEmpty, showOnboardingCard, onboardingInput, onboardingLoading,
+          dismissOnboarding, runAiOnboarding, activeVoiceTarget, toggleVoiceMic,
+          removePrimaryGoal, removeSecondaryGoalOption,
+          externalLifeLoadPresets, editingLifeLoads, newLifeLoadLabel, newLifeLoadEffect, addLifeLoadItem, removeLifeLoadItem,
           goalPresets, activeGoal, showPrimaryGoalPicker, customGoalInput, customGoalWeeks, aiGoalLoading,
           secondaryGoalOptions, secondaryGoalId, secondaryGoalObj,
           showAddSecondaryGoal, newSecondaryGoalTitle, newSecondaryGoalLift, addCustomSecondaryGoal,
