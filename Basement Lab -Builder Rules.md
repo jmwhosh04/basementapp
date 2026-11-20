@@ -65,6 +65,8 @@ Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coa
    - **Never Run 2 Days in a Row:** Enforces 48-hour tibial and Achilles impact clearance scaled dynamically to the active user's body weight. Selecting `Run (30m)` when `ranYesterday === true` displays `🛑 Ran Yest.` on the pill and triggers the `🛑 Shin-Splint Guardrail Violation` banner.  
    - **User-Configurable Consecutive-Day & Cardio Preference Rules:** Consecutive-day spacing rules (`spacingRules`, e.g., max consecutive lift days or avoiding back-to-back running) and cardio machine preferences (`cardioOptions` such as Treadmill and Rowing Machine, including rules like "Only When Coach Feels It's Important & Rest Helps") are user-configurable in Module 2 (`3. Life & DOMS`)—users can add, edit, toggle, or remove them rather than having personal preferences hard-locked.  
 - **Target Session Window:** `25–40 minutes` sweet spot.  
+- **Comprehensive Pro Trainer Evaluation:** Rather than reacting only to yesterday's workout or hardcoding single-exercise reflexes, the Pro Trainer evaluates multi-day training history (`basement_logs`, `basement_cardio_logs`, `basement_sauna_logs`), per-exercise RPE shifts and progression trends, pre-workout soreness/DOMS (`sorenessMap`), real-life physical loads, active injuries/guardrails, and goal block milestones together to guide where the athlete should go next and how to stay injury-free.  
+
 3. **50-lb Dumbbell Cap Mastery:**  
    - Automatically prescribes `3s Lower + 2s Pause` (or unilateral upgrades / band combos per Module 2 settings) when lifts reach the `50 lb` ceiling.
 

@@ -1249,31 +1249,42 @@ Reply in 2-3 concise, spoken-friendly sentences citing his actual numbers.`;
         const activeTrainerDirectives = computed(() => {
           const audit = shinSplintAuditStats.value;
           const s7 = sevenDayStats.value;
+          const s6 = sixWeekStats.value;
           const avgRpe7 = parseFloat(s7.avgRpe) || 8.0;
           const autoInjectLifts = [];
           const coachingNotes = [];
+          const activeGoal = coachCtx.value.activeGoal || {};
+          const soreness = coachCtx.value.sorenessMap || {};
+          const activeInjuries = (coachCtx.value.activeTemporaryInjuries || []).filter(i => !i.expiresAt || i.expiresAt >= todayIso.value);
 
-          // 1. Shin-Splint Biomechanical Imbalance Check (Calf sets outpacing Hip Stability & Anterior Tibialis)
-          if (audit.hipStabilitySets < Math.max(2, Math.ceil(audit.calfSets * 0.75))) {
-            autoInjectLifts.push('Side-Lying Hip Abduction (Straight-Leg Raise)');
-            coachingNotes.push(`Hip-to-Calf Imbalance (${audit.calfSets} Calf sets vs ${audit.hipStabilitySets} Hip sets): Auto-prioritized glute-medius hip abduction to stop pelvic drop.`);
-          }
-          if (audit.tibialisSets < 2) {
-            autoInjectLifts.push('Weighted Wall Tibialis Raise');
-            coachingNotes.push(`Front-Shin Gap (${audit.tibialisSets} Tibialis sets vs ${audit.calfSets} Calf sets): Auto-injected Weighted Wall Tibialis Raise to absorb heel-strike impact.`);
-          }
-
-          // 2. 7-Day RPE Calibration Check
+          // 1. Holistic RPE & Effort Trajectory across 7d vs 6w
           let rpeAdjustment = 0;
-          let rpeDirective = 'Maintain Target RPE 8.0 (~2 RIR)';
+          let rpeDirective = `Maintain Target RPE 8.0 (~2 RIR) across ${s7.sets} recent sets`;
           if (s7.sets >= 3 && avgRpe7 < 7.4) {
             rpeAdjustment = 0.5;
-            rpeDirective = `7-Day Avg RPE was light (${s7.avgRpe}) → Auto-bumped today's target to RPE 8.5 w/ strict 3s lower + 2s pause.`;
+            rpeDirective = `7d Avg RPE (${s7.avgRpe}) is below target — step up effort toward RPE 8.5 with controlled tempo to drive adaptation.`;
             coachingNotes.push(rpeDirective);
           } else if (s7.sets >= 3 && avgRpe7 >= 8.9) {
             rpeAdjustment = -0.5;
-            rpeDirective = `7-Day Avg RPE redlined (${s7.avgRpe}) → Auto-capped today's target at RPE 7.5 to prevent tendon/CNS regression.`;
+            rpeDirective = `7d Avg RPE (${s7.avgRpe}) is high — cap target effort at RPE 7.5 to protect joints, tendons, and recovery.`;
             coachingNotes.push(rpeDirective);
+          }
+
+          // 2. Holistic Goal + Soreness + Injury + Multi-Day Balance Guidance
+          const hasAnkleOrShinFocus = activeGoal.focusArea === 'calves_shins' ||
+            activeInjuries.some(i => i.region === 'ankle') ||
+            Number(soreness.calves || 0) >= 2;
+          if (hasAnkleOrShinFocus && s7.sets > 0 && audit.calfSets > 0 && (audit.hipStabilitySets + audit.tibialisSets) === 0) {
+            autoInjectLifts.push('Banded Clamshell');
+            coachingNotes.push(`Holistic lower-leg balance: ${audit.calfSets} calf set(s) logged with no hip-abductor/stabilizer work yet — added hip stabilization to support knee/ankle alignment.`);
+          }
+
+          if (Number(soreness.posterior || 0) >= 2 && Number(s7.runMiles) >= 3.0) {
+            coachingNotes.push(`Posterior soreness + ${s7.runMiles}mi recent run volume: prioritize recovery and lower-shear posterior work.`);
+          }
+
+          if (s6.saunaMins >= 30 && s7.saunaMins === 0) {
+            coachingNotes.push(`You logged ${s6.saunaMins}m sauna over 6 weeks but 0m in the past 7d — consider whether heat recovery fits your current week.`);
           }
 
           return {

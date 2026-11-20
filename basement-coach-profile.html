@@ -2482,12 +2482,14 @@ Return ONLY valid JSON with:
           return drills;
         });
 
-        // Simulated 6-Station Circuit based on Primary Goal + Secondary Goal + DOMS + Real-Life Load + 50lb Cap Mode + Banned/Favorites
+        // Comprehensive 6-Station Circuit Simulation based on Goals + Soreness + Life Loads + Injuries + Prior History
         const simulatedStations = computed(() => {
           const g = activeGoal.value;
           const scen = activeScenario.value;
-          const ySet = new Set(scen.yesterdayLifts);
-          const hasYardWork = externalLifeLoadList.value.find(x => x.id === 'yard_work')?.active;
+          const priorSet = new Set(scen.yesterdayLifts);
+          const activeLifeIds = new Set(externalLifeLoadList.value.filter(x => x.active).map(x => x.id));
+          const hasYardWork = activeLifeIds.has('yard_work');
+          const hasDeskLoad = activeLifeIds.has('extra_desk') || activeLifeIds.has('long_travel');
           const hasAnkleGuard = limits.value.some(l => l.active && (l.id === 'plantar' || l.id === 'shin_splints' || l.region === 'ankle')) || activeTemporaryInjuries.value.some(i => i.region === 'ankle');
           const hasKneeGuard = limits.value.some(l => l.active && l.region === 'knee') || activeTemporaryInjuries.value.some(i => i.region === 'knee');
           const hasLumbarLoad = limits.value.some(l => l.active && (l.id === 'lower_back' || l.region === 'lower_back')) || activeTemporaryInjuries.value.some(i => i.region === 'lower_back') || scen.recentRunMiles >= 3.0 || hasYardWork;
@@ -2516,75 +2518,72 @@ Return ONLY valid JSON with:
             };
           };
 
-          // Station 1: Squat / Quads (Checks Quad DOMS + Knee Guard + 50lb Unilateral Mode + Yesterday)
           let s1;
           if (sorenessMap.value.quads === 2 || hasKneeGuard) {
-            s1 = pick('Bodyweight Glute Bridge', 'Band Lateral Walk', hasKneeGuard ? 'Ongoing Knee Guard: Prioritized vertical-shin Glute Bridge over deep knee flexion.' : 'Quad DOMS ("Very Sore"): Skipped heavy knee flexion in favor of glute activation.');
+            s1 = pick('Bodyweight Glute Bridge', 'Band Lateral Walk', hasKneeGuard ? 'Knee Guardrail + Quad Recovery: Prioritized vertical-shin Glute Bridge over deep knee flexion.' : 'Quad Soreness High: Unloaded deep knee flexion in favor of hip extension.');
           } else if (capProgressionMode.value === 'unilateral' && !hasAnkleGuard) {
-            s1 = pick('Dumbbell Bulgarian Split Squat', 'Goblet Squat', '50lb Unilateral Upgrade: Graduated bilateral squat to Bulgarian Split Squat.');
-          } else if (ySet.has('Goblet Squat')) {
-            s1 = pick('Dumbbell Sumo Squat', 'Goblet Squat', 'Anti-Overload: Rotated from yesterday’s Goblet Squat to wide Sumo Squat.');
+            s1 = pick('Dumbbell Bulgarian Split Squat', 'Goblet Squat', 'Unilateral Progression Mode: Single-leg split squat load within 50lb cap.');
+          } else if (priorSet.has('Goblet Squat') && sorenessMap.value.quads >= 1) {
+            s1 = pick('Dumbbell Sumo Squat', 'Goblet Squat', 'Recent Squat + Quad Tightness: Rotated to wide Sumo Squat to balance adductor & hip load.');
           } else {
-            s1 = pick('Goblet Squat', 'Dumbbell Sumo Squat', 'Primary Squat station (Quads fresh).');
+            s1 = pick('Goblet Squat', 'Dumbbell Sumo Squat', 'Primary compound lower-body station based on current readiness & knee/quad status.');
           }
 
-          // Station 2: Push (Checks Chest DOMS + Shoulder Guard + Yesterday)
           let s2;
           if (sorenessMap.value.chest === 2 || hasShoulderGuard) {
-            s2 = pick('Dumbbell Floor Press', 'Incline Dumbbell Bench Press', 'Chest DOMS / Shoulder Guard: Floor Press limits extension & protects joints.');
-          } else if (ySet.has('Flat Dumbbell Bench Press')) {
-            s2 = pick('Incline Dumbbell Bench Press', 'Dumbbell Floor Press', 'Anti-Overload: Rotated from yesterday’s Flat Bench to 30-deg Incline Press.');
+            s2 = pick('Dumbbell Floor Press', 'Incline Dumbbell Bench Press', 'Chest Soreness / Shoulder Guardrail: Floor Press limits range & protects anterior joint.');
+          } else if (priorSet.has('Flat Dumbbell Bench Press') && sorenessMap.value.chest >= 1) {
+            s2 = pick('Incline Dumbbell Bench Press', 'Dumbbell Floor Press', 'Recent Flat Press + Chest Tightness: Shifted angle to 30° Incline Press.');
           } else {
-            s2 = pick('Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Primary Horizontal Push station.');
+            s2 = pick('Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Primary horizontal press station.');
           }
 
-          // Station 3: Hinge (Checks Yard Work + Running Miles + Hamstring DOMS)
           let s3;
           if (hasLumbarLoad || sorenessMap.value.posterior === 2) {
-            const why = hasYardWork ? 'Yard Work / Heavy Labor active' : `${scen.recentRunMiles}mi run + spine guard`;
-            s3 = pick('Bodyweight Glute Bridge', 'Band Lateral Walk', `Holistic Guard (${why}): Zero-shear Glute Bridge replaces RDL.`);
+            const factors = [];
+            if (hasYardWork) factors.push('yard work / labor');
+            if (scen.recentRunMiles >= 3.0) factors.push(`${scen.recentRunMiles}mi recent run`);
+            if (sorenessMap.value.posterior === 2) factors.push('posterior soreness');
+            s3 = pick('Bodyweight Glute Bridge', 'Band Lateral Walk', `Full-Body Load Assessment (${factors.join(', ') || 'spine guard'}): Low-shear Glute Bridge preserves recovery.`);
           } else {
-            s3 = pick('Dumbbell Romanian Deadlift (RDL)', 'Bodyweight Glute Bridge', 'Lengthened hamstring hinge.');
+            s3 = pick('Dumbbell Romanian Deadlift (RDL)', 'Bodyweight Glute Bridge', 'Posterior-chain hinge with low recent lumbar/cardio strain.');
           }
 
-          // Station 4: Upper Pull (Checks Primary V-Taper OR Secondary V-Taper Goal + Yard Work)
           const wantVTaper = g.focusArea === 'v_taper' || secondaryGoalId.value === 'sec-v-taper';
           const vBadge = g.focusArea === 'v_taper' ? '1° GOAL' : '2° GOAL';
           let s4;
-          if (wantVTaper && !ySet.has('Dumbbell Pullover') && sorenessMap.value.back < 2) {
-            s4 = pick('Dumbbell Pullover', 'Chest-Supported Incline Row', `${vBadge} (V-Taper Lats): Lengthened lat pullover stretch with zero lower-back shear.`, true, vBadge);
-          } else if (hasLumbarLoad || ySet.has('Single-Arm Dumbbell Row')) {
-            s4 = pick('Chest-Supported Incline Row', 'Single-Arm Dumbbell Row', 'Unloads lower back & grip while building upper-back width.', wantVTaper, vBadge);
+          if (wantVTaper && sorenessMap.value.back < 2) {
+            s4 = pick('Dumbbell Pullover', 'Chest-Supported Incline Row', `${vBadge} + Posture Guidance: Lat pullover supports upper-back width${hasDeskLoad ? ' after desk/travel posture load' : ''}.`, true, vBadge);
+          } else if (hasLumbarLoad || sorenessMap.value.back === 2) {
+            s4 = pick('Chest-Supported Incline Row', 'Single-Arm Dumbbell Row', 'Chest-supported upper-back pull reduces spinal & grip fatigue.', wantVTaper, vBadge);
           } else {
-            s4 = pick('Single-Arm Dumbbell Row', 'Chest-Supported Incline Row', '3-point supported lat row.', wantVTaper, vBadge);
+            s4 = pick('Single-Arm Dumbbell Row', 'Chest-Supported Incline Row', 'Unilateral back pull aligned with current upper-body recovery.', wantVTaper, vBadge);
           }
 
-          // Station 5: Delts / Posture (Checks Primary 3D Delts OR Secondary 3D Delts + DOMS)
           const wantDelts = g.focusArea === 'shoulders' || secondaryGoalId.value === 'sec-3d-delts';
           const dBadge = g.focusArea === 'shoulders' ? '1° GOAL' : '2° GOAL';
           let s5;
           if (sorenessMap.value.shoulders_arms === 2) {
-            s5 = pick('Band Pull-Apart', 'Band Face Pull', 'Shoulder DOMS ("Very Sore"): Light band flush instead of dumbbell abduction.', wantDelts, dBadge);
-          } else if (ySet.has('Dumbbell Lateral Raise')) {
-            s5 = pick('Dumbbell Rear Delt Reverse Fly', 'Band Face Pull', 'Anti-Overload: Lateral Raise hit yesterday; rotated to Rear Delt Reverse Fly.', wantDelts, dBadge);
+            s5 = pick('Band Pull-Apart', 'Band Face Pull', 'Shoulder/Arm Soreness High: Light band work maintains scapular blood flow without heavy load.', wantDelts, dBadge);
+          } else if (priorSet.has('Dumbbell Lateral Raise') && sorenessMap.value.shoulders_arms >= 1) {
+            s5 = pick('Dumbbell Rear Delt Reverse Fly', 'Band Face Pull', 'Recent Lateral Raise + Shoulder Tightness: Balanced toward posterior delts.', wantDelts, dBadge);
           } else {
-            s5 = pick('Dumbbell Lateral Raise', 'Dumbbell Arnold Press', 'Scapular-plane medial deltoid cap builder.', wantDelts, dBadge);
+            s5 = pick('Dumbbell Lateral Raise', 'Dumbbell Arnold Press', 'Lateral deltoid station tailored to current shoulder recovery.', wantDelts, dBadge);
           }
 
-          // Station 6: Goal Finisher (Calves/Shin Splints + Calves DOMS check)
           let s6;
           if (g.focusArea === 'calves_shins') {
-            if (ySet.has('Seated Calf Raise') || sorenessMap.value.calves === 2) {
-              s6 = pick('Banded Clamshell', 'Band Lateral Walk', '1° Goal (Shin Splints) + Anti-Overload/DOMS: Calves worked/sore; rotates to Banded Clamshell to align hip-to-ankle tracking.', true, '1° GOAL');
+            if (sorenessMap.value.calves === 2 || (hasAnkleGuard && priorSet.has('Seated Calf Raise'))) {
+              s6 = pick('Banded Clamshell', 'Band Lateral Walk', 'Holistic Lower-Leg Care: Elevated hip external rotation/abduction to support knee-to-ankle alignment while calves recover.', true, '1° GOAL');
             } else if (hasAnkleGuard || sorenessMap.value.calves === 1) {
-              s6 = pick('Seated Calf Raise', 'Banded Clamshell', '1° Goal (Shin Splints) + Ankle Guard: Bent-knee Seated Calf Raise builds deep soleus without standing Achilles strain.', true, '1° GOAL');
+              s6 = pick('Seated Calf Raise', 'Banded Clamshell', 'Holistic Lower-Leg Care: Controlled bent-knee soleus work with zero standing impact.', true, '1° GOAL');
             } else {
-              s6 = pick('Standing Dumbbell Calf Raise', 'Seated Calf Raise', '1° Goal (Calf & Shin Armor): Full gastrocnemius excursion.', true, '1° GOAL');
+              s6 = pick('Standing Dumbbell Calf Raise', 'Seated Calf Raise', 'Goal & Lower-Leg Conditioning: Full calf excursion with ankle stability in mind.', true, '1° GOAL');
             }
           } else if (secondaryGoalId.value === 'sec-core-pelvis') {
-            s6 = pick('Dead Bug', 'Banded Clamshell', '2° Goal (Core & Pelvic Armor): Anti-extension core finisher.', true, '2° GOAL');
+            s6 = pick('Dead Bug', 'Banded Clamshell', 'Secondary Core & Pelvic Focus: Controlled anti-extension core work.', true, '2° GOAL');
           } else {
-            s6 = pick('Band Face Pull', 'Dead Bug', 'Rotator cuff & posture finisher.', true, 'GOAL');
+            s6 = pick('Band Face Pull', 'Dead Bug', 'Postural & shoulder stability finisher.', true, 'GOAL');
           }
 
           return [s1, s2, s3, s4, s5, s6];

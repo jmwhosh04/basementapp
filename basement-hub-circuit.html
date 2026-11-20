@@ -588,7 +588,7 @@
             >
               <div class="text-indigo-100 leading-snug">
                 <strong class="text-indigo-300 block text-[10px] uppercase">💪 Pro Trainer Day-2 Split (2nd Consecutive Lift Day Allowed)</strong>
-                You lifted yesterday (1/2 max consecutive days). Today's circuit automatically rotates away from yesterday's exercises—or tap <strong>Run / Row</strong> above if you prefer cardio today.
+                You've lifted on 1 of your recent days. Today's circuit evaluates your recent multi-day set volume, per-lift RPE trends, reported soreness, and active goals—or tap <strong>Run / Row</strong> above if you prefer cardio today.
               </div>
             </div>
 
@@ -2987,25 +2987,82 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           return isCardioWarmupMode.value ? cardioStepZeroDrills.value : stepZeroPrimerList.value;
         });
 
+        const getExerciseHistoryTrend = (liftName) => {
+          const cutoff14 = getLocalIsoDate(-14);
+          const recent = workoutLogs.value
+            .filter(l => l.exercise === liftName && l.date >= cutoff14)
+            .slice()
+            .sort((a, b) => a.date.localeCompare(b.date));
+          const lastLog = recent[recent.length - 1] || null;
+          const prevLog = recent.length >= 2 ? recent[recent.length - 2] : null;
+          const daysSinceLast = lastLog
+            ? Math.max(0, Math.round((new Date(todayIso.value) - new Date(lastLog.date)) / 86400000))
+            : 99;
+          const avgRpe = recent.length > 0
+            ? Number((recent.reduce((s, x) => s + (Number(x.rpe) || 8.0), 0) / recent.length).toFixed(1))
+            : null;
+          const rpeDelta = (lastLog && prevLog && lastLog.rpe != null && prevLog.rpe != null)
+            ? Number((Number(lastLog.rpe) - Number(prevLog.rpe)).toFixed(1))
+            : 0;
+          const sets7d = workoutLogs.value.filter(l => l.exercise === liftName && l.date >= getLocalIsoDate(-7)).length;
+          return { recent, lastLog, prevLog, daysSinceLast, avgRpe, rpeDelta, sets7d };
+        };
+
+        const getMuscleGroupForLift = (liftName) => {
+          const meta = getLiftMeta(liftName);
+          const n = (liftName || '').toLowerCase();
+          if (n.includes('calf') || n.includes('tibialis') || n.includes('clamshell') || n.includes('abduction') || n.includes('lateral walk')) return 'calves';
+          if (n.includes('squat') || n.includes('lunge') || n.includes('step-up')) return 'quads';
+          if (n.includes('rdl') || n.includes('deadlift') || n.includes('bridge') || n.includes('thrust')) return 'posterior';
+          if (n.includes('bench') || n.includes('fly') || n.includes('floor press') || n.includes('push-up')) return 'chest';
+          if (n.includes('row') || n.includes('pullover') || n.includes('shrug')) return 'back';
+          if (meta.category === 'Shoulders' || meta.category === 'Arms' || n.includes('raise') || n.includes('press')) return 'shoulders_arms';
+          return 'quads';
+        };
+
         const evaluateExerciseConflicts = (liftName) => {
           const warnings = [];
-          if (yesterdayLiftNames.value.includes(liftName)) {
-            warnings.push(`Worked yesterday (${yesterdayIso.value}) — 48h muscle/tendon recovery window recommends rotating.`);
+          const trend = getExerciseHistoryTrend(liftName);
+          const mGroup = getMuscleGroupForLift(liftName);
+          const domsLevel = Number(coachCtx.value.sorenessMap?.[mGroup] ?? 0);
+
+          if (trend.daysSinceLast <= 1) {
+            warnings.push(`Repeated within 24h (${trend.lastLog?.date}) — evaluate recovery & RPE before repeating.`);
+          } else if (trend.sets7d >= 4) {
+            warnings.push(`High 7-day volume (${trend.sets7d} sets) — monitor joint & tendon recovery.`);
           }
+
+          if (trend.rpeDelta >= 0.8) {
+            warnings.push(`Effort jumped +${trend.rpeDelta} RPE vs. prior ${liftName} session (now RPE ${trend.lastLog?.rpe}) — consider easing load or swapping.`);
+          } else if (trend.rpeDelta <= -0.8) {
+            warnings.push(`Effort dropped ${trend.rpeDelta} RPE vs. prior ${liftName} session — check fatigue or opportunity to progress.`);
+          }
+
+          if (domsLevel === 2) {
+            warnings.push(`Marked Very Sore today in ${mGroup.replace('_', ' & ')} — trainer recommends unloading or rotating.`);
+          } else if (domsLevel === 1 && trend.daysSinceLast <= 2) {
+            warnings.push(`Tightness reported in ${mGroup.replace('_', ' & ')} with recent exposure — control tempo or substitute.`);
+          }
+
           const banned = coachCtx.value.exercisePreferences?.banned || [];
           if (banned.includes(liftName)) {
-            warnings.push(`Marked as Banned (⊘) in your Module 2 preferences.`);
+            warnings.push(`Marked as Banned (⊘) in your preferences.`);
           }
-          const hasAnkleGuard = (coachCtx.value.chronicGuardrails || []).some(g => g.region === 'ankle' || g.id === 'plantar' || g.id === 'shin_splints') ||
-            (coachCtx.value.activeTemporaryInjuries || []).some(i => i.region === 'ankle');
+
+          const activeInjuries = (coachCtx.value.activeTemporaryInjuries || []).filter(i => !i.expiresAt || i.expiresAt >= todayIso.value);
+          const activeGuards = coachCtx.value.chronicGuardrails || [];
+          const hasAnkleGuard = activeGuards.some(g => g.region === 'ankle' || g.id === 'plantar' || g.id === 'shin_splints') ||
+            activeInjuries.some(i => i.region === 'ankle');
           if (liftName === 'Standing Dumbbell Calf Raise' && hasAnkleGuard) {
-            warnings.push(`Active Ankle/Plantar Guardrail: Seated Calf Raise or Banded Clamshell is safer today.`);
+            warnings.push(`Active Ankle/Plantar Guardrail: Seated or hip-stabilized options reduce standing impact.`);
           }
+
           const hasLumbarLoad = recent72hCardioMiles.value >= 3.0 ||
             (coachCtx.value.externalLifeLoads || []).includes('yard_work') ||
-            (coachCtx.value.chronicGuardrails || []).some(g => g.region === 'lower_back');
+            activeGuards.some(g => g.region === 'lower_back') ||
+            activeInjuries.some(i => i.region === 'lower_back');
           if (liftName === 'Dumbbell Romanian Deadlift (RDL)' && hasLumbarLoad) {
-            warnings.push(`Cumulative Lower-Back Load (${recent72hCardioMiles.value.toFixed(1)}mi recent run): Bodyweight Glute Bridge unloads spinal shear.`);
+            warnings.push(`Multi-day lower-back/cardio load (${recent72hCardioMiles.value.toFixed(1)}mi recent run): lower-shear alternative protects spine.`);
           }
           return warnings;
         };
@@ -3026,6 +3083,16 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const makeStationObj = (name, reason, isGoalFocus = false, goalBadge = '') => {
           const meta = getLiftMeta(name);
           const isBand = meta.equipment === 'Band';
+          const trend = getExerciseHistoryTrend(name);
+          const capMode = coachCtx.value.capProgressionMode || 'tempo_pause';
+          let tempoPrescription = isBand ? '2s Peak Hold + 3s Return' : '3s Lower + 2s Pause';
+          if (!isBand && Number(meta.weight) >= 45) {
+            if (capMode === 'unilateral') tempoPrescription = 'Unilateral Focus + 2s Pause';
+            else if (capMode === 'band_combo') tempoPrescription = 'Band-Assisted + 2s Pause';
+          }
+          if (trend.rpeDelta >= 0.8) {
+            tempoPrescription = 'Controlled Tempo (Ease Effort)';
+          }
           return {
             name,
             category: meta.category,
@@ -3034,7 +3101,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             plannedWeight: meta.weight,
             plannedReps: meta.reps || 12,
             bandLevelLabel: selectedBandLevel.value.label,
-            tempoPrescription: isBand ? '2s Peak Hold + 3s Return' : '3s Lower + 2s Pause',
+            tempoPrescription,
             reason,
             isGoalFocus,
             goalBadge
@@ -3045,68 +3112,132 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const customCircuitList = ref(['Dumbbell Sumo Squat', 'Incline Dumbbell Bench Press', 'Dumbbell Pullover', 'Banded Clamshell']);
 
         const synthesizeCoachedCircuit = (notify = false) => {
-          const ySet = new Set(yesterdayLiftNames.value);
           const audit = liveTrainerAuditSummary.value;
+          const doms = coachCtx.value.sorenessMap || {};
+          const g = coachCtx.value.activeGoal || {};
+          const bannedSet = new Set(coachCtx.value.exercisePreferences?.banned || []);
+          const favSet = new Set(coachCtx.value.exercisePreferences?.favorites || []);
+          const activeInjuries = (coachCtx.value.activeTemporaryInjuries || []).filter(i => !i.expiresAt || i.expiresAt >= todayIso.value);
+          const activeGuards = coachCtx.value.chronicGuardrails || [];
 
-          // Station 6 & Stabilizer Slot: Driven by the exact same Shin-Splint / Calf-to-Hip-to-Tibialis audit as Module 4's AI Pro Trainer
-          let station6;
-          if (ySet.has('Seated Calf Raise')) {
-            if (audit.needsHipArmor) {
-              station6 = makeStationObj(
-                ySet.has('Banded Clamshell') ? 'Side-Lying Hip Abduction (Straight-Leg Raise)' : 'Banded Clamshell',
-                `Pro Trainer Auto-Fix (${audit.calfSets} Calf vs ${audit.hipSets} Hip sets): Rotates from yesterday's Calf Raise to Glute-Medius Hip Alignment so shin splints don't flare.`,
-                true,
-                'TRAINER AUTO-FIX'
-              );
-            } else {
-              station6 = makeStationObj(
-                'Weighted Wall Tibialis Raise',
-                `Pro Trainer Auto-Fix (${audit.tibialisSets} Front-Shin sets logged): Strengthens anterior tibialis while calves recover from yesterday.`,
-                true,
-                'TRAINER AUTO-FIX'
-              );
+          const hasAnkleGuard = activeGuards.some(x => x.region === 'ankle' || x.id === 'plantar' || x.id === 'shin_splints') ||
+            activeInjuries.some(i => i.region === 'ankle');
+          const hasLumbarLoad = recent72hCardioMiles.value >= 3.0 ||
+            (coachCtx.value.externalLifeLoads || []).includes('yard_work') ||
+            activeGuards.some(x => x.region === 'lower_back') ||
+            activeInjuries.some(i => i.region === 'lower_back');
+
+          const pickBestFromPool = (pool, fallbackName, reasonBuilder, isGoalFocus = false, goalBadge = '') => {
+            const scored = pool
+              .filter(cand => !bannedSet.has(cand))
+              .map(cand => {
+                const tr = getExerciseHistoryTrend(cand);
+                const mg = getMuscleGroupForLift(cand);
+                const sLevel = Number(doms[mg] ?? 0);
+                let score = 100;
+                if (tr.daysSinceLast === 0) score -= 45;
+                else if (tr.daysSinceLast === 1) score -= 28;
+                else if (tr.daysSinceLast >= 3) score += 12;
+                score -= tr.sets7d * 8;
+                if (tr.rpeDelta >= 0.8) score -= 20;
+                else if (tr.rpeDelta <= -0.6) score += 10;
+                if (sLevel === 2) score -= 35;
+                else if (sLevel === 1) score -= 12;
+                if (favSet.has(cand)) score += 15;
+                if (cand === 'Standing Dumbbell Calf Raise' && hasAnkleGuard) score -= 30;
+                if (cand === 'Dumbbell Romanian Deadlift (RDL)' && hasLumbarLoad) score -= 30;
+                return { cand, tr, sLevel, score };
+              })
+              .sort((a, b) => b.score - a.score);
+
+            const chosen = scored[0]?.cand || fallbackName;
+            const tr = scored[0]?.tr || getExerciseHistoryTrend(chosen);
+            const sLevel = scored[0]?.sLevel ?? 0;
+            const contextNote = reasonBuilder(chosen, tr, sLevel);
+            return makeStationObj(chosen, contextNote, isGoalFocus, goalBadge);
+          };
+
+          const s1 = pickBestFromPool(
+            ['Goblet Squat', 'Dumbbell Sumo Squat', 'Dumbbell Bulgarian Split Squat'],
+            'Dumbbell Sumo Squat',
+            (name, tr, sLevel) => {
+              const bits = [];
+              if (tr.sets7d > 0) bits.push(`${tr.sets7d} set(s) in 7d${tr.avgRpe ? ' @ avg RPE ' + tr.avgRpe : ''}`);
+              if (tr.rpeDelta !== 0) bits.push(`RPE trend ${tr.rpeDelta > 0 ? '+' : ''}${tr.rpeDelta}`);
+              if (sLevel > 0) bits.push(`quad soreness level ${sLevel}`);
+              return `Holistic Quad/Hip Selection (${bits.join(', ') || 'fresh 7d window'}).`;
             }
-          } else {
-            station6 = makeStationObj(
-              'Seated Calf Raise',
-              '1° Goal (Calf & Shin Armor): Bent-knee soleus builder with zero standing Achilles strain.',
-              true,
-              '1° GOAL'
-            );
-          }
+          );
 
-          const stations = [
-            ySet.has('Goblet Squat')
-              ? makeStationObj('Dumbbell Sumo Squat', 'Anti-Overload Rotation: Replaces yesterday’s Goblet Squat to target adductors & glutes.', false, '')
-              : makeStationObj('Goblet Squat', 'Primary Lower Squat station (Quads fresh).', false, ''),
-            ySet.has('Flat Dumbbell Bench Press')
-              ? makeStationObj('Incline Dumbbell Bench Press', 'Anti-Overload Rotation: Replaces yesterday’s Flat Bench with 30° clavicular press.', false, '')
-              : makeStationObj('Flat Dumbbell Bench Press', 'Primary Upper Horizontal Push.', false, ''),
-            recent72hCardioMiles.value >= 3.0
-              ? makeStationObj('Bodyweight Glute Bridge', `Holistic Spine Guard (${recent72hCardioMiles.value.toFixed(1)}mi recent run): Zero-shear Glute Bridge replaces RDL.`, false, '')
-              : makeStationObj('Dumbbell Romanian Deadlift (RDL)', 'Lengthened hamstring hinge.', false, ''),
-            makeStationObj('Dumbbell Pullover', '2° Goal (V-Taper Lats): Lengthened lat stretch with zero lower-back shear.', true, '2° GOAL'),
-            ySet.has('Dumbbell Lateral Raise')
-              ? makeStationObj('Dumbbell Rear Delt Reverse Fly', 'Posterior deltoid & posture balance.', false, '')
-              : makeStationObj('Dumbbell Lateral Raise', '30° scapular-plane medial deltoid builder.', false, ''),
-            station6
-          ];
+          const s2 = pickBestFromPool(
+            ['Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Dumbbell Floor Press'],
+            'Incline Dumbbell Bench Press',
+            (name, tr, sLevel) => {
+              const bits = [];
+              if (tr.sets7d > 0) bits.push(`${tr.sets7d} set(s) in 7d${tr.avgRpe ? ' @ avg RPE ' + tr.avgRpe : ''}`);
+              if (tr.rpeDelta !== 0) bits.push(`RPE shift ${tr.rpeDelta > 0 ? '+' : ''}${tr.rpeDelta}`);
+              if (sLevel > 0) bits.push(`chest soreness level ${sLevel}`);
+              return `Holistic Push Selection (${bits.join(', ') || 'balanced upper-push load'}).`;
+            }
+          );
 
-          // IfSeated Calf Raise took Station 6 today AND the Pro Trainer audit flagged a severe Front-Shin Tibialis or Hip-Abductor deficit,
-          // automatically weave the missing stabilizer into the Step 0 / Finisher pairing so the user never has to add it manually
-          if (station6.name === 'Seated Calf Raise' && audit.needsTibialis && !ySet.has('Weighted Wall Tibialis Raise')) {
-            stations.push(
-              makeStationObj(
-                'Weighted Wall Tibialis Raise',
-                `Pro Trainer Imbalance Fix (${audit.calfSets} Calf sets vs ${audit.tibialisSets} Tibialis sets): Auto-added to balance front-shin impact absorption.`,
-                true,
-                'TRAINER AUTO-ADD'
-              )
-            );
-          }
+          const s3 = pickBestFromPool(
+            hasLumbarLoad || (doms.posterior || 0) >= 2
+              ? ['Bodyweight Glute Bridge', 'Band Lateral Walk', 'Dead Bug']
+              : ['Dumbbell Romanian Deadlift (RDL)', 'Bodyweight Glute Bridge'],
+            'Bodyweight Glute Bridge',
+            (name, tr, sLevel) => {
+              const bits = [];
+              if (hasLumbarLoad) bits.push(`${recent72hCardioMiles.value.toFixed(1)}mi recent run / spine load`);
+              if (sLevel > 0) bits.push(`posterior soreness ${sLevel}`);
+              if (tr.avgRpe) bits.push(`recent RPE ${tr.avgRpe}`);
+              return `Holistic Posterior/Spine Balance (${bits.join(', ') || '7d posterior recovery'}).`;
+            }
+          );
 
+          const s4 = pickBestFromPool(
+            ['Dumbbell Pullover', 'Single-Arm Dumbbell Row', 'Chest-Supported Incline Row'],
+            'Dumbbell Pullover',
+            (name, tr) => {
+              const goalTag = g.focusArea === 'v_taper' || coachCtx.value.secondaryGoal?.lift === 'Dumbbell Pullover' ? 'Goal & posture pull' : 'Upper pull balance';
+              return `${goalTag} (${tr.sets7d} set(s) in 7d${tr.avgRpe ? ', avg RPE ' + tr.avgRpe : ''}).`;
+            },
+            true,
+            g.focusArea === 'v_taper' ? '1° GOAL' : '2° GOAL'
+          );
+
+          const s5 = pickBestFromPool(
+            ['Dumbbell Lateral Raise', 'Dumbbell Rear Delt Reverse Fly', 'Band Face Pull'],
+            'Dumbbell Rear Delt Reverse Fly',
+            (name, tr, sLevel) => {
+              const bits = [`${tr.sets7d} set(s) in 7d`];
+              if (tr.avgRpe) bits.push(`avg RPE ${tr.avgRpe}`);
+              if (sLevel > 0) bits.push(`shoulder/arm DOMS ${sLevel}`);
+              return `Shoulder & Posture Balance (${bits.join(', ')}).`;
+            }
+          );
+
+          const lowerLegPool = hasAnkleGuard || (doms.calves || 0) >= 2
+            ? ['Seated Calf Raise', 'Banded Clamshell', 'Side-Lying Hip Abduction (Straight-Leg Raise)', 'Weighted Wall Tibialis Raise']
+            : ['Seated Calf Raise', 'Standing Dumbbell Calf Raise', 'Banded Clamshell', 'Weighted Wall Tibialis Raise'];
+
+          const s6 = pickBestFromPool(
+            lowerLegPool,
+            'Banded Clamshell',
+            (name, tr, sLevel) => {
+              const parts = [`7d calf/hip/tib sets: ${audit.calfSets}:${audit.hipSets}:${audit.tibialisSets}`];
+              if (tr.avgRpe) parts.push(`RPE ${tr.avgRpe}`);
+              if (sLevel > 0) parts.push(`lower-leg DOMS ${sLevel}`);
+              if (hasAnkleGuard) parts.push('ankle/shin guard active');
+              return `Comprehensive Lower-Leg & Goal Guidance (${parts.join(' • ')}).`;
+            },
+            true,
+            '1° GOAL'
+          );
+
+          const stations = [s1, s2, s3, s4, s5, s6];
           activeCircuitStations.value = stations;
-          if (notify) showToast('Reset to AI-synthesized circuit (synced with Pro Trainer audit)!');
+          if (notify) showToast('Recalculated circuit from multi-day history, RPE trends, soreness & goals.');
         };
 
         const allCatalogLiftNames = computed(() => Object.keys(LIFT_DB).filter(k => LIFT_DB[k].category !== 'Mobility'));
