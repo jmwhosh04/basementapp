@@ -2671,6 +2671,59 @@
             coachCtx.value.sorenessMap.calves = 2;
             adaptations.push('Rotated direct calf loading to Side-Lying Hip Abduction & ankle mobility');
           }
+
+          // Auto-populate temporary injury into basement_temp_injuries & coachCtx when user reports an injury/sprain/strain
+          if (lower.match(/sprain|strain|twist|rolled|tweaked|pulled|hurt|injured|hobbled|limp/)) {
+            let region = 'ankle';
+            let label = 'Reported Acute Setback';
+            if (lower.includes('knee')) { region = 'knee'; label = 'Knee Strain / Setback'; }
+            else if (lower.includes('back') || lower.includes('lumbar')) { region = 'lower_back'; label = 'Lower Back Strain / Setback'; }
+            else if (lower.includes('shoulder') || lower.includes('rotator')) { region = 'shoulder'; label = 'Shoulder Strain / Setback'; }
+            else if (lower.includes('hip') || lower.includes('groin') || lower.includes('hamm')) { region = 'hip'; label = 'Hip / Hamstring Strain'; }
+            else if (lower.includes('elbow') || lower.includes('wrist')) { region = 'elbow_wrist'; label = 'Elbow / Wrist Strain'; }
+            else if (lower.includes('ankle') || lower.includes('foot') || lower.includes('shin') || lower.includes('calf')) {
+              region = 'ankle';
+              label = lower.includes('sprain') ? 'Sprained Ankle' : 'Ankle / Lower-Leg Setback';
+            }
+
+            let days = 14;
+            const weekMatch = lower.match(/(\d+)\s*weeks?/);
+            const dayMatch = lower.match(/(\d+)\s*days?/);
+            if (weekMatch) days = Math.max(1, Number(weekMatch[1]) * 7);
+            else if (dayMatch) days = Math.max(1, Number(dayMatch[1]));
+
+            let severity = 'moderate';
+            if (lower.match(/pretty bad|severe|can't walk|cant walk|hobbled|badly/)) severity = 'severe';
+            else if (lower.match(/mild|slight|minor|little/)) severity = 'mild';
+
+            const expiresAt = getLocalIsoDate(days);
+            let existingInjuries = [];
+            try {
+              existingInjuries = JSON.parse(localStorage.getItem('basement_temp_injuries') || '[]');
+            } catch (e) {
+              existingInjuries = [];
+            }
+
+            const newInj = {
+              id: 'temp-' + Date.now(),
+              name: label,
+              region,
+              severity,
+              createdAt: todayIso.value,
+              expiresAt,
+              active: true
+            };
+            existingInjuries.unshift(newInj);
+            try {
+              localStorage.setItem('basement_temp_injuries', JSON.stringify(existingInjuries));
+            } catch (e) {}
+
+            coachCtx.value.activeTemporaryInjuries = [
+              ...(coachCtx.value.activeTemporaryInjuries || []),
+              newInj
+            ];
+            adaptations.push(`Auto-added "${label}" (${severity}, ${days}d until ${expiresAt}) to your Injuries tab`);
+          }
           if (lower.includes('shoulder') || lower.includes('pop') || lower.includes('rotator')) {
             coachCtx.value.sorenessMap.shoulders_arms = 2;
             adaptations.push('Swapped overhead/lateral raises for Side-Lying External Rotation & scapular-safe pressing');
@@ -3814,6 +3867,9 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             const parsedCtx = rawCtx ? JSON.parse(rawCtx) : { ...coachCtx.value };
             parsedCtx.lastDailyCheckInDate = hasProvidedTodayUpdate.value ? todayIso.value : null;
             parsedCtx.sorenessMap = coachCtx.value.sorenessMap;
+            if (Array.isArray(coachCtx.value.activeTemporaryInjuries)) {
+              parsedCtx.activeTemporaryInjuries = coachCtx.value.activeTemporaryInjuries;
+            }
             localStorage.setItem('basement_coach_context', JSON.stringify(parsedCtx));
           } catch (e) {}
         };
