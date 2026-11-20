@@ -6,6 +6,8 @@
   <title>Basement Lab · Master Training Suite</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="basement-db.js"></script>
   <style>
     :root { color-scheme: dark; }
     html, body {
@@ -33,62 +35,123 @@
       <button @click="toast = null" class="text-slate-400 hover:text-white font-bold text-sm px-1">&times;</button>
     </div>
 
-    <!-- COMPACT MASTER TOP UTILITY BAR (API KEY + BACKUP/RESTORE + MODULE LAUNCHER) -->
-    <header class="px-3 py-2 border-b border-slate-800/90 bg-slate-950/95 flex items-center justify-between gap-2 shrink-0 z-30">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-mono font-black text-emerald-300 uppercase shrink-0">
+    <!-- GOOGLE SIGN-IN GATE (SHOWN WHEN NOT AUTHENTICATED & NOT IN LOCAL MODE) -->
+    <div v-if="!authReady" class="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
+      <div class="w-8 h-8 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin"></div>
+      <p class="text-xs font-mono text-slate-400">Connecting to Basement Lab...</p>
+    </div>
+
+    <div v-else-if="!session && !localOnlyMode" class="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-5 bg-slate-950">
+      <div class="space-y-2">
+        <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-[10px] font-mono font-black text-emerald-300 uppercase tracking-wider">
           Basement Lab
         </span>
-        <span class="text-xs font-black text-white truncate">{{ currentModuleObj.title }}</span>
+        <h1 class="text-xl font-black text-white">Sign in to Your Training Profile</h1>
+        <p class="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+          Keep your workouts, injuries, sauna logs, and AI coaching synced across your phone and laptop—isolated per person.
+        </p>
       </div>
 
-      <div class="flex items-center gap-1.5 shrink-0">
-        <a
-          :href="currentModuleObj.file"
-          target="_blank"
-          rel="noopener"
-          title="Open active module in full standalone tab"
-          class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-[10px] font-mono text-slate-300 hover:text-white transition"
-        >
-          ↗ Full Tab
-        </a>
+      <div class="w-full max-w-xs space-y-2.5">
         <button
-          @click="openDataModal"
-          class="px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 hover:border-indigo-400 text-[10px] font-mono font-bold text-indigo-200 transition flex items-center gap-1"
+          @click="handleGoogleSignIn"
+          :disabled="authBusy"
+          class="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-black text-xs flex items-center justify-center gap-2.5 shadow-lg transition disabled:opacity-60"
         >
-          <span>💾 Data &amp; 🔑 Key</span>
-          <span v-if="hasSavedApiKey" class="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Gemini API Key Saved"></span>
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-8.97z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+          </svg>
+          <span>{{ authBusy ? 'Redirecting to Google...' : 'Continue with Google' }}</span>
+        </button>
+
+        <button
+          @click="localOnlyMode = true"
+          class="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 font-bold text-[11px] transition"
+        >
+          Use Local Browser Storage Only
         </button>
       </div>
-    </header>
+    </div>
 
-    <!-- MODULE VIEWPORT: LOADS YOUR 4 STANDALONE GITHUB HTML FILES CLEANLY -->
-    <main class="flex-1 w-full relative bg-slate-950 overflow-hidden">
-      <iframe
-        v-for="mod in modules"
-        :key="mod.id"
-        v-show="activeModuleId === mod.id"
-        :ref="el => setIframeRef(mod.id, el)"
-        :src="mod.file"
-        class="w-full h-full border-0 bg-slate-950"
-        allow="microphone *; autoplay *; clipboard-write *"
-      ></iframe>
-    </main>
+    <!-- MAIN APP SHELL -->
+    <template v-else>
+      <!-- COMPACT MASTER TOP UTILITY BAR -->
+      <header class="px-3 py-2 border-b border-slate-800/90 bg-slate-950/95 flex items-center justify-between gap-2 shrink-0 z-30">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-mono font-black text-emerald-300 uppercase shrink-0">
+            Basement Lab
+          </span>
+          <span class="text-xs font-black text-white truncate">{{ currentModuleObj.title }}</span>
+        </div>
 
-    <!-- PERSISTENT 4-MODULE BOTTOM NAVIGATION DOCK -->
-    <nav class="bg-slate-950/95 border-t border-slate-800 px-2.5 py-2 shrink-0 z-30 backdrop-blur-md">
-      <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold">
-        <button
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button
+            v-if="session"
+            @click="handleSignOut"
+            :title="'Signed in as ' + (session.user?.email || 'User') + ' — Tap to switch account'"
+            class="px-2 py-1 rounded-lg bg-slate-900 border border-emerald-500/40 hover:border-rose-400 text-[10px] font-mono text-emerald-300 hover:text-rose-200 transition flex items-center gap-1"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span class="max-w-[68px] truncate">{{ userDisplayName }}</span>
+          </button>
+          <button
+            v-else
+            @click="localOnlyMode = false"
+            class="px-2 py-1 rounded-lg bg-slate-900 border border-amber-500/40 text-[10px] font-mono text-amber-300 transition"
+          >
+            Sign In
+          </button>
+
+          <a
+            :href="currentModuleObj.file"
+            target="_blank"
+            rel="noopener"
+            title="Open active module in full standalone tab"
+            class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-[10px] font-mono text-slate-300 hover:text-white transition"
+          >
+            ↗
+          </a>
+          <button
+            @click="openDataModal"
+            class="px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 hover:border-indigo-400 text-[10px] font-mono font-bold text-indigo-200 transition flex items-center gap-1"
+          >
+            <span>💾</span>
+            <span v-if="hasSavedApiKey" class="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Gemini API Key Saved"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- MODULE VIEWPORT -->
+      <main class="flex-1 w-full relative bg-slate-950 overflow-hidden">
+        <iframe
           v-for="mod in modules"
           :key="mod.id"
-          @click="switchModule(mod.id)"
-          class="py-2 px-1 rounded-xl flex flex-col items-center justify-center transition"
-          :class="activeModuleId === mod.id ? mod.activeClass : 'text-slate-400 hover:text-white bg-slate-900/60 border border-slate-900'"
-        >
-          <span class="truncate">{{ mod.navLabel }}</span>
-        </button>
-      </div>
-    </nav>
+          v-show="activeModuleId === mod.id"
+          :ref="el => setIframeRef(mod.id, el)"
+          :src="mod.file"
+          class="w-full h-full border-0 bg-slate-950"
+          allow="microphone *; autoplay *; clipboard-write *"
+        ></iframe>
+      </main>
+
+      <!-- PERSISTENT 4-MODULE BOTTOM NAVIGATION DOCK -->
+      <nav class="bg-slate-950/95 border-t border-slate-800 px-2.5 py-2 shrink-0 z-30 backdrop-blur-md">
+        <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold">
+          <button
+            v-for="mod in modules"
+            :key="mod.id"
+            @click="switchModule(mod.id)"
+            class="py-2 px-1 rounded-xl flex flex-col items-center justify-center transition"
+            :class="activeModuleId === mod.id ? mod.activeClass : 'text-slate-400 hover:text-white bg-slate-900/60 border border-slate-900'"
+          >
+            <span class="truncate">{{ mod.navLabel }}</span>
+          </button>
+        </div>
+      </nav>
+    </template>
 
     <!-- =================================================================== -->
     <!-- MASTER DATA BACKUP/RESTORE & LOCAL GEMINI API KEY MODAL             -->
@@ -103,7 +166,7 @@
           <button @click="showDataModal = false" class="text-slate-400 hover:text-white font-bold text-lg">&times;</button>
         </div>
 
-        <!-- 1. Local-Only Gemini API Key (Never Committed to GitHub) -->
+        <!-- 1. Local-Only Gemini API Key -->
         <div class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2 text-xs">
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">🔑 Gemini API Key (Voice TTS &amp; AI Coach)</span>
@@ -135,7 +198,7 @@
           </div>
           <textarea
             v-model="backupJsonText"
-            rows="7"
+            rows="6"
             class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-300 focus:outline-none"
           ></textarea>
         </div>
@@ -145,7 +208,7 @@
             📋 Copy Master JSON
           </button>
           <button @click="restoreBackupJson" class="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs">
-            📥 Restore &amp; Reload Modules
+            📥 Restore &amp; Sync
           </button>
         </div>
       </div>
@@ -209,6 +272,11 @@
         const backupJsonText = ref('');
         const iframeRefs = {};
 
+        const authReady = ref(false);
+        const authBusy = ref(false);
+        const session = ref(null);
+        const localOnlyMode = ref(false);
+
         const setIframeRef = (id, el) => {
           if (el) iframeRefs[id] = el;
         };
@@ -217,6 +285,14 @@
           modules.find(m => m.id === activeModuleId.value) || modules[0]
         );
 
+        const userDisplayName = computed(() => {
+          const user = session.value?.user;
+          if (!user) return 'Account';
+          const full = user.user_metadata?.full_name || user.user_metadata?.name;
+          if (full) return full.split(' ')[0];
+          return (user.email || 'Account').split('@')[0];
+        });
+
         const hasSavedApiKey = computed(() => Boolean(apiKeyInput.value && apiKeyInput.value.trim()));
 
         const showToast = (msg) => {
@@ -224,8 +300,14 @@
           setTimeout(() => { if (toast.value === msg) toast.value = null; }, 3200);
         };
 
-        // When switching tabs, trigger a focus/storage sync inside the newly shown module iframe
-        // so any changes made in another tab are reflected immediately without a page reload.
+        const reloadAllIframes = () => {
+          Object.values(iframeRefs).forEach(frame => {
+            if (frame && frame.contentWindow) {
+              try { frame.contentWindow.location.reload(); } catch (e) {}
+            }
+          });
+        };
+
         const switchModule = (id) => {
           activeModuleId.value = id;
           const targetFrame = iframeRefs[id];
@@ -249,19 +331,27 @@
         };
 
         const openDataModal = () => {
-          apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
+          try {
+            apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
+          } catch (e) {
+            apiKeyInput.value = '';
+          }
           refreshBackupJson();
           showDataModal.value = true;
         };
 
         const saveApiKey = () => {
           const clean = (apiKeyInput.value || '').trim();
-          if (clean) {
-            localStorage.setItem('basement_gemini_api_key', clean);
-            showToast('🔑 Saved Gemini API key to browser storage!');
-          } else {
-            localStorage.removeItem('basement_gemini_api_key');
-            showToast('Cleared local Gemini API key.');
+          try {
+            if (clean) {
+              localStorage.setItem('basement_gemini_api_key', clean);
+              showToast('🔑 Saved Gemini API key to browser storage!');
+            } else {
+              localStorage.removeItem('basement_gemini_api_key');
+              showToast('Cleared local Gemini API key.');
+            }
+          } catch (e) {
+            showToast('⚠️ Browser storage blocked saving API key.');
           }
         };
 
@@ -279,28 +369,78 @@
           }
         };
 
-        const restoreBackupJson = () => {
+        const restoreBackupJson = async () => {
           try {
             const parsed = JSON.parse(backupJsonText.value || '{}');
             STORAGE_KEYS.forEach(k => {
               if (parsed[k] !== undefined) {
-                localStorage.setItem(k, JSON.stringify(parsed[k]));
+                try {
+                  localStorage.setItem(k, JSON.stringify(parsed[k]));
+                } catch (e) {}
               }
             });
-            Object.values(iframeRefs).forEach(frame => {
-              if (frame && frame.contentWindow) {
-                try { frame.contentWindow.location.reload(); } catch (e) {}
-              }
-            });
+            if (session.value?.user?.id && window.BasementDB) {
+              await window.BasementDB.pushAllToCloud(session.value.user.id);
+            }
+            reloadAllIframes();
             showDataModal.value = false;
-            showToast('📥 Restored master JSON & refreshed all 4 modules!');
+            showToast('📥 Restored master JSON & synced all 4 modules!');
           } catch (e) {
             showToast('⚠️ Invalid JSON — please check the backup text.');
           }
         };
 
-        onMounted(() => {
-          apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
+        const handleGoogleSignIn = async () => {
+          authBusy.value = true;
+          try {
+            await window.BasementDB.signInWithGoogle();
+          } catch (e) {
+            authBusy.value = false;
+            showToast('⚠️ Google sign-in failed: ' + (e.message || 'Check Supabase config'));
+          }
+        };
+
+        const handleSignOut = async () => {
+          await window.BasementDB.signOut();
+          session.value = null;
+          showToast('Signed out.');
+        };
+
+        const hydrateUserSession = async (newSession) => {
+          session.value = newSession;
+          if (newSession?.user?.id && window.BasementDB) {
+            try {
+              const res = await window.BasementDB.pullFromCloud(newSession.user.id);
+              window.BasementDB.startAutoSync(newSession.user.id);
+              reloadAllIframes();
+              if (res?.seededFromLocal) {
+                showToast('☁️ Uploaded your existing local logs to your cloud profile!');
+              }
+            } catch (e) {
+              showToast('⚠️ Cloud sync error — using local cache.');
+            }
+          }
+        };
+
+        onMounted(async () => {
+          try {
+            apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
+          } catch (e) {
+            apiKeyInput.value = '';
+          }
+
+          if (window.BasementDB) {
+            const initial = await window.BasementDB.getSession();
+            await hydrateUserSession(initial);
+            window.BasementDB.onAuthStateChange(async (updatedSession) => {
+              if (updatedSession?.user?.id !== session.value?.user?.id) {
+                await hydrateUserSession(updatedSession);
+              } else {
+                session.value = updatedSession;
+              }
+            });
+          }
+          authReady.value = true;
         });
 
         return {
@@ -312,13 +452,20 @@
           apiKeyInput,
           hasSavedApiKey,
           backupJsonText,
+          authReady,
+          authBusy,
+          session,
+          localOnlyMode,
+          userDisplayName,
           setIframeRef,
           switchModule,
           openDataModal,
           saveApiKey,
           refreshBackupJson,
           copyBackupJson,
-          restoreBackupJson
+          restoreBackupJson,
+          handleGoogleSignIn,
+          handleSignOut
         };
       }
     }).mount('#app');
