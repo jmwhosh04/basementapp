@@ -239,42 +239,10 @@
             </div>
           </div>
 
-          <!-- Dynamic AI Rotation Notice (No Fixed/Static Lift List) -->
-          <div v-if="activeGoal.id !== 'none' && (!activeGoal.primaryLifts || activeGoal.primaryLifts.length === 0)" class="p-2.5 rounded-xl bg-slate-950/90 border border-emerald-500/30 text-[11px] text-emerald-200 leading-snug">
-            <strong class="text-emerald-400">🤖 Dynamic AI Lift Rotation Active:</strong> Instead of locking you into static lifts, AI dynamically selects and rotates exercises from your catalog each session based on your recovery, DOMS, recent RPE, and goal.
-          </div>
-
-          <!-- Primary & Secondary Anti-Overload Rotation Lifts (Clickable for 2-Stage Human Photos) -->
-          <div v-if="activeGoal.id !== 'none' && activeGoal.primaryLifts && activeGoal.primaryLifts.length > 0" class="grid grid-cols-2 gap-2 pt-1">
-            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5">
-              <div class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Primary Drivers (Day A/C)</div>
-              <div class="space-y-1">
-                <button
-                  v-for="liftName in activeGoal.primaryLifts"
-                  :key="liftName"
-                  @click="openFormCardByName(liftName)"
-                  class="w-full flex items-center gap-1.5 text-left p-1 rounded-lg hover:bg-slate-900 transition"
-                >
-                  <img :src="getExercisePhoto(liftName, 'top')" class="w-7 h-7 rounded object-cover border border-slate-700 flex-shrink-0" />
-                  <span class="text-[10px] font-bold text-white underline decoration-dotted truncate">{{ liftName }}</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5">
-              <div class="text-[9px] font-bold uppercase tracking-wider text-sky-400">Secondary / Recovery (Day B)</div>
-              <div class="space-y-1">
-                <button
-                  v-for="liftName in activeGoal.secondaryLifts"
-                  :key="liftName"
-                  @click="openFormCardByName(liftName)"
-                  class="w-full flex items-center gap-1.5 text-left p-1 rounded-lg hover:bg-slate-900 transition"
-                >
-                  <img :src="getExercisePhoto(liftName, 'top')" class="w-7 h-7 rounded object-cover border border-slate-700 flex-shrink-0" />
-                  <span class="text-[10px] font-bold text-slate-200 underline decoration-dotted truncate">{{ liftName }}</span>
-                </button>
-              </div>
-            </div>
+          <!-- Dynamic AI Lift Selection Notice (No Static/Fixed Lift List Tied to Goals) -->
+          <div v-if="activeGoal.id !== 'none'" class="p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 text-[11px] text-emerald-200 leading-relaxed">
+            <strong class="text-emerald-400 block text-[10px] uppercase tracking-wider mb-0.5">🤖 Dynamic AI Pro Trainer Lift Selection Active</strong>
+            No static lifts are pinned to your goal. Your AI Pro Trainer dynamically selects and rotates exercises from your catalog for each workout based on your goal, recovery, soreness, recent RPE, and personal profile variables.
           </div>
 
           <!-- NEW PARAMETER #4: MESOCYCLE PHASE & AUTO-DELOAD CONTROL -->
@@ -3198,7 +3166,7 @@ Return ONLY valid JSON:
         const loadSharedStateFromStorage = () => {
           try {
             const g = localStorage.getItem('basement_active_goal');
-            if (g) activeGoal.value = JSON.parse(g);
+            if (g) { const parsedG = JSON.parse(g); activeGoal.value = { ...parsedG, primaryLifts: [], secondaryLifts: [] }; }
             const t = localStorage.getItem('basement_temp_injuries');
             if (t) temporaryInjuries.value = JSON.parse(t);
             const l = localStorage.getItem('basement_limits');
