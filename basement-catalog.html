@@ -6,7 +6,8 @@
   <title>Basement Lab · Module 3: Smart Catalog &amp; Visual Form Coach</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="basement-exercises.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="basement-db.js"></script>
   <script src="basement-exercises.js"></script>
   <style>
     :root { color-scheme: dark; }
@@ -1266,6 +1267,19 @@
             .slice(0, 50);
         });
 
+        const triggerImmediateCatalogCloudSync = async () => {
+          try {
+            const db = window.BasementDB || window.parent?.BasementDB;
+            if (!db) return;
+            const session = await db.getSession();
+            if (session?.user?.id) {
+              await db.pushAllToCloud(session.user.id);
+            }
+          } catch (e) {
+            console.warn('Immediate catalog cloud sync deferred to auto-sync:', e);
+          }
+        };
+
         const persistCatalogOverride = (ex, notify = true) => {
           try {
             const customList = JSON.parse(localStorage.getItem('basement_custom_catalog') || '[]');
@@ -1276,7 +1290,8 @@
               customList.push({ ...ex });
             }
             localStorage.setItem('basement_custom_catalog', JSON.stringify(customList));
-            if (notify) showToast(`Saved updated form settings for "${ex.name}"`);
+            triggerImmediateCatalogCloudSync();
+            if (notify) showToast(`Saved & synced "${ex.name}" to cloud ✓`);
           } catch (e) {}
         };
 
@@ -1344,15 +1359,48 @@
             const part1 = data1?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             const part2 = data2?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
 
+            const compressDataUrlToJpeg = (rawDataUrl) => new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                const maxW = 640;
+                const scale = img.width > maxW ? maxW / img.width : 1;
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.82));
+              };
+              img.onerror = () => resolve(rawDataUrl);
+              img.src = rawDataUrl;
+            });
+
             if (part1?.inlineData?.data) {
-              ex.customPhotoTop = `data:${part1.inlineData.mimeType || 'image/png'};base64,${part1.inlineData.data}`;
-              ex.customPhotoBottom = part2?.inlineData?.data
+              const rawTop = `data:${part1.inlineData.mimeType || 'image/png'};base64,${part1.inlineData.data}`;
+              const rawBottom = part2?.inlineData?.data
                 ? `data:${part2.inlineData.mimeType || 'image/png'};base64,${part2.inlineData.data}`
-                : ex.customPhotoTop;
+                : rawTop;
+
+              let finalTop = await compressDataUrlToJpeg(rawTop);
+              let finalBottom = rawBottom === rawTop ? finalTop : await compressDataUrlToJpeg(rawBottom);
+
+              const db = window.BasementDB || window.parent?.BasementDB;
+              if (db && typeof db.uploadCatalogImage === 'function') {
+                const session = await db.getSession();
+                if (session?.user?.id) {
+                  finalTop = await db.uploadCatalogImage(session.user.id, ex.name, 'top', finalTop);
+                  finalBottom = finalBottom === rawTop
+                    ? finalTop
+                    : await db.uploadCatalogImage(session.user.id, ex.name, 'bottom', finalBottom);
+                }
+              }
+
+              ex.customPhotoTop = finalTop;
+              ex.customPhotoBottom = finalBottom;
               photoHealthMap.value[ex.name] = 'ok';
               persistCatalogOverride(ex, false);
               showPhotoFixer.value = false;
-              showToast(`✨ Generated exact 2-stage AI photos for "${ex.name}"!`);
+              showToast(`✨ Generated & cloud-synced 2-stage photos for "${ex.name}"!`);
             } else {
               showToast('Could not generate AI image right now—try selecting from the 873-exercise library below.');
             }

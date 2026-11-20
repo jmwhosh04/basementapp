@@ -427,6 +427,47 @@
     }
   }
 
+
+  async function uploadCatalogImage(userId, exerciseName, stage, dataUrl) {
+    const client = getClient();
+    if (!client || !userId || !dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+    try {
+      const [meta, base64] = dataUrl.split(',');
+      const mimeMatch = meta.match(/data:(.*?);base64/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const ext = mimeType.includes('png') ? 'png' : 'jpg';
+      const byteChars = atob(base64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+      const safeSlug = String(exerciseName || 'exercise')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const filePath = `${userId}/${safeSlug}-${stage}-${Date.now()}.${ext}`;
+
+      const { error } = await client.storage
+        .from('exercise-images')
+        .upload(filePath, blob, { contentType: mimeType, upsert: true });
+
+      if (error) {
+        console.warn('BasementDB storage upload fallback to inline:', error.message);
+        return dataUrl;
+      }
+
+      const { data: pub } = client.storage
+        .from('exercise-images')
+        .getPublicUrl(filePath);
+
+      return pub?.publicUrl || dataUrl;
+    } catch (err) {
+      console.warn('BasementDB upload exception:', err);
+      return dataUrl;
+    }
+  }
+
   global.BasementDB = {
     SUPABASE_URL,
     ALL_SYNC_KEYS,
@@ -435,6 +476,7 @@
     getSession,
     onAuthStateChange,
     pullFromCloud,
+    uploadCatalogImage,
     pushAllToCloud,
     resetUserCloudAndLocal,
     startAutoSync,
