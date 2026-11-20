@@ -106,7 +106,7 @@
         </div>
 
         <p class="text-[11px] text-slate-300 leading-relaxed">
-          Share your <strong>height, weight, birthday</strong>, any <strong>chronic joint/back issues</strong>, your <strong>lifestyle</strong> (desk job, yard work, travel), and your <strong>fitness goals</strong>—then AI will populate your profile so you can add or delete anything anytime.
+          Speak or type anything about yourself—your <strong>stats</strong>, <strong>primary &amp; secondary goals</strong>, <strong>schedule &amp; workout preferences</strong>, <strong>joint/chronic notes</strong>, or <strong>any personal rule or constraint</strong>. AI automatically identifies both standard profile fields and any new custom variables your AI Pro Trainer needs to guide your circuits.
         </p>
 
         <div class="flex items-center justify-between gap-2">
@@ -123,7 +123,7 @@
         <textarea
           v-model="onboardingInput"
           rows="3"
-          placeholder="e.g., I'm 5'5&quot;, 140 lbs, born June 12 1984. I sit at a desk all day, do yard work on weekends, have mild lower back tightness, and want to tone my arms and build core strength."
+          placeholder="Tell me your goals, schedule, preferences, equipment limits, or any personal training rules in your own words..."
           class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-400"
         ></textarea>
 
@@ -405,6 +405,99 @@
               <span @click="openFormCardByName(liftName)" class="cursor-pointer truncate max-w-[125px]">{{ liftName }}</span>
               <button @click="toggleFavoriteLift(liftName)" title="Favorite / Boost" class="hover:scale-110 transition" :class="isLiftFavorite(liftName) ? 'text-amber-400 font-black' : 'text-slate-600'">★</button>
               <button @click="toggleBannedLift(liftName)" title="Ban / Do Not Suggest" class="hover:scale-110 transition" :class="isLiftBanned(liftName) ? 'text-rose-400 font-black' : 'text-slate-600'">⊘</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW PARAMETER #7: DYNAMIC AI-DISCOVERED PROFILE VARIABLES (OPEN-ENDED KEY/VALUE + RULES) -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Dynamic AI Profile Variables</span>
+              <h3 class="text-xs font-black text-white">AI-Parsed Personal Variables &amp; Constraints ({{ customCoachingVariables.length }})</h3>
+            </div>
+            <button
+              @click="showAddCustomVar = !showAddCustomVar"
+              class="px-2.5 py-1 rounded-lg bg-slate-950 border border-emerald-500/40 text-[10px] font-bold text-emerald-300 hover:text-white shrink-0"
+            >
+              {{ showAddCustomVar ? 'Close ▲' : '+ Add Variable' }}
+            </button>
+          </div>
+
+          <p class="text-[11px] text-slate-400 leading-snug">
+            When you speak in the <strong>🎤 AI Profile Interview</strong>, AI extracts any unique preference, constraint, equipment limit, or habit into structured variables here so your <strong>AI Pro Trainer</strong> &amp; <strong>Daily Circuit</strong> use them automatically.
+          </p>
+
+          <div v-if="showAddCustomVar" class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2 text-xs">
+            <div class="grid grid-cols-2 gap-1.5">
+              <div>
+                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Variable Category</label>
+                <select v-model="newCustomVarType" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs">
+                  <option value="training_rule">Coaching / Circuit Rule</option>
+                  <option value="max_weight_cap">Exercise Load Ceiling (lbs)</option>
+                  <option value="exercise_constraint">Movement / Angle Constraint</option>
+                  <option value="schedule_habit">Schedule / Lifestyle Variable</option>
+                </select>
+              </div>
+              <div v-if="newCustomVarType === 'max_weight_cap'">
+                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Max Weight (lbs)</label>
+                <input v-model.number="newCustomVarMaxLbs" type="number" min="5" max="50" step="2.5" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-xs" />
+              </div>
+              <div v-else>
+                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Variable Name / Key</label>
+                <input v-model="newCustomVarTag" type="text" placeholder="e.g., Rest Preference" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" />
+              </div>
+            </div>
+            <div v-if="newCustomVarType === 'max_weight_cap'">
+              <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Target Exercise or Pattern</label>
+              <input v-model="newCustomVarTarget" type="text" placeholder="e.g., Overhead Press, Bench, Squats..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" />
+            </div>
+            <div>
+              <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Directive for AI Pro Trainer</label>
+              <input v-model="newCustomVarRule" type="text" placeholder="Describe how the AI Pro Trainer should apply this variable..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" />
+            </div>
+            <button
+              @click="addCustomCoachingVariableManual"
+              class="w-full py-2 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs"
+            >
+              + Save Variable &amp; Sync to AI Pro Trainer
+            </button>
+          </div>
+
+          <div v-if="customCoachingVariables.length === 0" class="p-2.5 rounded-xl bg-slate-950 border border-dashed border-slate-800 text-[11px] text-slate-400 text-center">
+            No dynamic variables created yet. Speak your preferences in the <strong>🎤 AI Profile Interview</strong> above and AI will extract them automatically.
+          </div>
+
+          <div v-else class="space-y-1.5">
+            <div
+              v-for="cv in customCoachingVariables"
+              :key="cv.id"
+              class="p-2.5 rounded-xl bg-slate-950 border flex items-center justify-between gap-2 text-xs"
+              :class="cv.active !== false ? 'border-emerald-500/40 text-white' : 'border-slate-800 text-slate-400 opacity-70'"
+            >
+              <div class="min-w-0">
+                <div class="font-black text-xs flex items-center gap-1.5 flex-wrap">
+                  <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[9px] uppercase">
+                    {{ cv.type === 'max_weight_cap' ? `MAX ${cv.maxWeightLbs} LB CAP` : (cv.tag || cv.key || 'VARIABLE') }}
+                  </span>
+                  <span class="truncate">{{ cv.label }}</span>
+                </div>
+                <div class="text-[10px] text-slate-400 leading-snug mt-0.5">{{ cv.rule }}</div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button
+                  @click="cv.active = cv.active === false ? true : false; saveContextToStorage()"
+                  class="px-2 py-0.5 rounded text-[10px] font-bold"
+                  :class="cv.active !== false ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'"
+                >
+                  {{ cv.active !== false ? 'ON' : 'OFF' }}
+                </button>
+                <button
+                  @click="removeCustomCoachingVariable(cv.id)"
+                  title="Delete variable"
+                  class="text-slate-500 hover:text-rose-400 font-bold px-1 text-sm"
+                >&times;</button>
+              </div>
             </div>
           </div>
         </div>
@@ -2086,25 +2179,253 @@ Return ONLY a valid JSON object with:
           }
         };
 
+        const customCoachingVariables = ref([]);
+        const showAddCustomVar = ref(false);
+        const newCustomVarType = ref('training_rule');
+        const newCustomVarMaxLbs = ref(25);
+        const newCustomVarTarget = ref('');
+        const newCustomVarTag = ref('');
+        const newCustomVarRule = ref('');
+
+        const upsertCustomCoachingVariable = (item) => {
+          const cleanLabel = (item.label || item.key || '').trim();
+          if (!cleanLabel) return;
+          const normKey = (item.key || cleanLabel).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+          const idx = customCoachingVariables.value.findIndex(x =>
+            (x.key && x.key === normKey) || x.label.toLowerCase() === cleanLabel.toLowerCase()
+          );
+          const entry = {
+            id: idx >= 0 ? customCoachingVariables.value[idx].id : ('cvar-' + Date.now() + '-' + Math.floor(Math.random() * 1000)),
+            key: normKey,
+            type: item.type || 'training_rule',
+            tag: item.tag || 'AI Variable',
+            label: cleanLabel,
+            value: item.value !== undefined ? item.value : (item.maxWeightLbs ?? true),
+            targetPattern: (item.targetPattern || cleanLabel).toLowerCase(),
+            maxWeightLbs: item.maxWeightLbs ? Math.min(50, Math.max(5, Number(item.maxWeightLbs))) : null,
+            rule: (item.rule || cleanLabel).trim(),
+            active: true
+          };
+          if (idx >= 0) customCoachingVariables.value[idx] = entry;
+          else customCoachingVariables.value.unshift(entry);
+        };
+
+        const addCustomCoachingVariableManual = () => {
+          if (newCustomVarType.value === 'max_weight_cap') {
+            const target = newCustomVarTarget.value.trim() || 'Target Lift';
+            const maxLbs = Math.min(50, Math.max(5, Number(newCustomVarMaxLbs.value) || 25));
+            upsertCustomCoachingVariable({
+              type: 'max_weight_cap',
+              tag: `Max ${maxLbs} lb`,
+              label: `${target} ≤ ${maxLbs} lbs`,
+              value: maxLbs,
+              targetPattern: target.toLowerCase(),
+              maxWeightLbs: maxLbs,
+              rule: newCustomVarRule.value.trim() || `Never exceed ${maxLbs} lbs on ${target} variations.`
+            });
+          } else {
+            const ruleTxt = newCustomVarRule.value.trim();
+            if (!ruleTxt) return;
+            const tagTxt = newCustomVarTag.value.trim() || 'Personal Variable';
+            upsertCustomCoachingVariable({
+              type: newCustomVarType.value,
+              tag: tagTxt,
+              label: tagTxt !== 'Personal Variable' ? tagTxt : ruleTxt.slice(0, 44),
+              value: ruleTxt,
+              targetPattern: ruleTxt.toLowerCase(),
+              rule: ruleTxt
+            });
+          }
+          newCustomVarRule.value = '';
+          newCustomVarTarget.value = '';
+          newCustomVarTag.value = '';
+          showAddCustomVar.value = false;
+          saveContextToStorage();
+          showToast('Saved variable & synced to AI Pro Trainer!');
+        };
+
+        const removeCustomCoachingVariable = (id) => {
+          customCoachingVariables.value = customCoachingVariables.value.filter(x => x.id !== id);
+          saveContextToStorage();
+          showToast('Removed variable.');
+        };
+
+        const parseComprehensiveProfileLocally = (raw) => {
+          const lower = raw.toLowerCase();
+          applyBaselineTextLocally(raw);
+          applyLifeLoadTextLocally(raw);
+          applyDomsTextLocally(raw);
+
+          // 1. Primary & Secondary Goals
+          const secMatch = raw.match(/(?:secondary|second|maintenance)\s+goal(?:\s+of|\s+is|:)?\s*([^.,;]+)/i);
+          if (secMatch && secMatch[1]) {
+            const secTitle = secMatch[1].trim().slice(0, 28);
+            const newId = 'sec-ai-' + Date.now();
+            secondaryGoalOptions.value.push({
+              id: newId,
+              shortTag: secTitle,
+              subtitle: 'Parsed from AI Profile Interview',
+              lift: secTitle.toLowerCase().includes('core') ? 'Dead Bug' : (secTitle.toLowerCase().includes('delt') || secTitle.toLowerCase().includes('shoulder') ? 'Band Face Pull' : 'Dumbbell Pullover')
+            });
+            secondaryGoalId.value = newId;
+          }
+
+          const primMatch = raw.match(/(?:primary\s+goal(?:\s+of|\s+is|:)?|want\s+to\s+focus\s+on|my\s+goal\s+is|want)\s+([^.,;]+)/i);
+          if (primMatch && primMatch[1]) {
+            const gText = primMatch[1].trim();
+            if (!gText.toLowerCase().startsWith('never ') && !gText.toLowerCase().startsWith('not ')) {
+              activeGoal.value = {
+                ...EMPTY_PRIMARY_GOAL,
+                id: 'goal-ai-' + Date.now(),
+                title: gText.charAt(0).toUpperCase() + gText.slice(1, 52),
+                shortTag: gText.slice(0, 20),
+                focusArea: 'dynamic_strength',
+                description: `AI dynamically rotates lifts across your catalog toward "${gText}" based on your recovery, DOMS, and personal profile variables.`,
+                primaryLifts: [],
+                secondaryLifts: []
+              };
+            }
+          }
+
+          // 2. Chronic Guardrails
+          if (lower.match(/back|knee|shin|plantar|shoulder|elbow|hip|ankle/)) {
+            const parsed = parseSpokenGuardrailLocally(raw);
+            if (!limits.value.some(l => l.label.toLowerCase() === parsed.title.toLowerCase())) {
+              limits.value.push({ id: 'chronic-' + Date.now(), region: parsed.region, label: parsed.title, description: parsed.rule, active: true });
+            }
+          }
+
+          // 3. Preferred Workout Variables (Days/wk, Session Duration, Time of Day, Rowing/Cardio, Spacing, 50-lb Cap Mode, Phase)
+          const daysMatch = lower.match(/(\d)\s*(?:days?\s*(?:a|per)\s*week|x\s*\/?\s*wk|days\/wk)/);
+          if (daysMatch) {
+            const dVal = Math.min(6, Math.max(3, Number(daysMatch[1])));
+            modalityPreferences.value.targetDaysPerWeek = dVal;
+          }
+
+          const durRangeMatch = lower.match(/(\d{2})\s*(?:-|to)\s*(\d{2})\s*min/);
+          const durSingleMatch = lower.match(/(?:for|around|about|max)?\s*(\d{2})\s*min/);
+          if (durRangeMatch) {
+            modalityPreferences.value.targetDurationMin = Number(durRangeMatch[1]);
+            modalityPreferences.value.targetDurationMax = Number(durRangeMatch[2]);
+            modalityPreferences.value.targetWindowLabel = `${durRangeMatch[1]}–${durRangeMatch[2]} min Window`;
+          } else if (durSingleMatch) {
+            const mVal = Number(durSingleMatch[1]);
+            if (mVal >= 15 && mVal <= 120) {
+              modalityPreferences.value.targetDurationMin = Math.max(15, mVal - 5);
+              modalityPreferences.value.targetDurationMax = mVal + 5;
+              modalityPreferences.value.targetWindowLabel = `${modalityPreferences.value.targetDurationMin}–${modalityPreferences.value.targetDurationMax} min Window`;
+            }
+          }
+
+          if (lower.includes('morning') || lower.includes('6 am') || lower.includes('6:00 am') || lower.includes('5 am')) {
+            modalityPreferences.value.preferredTimeOfDay = 'Morning';
+          } else if (lower.includes('evening') || lower.includes('after work') || lower.includes('night')) {
+            modalityPreferences.value.preferredTimeOfDay = 'Evening';
+          } else if (lower.includes('lunch') || lower.includes('noon') || lower.includes('afternoon')) {
+            modalityPreferences.value.preferredTimeOfDay = 'Afternoon';
+          }
+
+          if (lower.includes('row') && (lower.includes('only') || lower.includes('rest') || lower.includes('recovery'))) {
+            const rItem = cardioPreferenceItems.value.find(x => x.name.toLowerCase().includes('row'));
+            if (rItem) {
+              rItem.rule = 'when_coach_feels_important_rest';
+              syncCardioPreferencesToContext();
+            }
+          }
+
+          if (lower.includes('deload')) mesocyclePhase.value = 'deload';
+          else if (lower.includes('push') || lower.includes('intensif')) mesocyclePhase.value = 'intensification';
+
+          if (lower.includes('unilateral') || lower.includes('single-leg') || lower.includes('single arm')) capProgressionMode.value = 'unilateral';
+          else if (lower.includes('band combo') || lower.includes('with band')) capProgressionMode.value = 'band_combo';
+
+          // 4. Open-ended personal constraints, weight ceilings, and unique rules
+          const capRegex = /(?:never|don't|do not|no|cap|max(?:imum)?|limit)\s+(?:want\s+to\s+)?(?:lift|go|use|exceed)?\s*(?:heavier\s+than|more\s+than|over|above|at)?\s*(\d+(?:\.\d+)?)\s*(?:lb|lbs|pounds)\s*(?:for|on|with)?\s*([^.,;!]+)/gi;
+          let capMatch;
+          while ((capMatch = capRegex.exec(raw)) !== null) {
+            const lbs = Math.min(50, Math.max(5, Number(capMatch[1])));
+            const target = capMatch[2].trim();
+            if (target) {
+              upsertCustomCoachingVariable({
+                type: 'max_weight_cap',
+                tag: `Max ${lbs} lb`,
+                label: `${target.charAt(0).toUpperCase() + target.slice(1)} ≤ ${lbs} lbs`,
+                value: lbs,
+                targetPattern: target.toLowerCase(),
+                maxWeightLbs: lbs,
+                rule: `User constraint: Never exceed ${lbs} lbs on ${target}.`
+              });
+            }
+          }
+
+          // Capture general open-ended preference/rule sentences that don't fit fixed fields
+          const sentences = raw.split(/[.!?;]+/).map(s => s.trim()).filter(Boolean);
+          sentences.forEach(sent => {
+            const sLow = sent.toLowerCase();
+            const isPreferenceClause = sLow.match(/(prefer|always|never|avoid|hate|love|only|limit|cap|focus on|don't like|do not like|rather|instead of)/);
+            const isAlreadyCaptured = sLow.match(/(\d'\d|\d+\s*lbs?\s*body|born|days?\s*(?:a|per)\s*week)/);
+            if (isPreferenceClause && !isAlreadyCaptured && sent.length >= 10) {
+              upsertCustomCoachingVariable({
+                type: 'training_rule',
+                tag: 'AI Discovered',
+                label: sent.slice(0, 46),
+                value: sent,
+                targetPattern: sLow,
+                rule: sent
+              });
+            }
+          });
+        };
+
         const runAiOnboarding = async () => {
           const raw = onboardingInput.value.trim();
           if (!raw || onboardingLoading.value) return;
           onboardingLoading.value = true;
           try {
+            // Deterministic local pass first
+            parseComprehensiveProfileLocally(raw);
+
             const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
             if (apiKey) {
               const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-              const prompt = `Extract a fitness profile from this user introduction: "${raw}"
-Return ONLY valid JSON with:
+              const prompt = `You are an intelligent fitness profile architect. Analyze the user's spoken/typed introduction: "${raw}"
+
+Your job is twofold:
+1. Map any standard profile data to the known fields below.
+2. DYNAMICALLY DISCOVER any new, user-specific variables, preferences, constraints, movement dislikes, rest preferences, equipment habits, or load limits that are NOT covered by the standard fields, and emit them in "discoveredVariables" so the AI Pro Trainer can use them to guide future circuits.
+
+Return ONLY valid JSON:
 {
   "birthDate": "YYYY-MM-DD or empty string",
   "heightFeet": number or null,
   "heightInches": number or null,
   "weightLbs": number or null,
-  "primaryGoalTitle": "concise 3-6 word goal title or empty string",
-  "primaryGoalFocus": "one of calves_shins, shoulders, v_taper, general",
+  "primaryGoalTitle": "concise 3-7 word primary goal title or empty string",
+  "secondaryGoalTitle": "concise 2-5 word secondary/maintenance goal title or empty string",
+  "targetDaysPerWeek": number (3-6) or null,
+  "targetDurationMin": number or null,
+  "targetDurationMax": number or null,
+  "preferredTimeOfDay": "string or empty",
+  "rowingPreference": "preferred | when_coach_feels_important_rest | low_impact_fallback | rarely_if_needed | empty",
+  "maxConsecutiveLiftDays": number or null,
+  "capProgressionMode": "tempo_pause | unilateral | band_combo | empty",
+  "mesocyclePhase": "accumulation | intensification | deload | empty",
+  "favoriteExercises": ["exercise name"],
+  "bannedExercises": ["exercise name"],
   "chronicIssues": [{"label": "3-5 word title", "region": "ankle|knee|hip|lower_back|shoulder|elbow_wrist", "description": "1-sentence rule"}],
-  "lifeLoads": [{"label": "2-5 word label", "effect": "1-sentence coaching adjustment"}]
+  "lifeLoads": [{"label": "2-5 word label", "effect": "1-sentence coaching adjustment"}],
+  "discoveredVariables": [
+    {
+      "key": "snake_case_variable_name",
+      "type": "max_weight_cap | exercise_constraint | schedule_habit | training_rule",
+      "tag": "short 2-3 word badge",
+      "label": "human-readable variable name & value",
+      "value": "string or number",
+      "targetPattern": "lowercase keyword if exercise-specific, else empty",
+      "maxWeightLbs": number or null,
+      "rule": "clear 1-sentence directive explaining how the AI Pro Trainer should apply this variable when building circuits"
+    }
+  ]
 }`;
               const res = await fetch(apiUrl, {
                 method: 'POST',
@@ -2116,30 +2437,89 @@ Return ONLY valid JSON with:
               });
               const data = await res.json();
               const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+
               if (parsed.birthDate) athleteProfile.value.birthDate = parsed.birthDate;
               if (parsed.heightFeet) athleteProfile.value.heightFeet = Number(parsed.heightFeet);
               if (parsed.heightInches !== null && parsed.heightInches !== undefined) athleteProfile.value.heightInches = Number(parsed.heightInches);
               if (parsed.weightLbs) athleteProfile.value.weightLbs = Number(parsed.weightLbs);
+
               if (parsed.primaryGoalTitle) {
-                const matchedPreset = goalPresets.find(g => g.focusArea === parsed.primaryGoalFocus);
-                if (matchedPreset && parsed.primaryGoalFocus !== 'general') {
-                  activeGoal.value = { ...matchedPreset, title: parsed.primaryGoalTitle };
+                activeGoal.value = {
+                  ...EMPTY_PRIMARY_GOAL,
+                  id: 'goal-ai-' + Date.now(),
+                  title: parsed.primaryGoalTitle,
+                  shortTag: parsed.primaryGoalTitle.slice(0, 20),
+                  focusArea: 'dynamic_strength',
+                  description: `AI dynamically rotates lifts across your catalog toward "${parsed.primaryGoalTitle}" based on recovery, DOMS, and personal profile variables.`,
+                  primaryLifts: [],
+                  secondaryLifts: []
+                };
+              }
+
+              if (parsed.secondaryGoalTitle) {
+                const existingSec = secondaryGoalOptions.value.find(s => s.shortTag.toLowerCase() === parsed.secondaryGoalTitle.toLowerCase());
+                if (existingSec) {
+                  secondaryGoalId.value = existingSec.id;
                 } else {
-                  activeGoal.value = {
-                    ...EMPTY_PRIMARY_GOAL,
-                    id: 'goal-ai-' + Date.now(),
-                    title: parsed.primaryGoalTitle,
-                    shortTag: parsed.primaryGoalTitle.slice(0, 18),
-                    focusArea: parsed.primaryGoalFocus || 'general',
-                    description: `Custom AI block built from your profile: ${parsed.primaryGoalTitle}.`,
-                    primaryLifts: [],
-                    secondaryLifts: []
-                  };
+                  const newSecId = 'sec-ai-' + Date.now();
+                  secondaryGoalOptions.value.push({
+                    id: newSecId,
+                    shortTag: parsed.secondaryGoalTitle.slice(0, 24),
+                    subtitle: 'AI Profile Interview Goal',
+                    lift: 'Dead Bug'
+                  });
+                  secondaryGoalId.value = newSecId;
                 }
+              }
+
+              if (parsed.targetDaysPerWeek) {
+                modalityPreferences.value.targetDaysPerWeek = Math.min(6, Math.max(3, Number(parsed.targetDaysPerWeek)));
+              }
+              if (parsed.targetDurationMin || parsed.targetDurationMax) {
+                const minD = Number(parsed.targetDurationMin) || 25;
+                const maxD = Number(parsed.targetDurationMax) || Math.max(minD + 10, 40);
+                modalityPreferences.value.targetDurationMin = minD;
+                modalityPreferences.value.targetDurationMax = maxD;
+                modalityPreferences.value.targetWindowLabel = `${minD}–${maxD} min Window`;
+              }
+              if (parsed.preferredTimeOfDay) {
+                modalityPreferences.value.preferredTimeOfDay = parsed.preferredTimeOfDay;
+              }
+              if (parsed.rowingPreference) {
+                const rItem = cardioPreferenceItems.value.find(x => x.name.toLowerCase().includes('row'));
+                if (rItem) {
+                  rItem.rule = parsed.rowingPreference;
+                  syncCardioPreferencesToContext();
+                }
+              }
+              if (parsed.maxConsecutiveLiftDays) {
+                const liftRule = spacingRulesList.value.find(r => r.activity === 'lifting');
+                if (liftRule) {
+                  liftRule.maxConsecutiveDays = Number(parsed.maxConsecutiveLiftDays);
+                  syncSpacingRulesToContext();
+                }
+              }
+              if (['tempo_pause', 'unilateral', 'band_combo'].includes(parsed.capProgressionMode)) {
+                capProgressionMode.value = parsed.capProgressionMode;
+              }
+              if (['accumulation', 'intensification', 'deload'].includes(parsed.mesocyclePhase)) {
+                mesocyclePhase.value = parsed.mesocyclePhase;
+              }
+              if (Array.isArray(parsed.favoriteExercises)) {
+                parsed.favoriteExercises.forEach(exName => {
+                  const match = allCatalogLiftNames.value.find(n => n.toLowerCase().includes(exName.toLowerCase()));
+                  if (match && !favoriteLifts.value.includes(match)) favoriteLifts.value.push(match);
+                });
+              }
+              if (Array.isArray(parsed.bannedExercises)) {
+                parsed.bannedExercises.forEach(exName => {
+                  const match = allCatalogLiftNames.value.find(n => n.toLowerCase().includes(exName.toLowerCase()));
+                  if (match && !bannedLifts.value.includes(match)) bannedLifts.value.push(match);
+                });
               }
               if (Array.isArray(parsed.chronicIssues)) {
                 parsed.chronicIssues.forEach(c => {
-                  if (c.label) {
+                  if (c.label && !limits.value.some(l => l.label.toLowerCase() === c.label.toLowerCase())) {
                     limits.value.push({
                       id: 'chronic-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
                       region: c.region || 'lower_back',
@@ -2155,25 +2535,21 @@ Return ONLY valid JSON with:
                   if (l.label) addLifeLoadItem(l.label, l.effect);
                 });
               }
-            } else {
-              applyBaselineTextLocally(raw);
-              applyLifeLoadTextLocally(raw);
-              const lower = raw.toLowerCase();
-              if (lower.match(/back|knee|shin|plantar|shoulder|elbow|hip/)) {
-                const parsed = parseSpokenGuardrailLocally(raw);
-                limits.value.push({ id: 'chronic-' + Date.now(), region: parsed.region, label: parsed.title, description: parsed.rule, active: true });
+              const extraVars = parsed.discoveredVariables || parsed.customVariables || [];
+              if (Array.isArray(extraVars)) {
+                extraVars.forEach(cv => {
+                  if (cv.label || cv.rule || cv.key) upsertCustomCoachingVariable(cv);
+                });
               }
             }
             saveContextToStorage();
             showOnboardingCard.value = false;
             onboardingDismissed.value = true;
-            showToast('✨ Profile populated! You can add or remove any item.');
+            showToast(`✨ Profile & ${customCoachingVariables.value.length} discovered variable(s) saved to AI Pro Trainer!`);
           } catch (e) {
-            applyBaselineTextLocally(raw);
-            applyLifeLoadTextLocally(raw);
             saveContextToStorage();
             showOnboardingCard.value = false;
-            showToast('Populated profile locally—you can edit any section below.');
+            showToast('Populated profile & discovered variables—synced to AI Pro Trainer!');
           } finally {
             onboardingLoading.value = false;
           }
@@ -2799,6 +3175,7 @@ Return ONLY valid JSON with:
             externalLifeLoadItems: externalLifeLoadList.value,
             activeTemporaryInjuries: activeTemporaryInjuries.value,
             chronicGuardrails: limits.value.filter(l => l.active),
+            customCoachingVariables: customCoachingVariables.value.filter(v => v.active !== false),
             dailyBiometrics: dailyBiometrics.value,
             modalityPreferences: modalityPreferences.value,
             stepZeroPrimers: stepZeroPrimers.value
@@ -2846,6 +3223,7 @@ Return ONLY valid JSON with:
               if (parsed.exercisePreferences?.favorites) favoriteLifts.value = parsed.exercisePreferences.favorites;
               if (parsed.exercisePreferences?.banned) bannedLifts.value = parsed.exercisePreferences.banned;
               if (parsed.sorenessMap) sorenessMap.value = { ...sorenessMap.value, ...parsed.sorenessMap };
+              if (Array.isArray(parsed.customCoachingVariables)) customCoachingVariables.value = parsed.customCoachingVariables;
               if (parsed.dailyBiometrics) dailyBiometrics.value = { ...dailyBiometrics.value, ...parsed.dailyBiometrics };
               if (parsed.modalityPreferences) {
                 modalityPreferences.value = { ...modalityPreferences.value, ...parsed.modalityPreferences };
@@ -2907,6 +3285,7 @@ Return ONLY valid JSON with:
           showAddSecondaryGoal, newSecondaryGoalTitle, newSecondaryGoalLift, addCustomSecondaryGoal,
           mesocyclePhases, mesocyclePhase, currentPhaseDetails, mesocyclePhaseLabel,
           capProgressionModes, capProgressionMode, capProgressionModeLabel,
+          customCoachingVariables, showAddCustomVar, newCustomVarType, newCustomVarMaxLbs, newCustomVarTarget, newCustomVarTag, newCustomVarRule, addCustomCoachingVariableManual, removeCustomCoachingVariable,
           allCatalogLiftNames, favoriteLifts, bannedLifts, isLiftFavorite, isLiftBanned, toggleFavoriteLift, toggleBannedLift,
           sorenessZones, sorenessMap, cycleMuscleSoreness, resetSorenessMap,
           externalLifeLoadList,

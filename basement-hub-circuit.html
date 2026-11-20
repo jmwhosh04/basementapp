@@ -1474,14 +1474,14 @@
 
             <div v-else class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <span class="text-[9px] font-bold uppercase text-slate-400 block leading-none">Load (50 lb Cap)</span>
+                <span class="text-[9px] font-bold uppercase text-slate-400 block leading-none">Load ({{ getMaxAllowedWeightForLift(currentStation.name) }} lb Cap)</span>
                 <span class="font-mono font-black text-xs text-emerald-400">{{ currentStation.plannedWeight }} lb &times; {{ currentStation.plannedReps }}</span>
               </div>
               <div class="flex gap-1">
                 <button @click="adjustPlannedWeight(-5)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600">-5</button>
                 <button @click="adjustPlannedWeight(-2.5)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600">-2.5</button>
-                <button @click="adjustPlannedWeight(2.5)" :disabled="currentStation.plannedWeight >= 50" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+2.5</button>
-                <button @click="adjustPlannedWeight(5)" :disabled="currentStation.plannedWeight >= 50" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+5</button>
+                <button @click="adjustPlannedWeight(2.5)" :disabled="currentStation.plannedWeight >= getMaxAllowedWeightForLift(currentStation.name)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+2.5</button>
+                <button @click="adjustPlannedWeight(5)" :disabled="currentStation.plannedWeight >= getMaxAllowedWeightForLift(currentStation.name)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+5</button>
               </div>
             </div>
 
@@ -1866,14 +1866,14 @@
 
             <div v-else class="px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <span class="text-[9px] font-bold uppercase text-slate-400 block leading-none">Planned Load (50 lb Cap)</span>
+                <span class="text-[9px] font-bold uppercase text-slate-400 block leading-none">Planned Load ({{ getMaxAllowedWeightForLift(currentStation.name) }} lb Cap)</span>
                 <span class="font-mono font-black text-xs text-emerald-400">{{ currentStation.plannedWeight }} lb &times; {{ currentStation.plannedReps }}</span>
               </div>
               <div class="flex gap-1">
                 <button @click="adjustPlannedWeight(-5)" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600">-5</button>
                 <button @click="adjustPlannedWeight(-2.5)" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600">-2.5</button>
-                <button @click="adjustPlannedWeight(2.5)" :disabled="currentStation.plannedWeight >= 50" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+2.5</button>
-                <button @click="adjustPlannedWeight(5)" :disabled="currentStation.plannedWeight >= 50" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+5</button>
+                <button @click="adjustPlannedWeight(2.5)" :disabled="currentStation.plannedWeight >= getMaxAllowedWeightForLift(currentStation.name)" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+2.5</button>
+                <button @click="adjustPlannedWeight(5)" :disabled="currentStation.plannedWeight >= getMaxAllowedWeightForLift(currentStation.name)" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+5</button>
               </div>
             </div>
 
@@ -3472,9 +3472,29 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           return map[liftName] || 'Dead Bug';
         };
 
+                const getMaxAllowedWeightForLift = (liftName) => {
+          let maxCap = 50;
+          const lowerName = (liftName || '').toLowerCase();
+          const vars = coachCtx.value.customCoachingVariables || [];
+          vars.forEach(v => {
+            if (v && v.active !== false && v.type === 'max_weight_cap' && Number(v.maxWeightLbs) > 0) {
+              const pat = (v.targetPattern || v.label || '').toLowerCase();
+              const tokens = pat.split(/[^a-z0-9]+/).filter(t => t.length >= 3 && !['max', 'cap', 'lbs', 'weight', 'never', 'exceed', 'lift', 'press'].includes(t));
+              const matchesExact = pat && lowerName.includes(pat);
+              const matchesTokens = tokens.length > 0 && tokens.some(tok => lowerName.includes(tok));
+              const matchesAll = pat.includes('all');
+              if (matchesExact || matchesTokens || matchesAll) {
+                maxCap = Math.min(maxCap, Number(v.maxWeightLbs));
+              }
+            }
+          });
+          return maxCap;
+        };
+
         const computeDynamicPrescription = (liftName) => {
           const meta = getLiftMeta(liftName);
-          const baseWeight = Math.min(50, Number(meta.weight) || 0);
+          const maxCapForLift = getMaxAllowedWeightForLift(liftName);
+          const baseWeight = Math.min(maxCapForLift, Number(meta.weight) || 0);
           const baseReps = Number(meta.reps) || 12;
           const trend = getExerciseHistoryTrend(liftName);
           const recentSets = trend.recent.slice(-3);
@@ -3503,7 +3523,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             const repsList = recentSets.map(x => Number(x.reps) || baseReps);
             const isDropping = repsList.length >= 3 && repsList[0] >= repsList[1] && repsList[1] > repsList[2] && repsList[2] < baseReps;
             const lastReps = repsList[repsList.length - 1];
-            const lastWeight = Math.min(50, Number(recentSets[recentSets.length - 1].weight) || baseWeight);
+            const lastWeight = Math.min(maxCapForLift, Number(recentSets[recentSets.length - 1].weight) || baseWeight);
 
             if (isDropping) {
               if (lastWeight >= 45) {
@@ -3517,8 +3537,8 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             } else if (lastReps < baseReps - 1 && lastWeight > 0) {
               suggestedWeight = Math.max(5, Number((lastWeight - 2.5).toFixed(1)));
               suggestedReps = baseReps;
-            } else if (lastReps >= baseReps && (Number(recentSets[recentSets.length - 1].rpe) || 8.0) <= 7.5 && lastWeight < 50) {
-              suggestedWeight = Math.min(50, Number((lastWeight + 2.5).toFixed(1)));
+            } else if (lastReps >= baseReps && (Number(recentSets[recentSets.length - 1].rpe) || 8.0) <= 7.5 && lastWeight < maxCapForLift) {
+              suggestedWeight = Math.min(maxCapForLift, Number((lastWeight + 2.5).toFixed(1)));
               suggestedReps = baseReps;
             } else {
               suggestedWeight = lastWeight;
@@ -3599,6 +3619,18 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
                 if (sLevel === 2) score -= 35;
                 else if (sLevel === 1) score -= 12;
                 if (favSet.has(cand)) score += 15;
+                // Apply any AI-discovered personal profile variables / preferences from Module 2
+                (coachCtx.value.customCoachingVariables || []).forEach(cv => {
+                  if (!cv || cv.active === false) return;
+                  const ruleLow = `${cv.label || ''} ${cv.rule || ''} ${cv.targetPattern || ''}`.toLowerCase();
+                  const candLow = cand.toLowerCase();
+                  const matchesCand = (cv.targetPattern && candLow.includes(cv.targetPattern)) ||
+                    candLow.split(/\s+/).some(w => w.length >= 4 && ruleLow.includes(w));
+                  if (matchesCand) {
+                    if (ruleLow.match(/(avoid|dislike|hate|limit|less|no\s+|skip|minim)/)) score -= 25;
+                    else if (ruleLow.match(/(prefer|love|prioritize|focus|more|favor)/)) score += 18;
+                  }
+                });
                 if (cand === 'Standing Dumbbell Calf Raise' && hasAnkleGuard) score -= 30;
                 if (cand === 'Dumbbell Romanian Deadlift (RDL)' && hasLumbarLoad) score -= 30;
                 return { cand, tr, sLevel, score };
@@ -4253,9 +4285,13 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const adjustPlannedWeight = (delta) => {
           const st = currentStation.value;
           if (!st) return;
-          const nextWeight = Math.max(0, Math.min(50, Number(st.plannedWeight || 0) + delta));
+          const cap = getMaxAllowedWeightForLift(st.name);
+          const nextWeight = Math.max(0, Math.min(cap, Number(st.plannedWeight || 0) + delta));
           st.plannedWeight = nextWeight;
           st.weight = nextWeight;
+          if (delta > 0 && nextWeight >= cap && cap < 50) {
+            showToast(`Capped at ${cap} lb per your personal profile rule!`);
+          }
         };
 
         const lastCompletedDurationSec = ref(0);
@@ -4633,7 +4669,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           evaluateExerciseConflicts, getSafeAlternativeFor, swapStationWithSafeAlternative,
           muscleGapCategories, selectedGapFilter, filteredDiscoveryExercises, adoptDiscoveryExercise,
           aiDiscoveryLoading, generateAiDiscoverySuggestion,
-          activeFormModalLift, openFormCardByName, getLiftMeta, getExercisePhoto, getQuickHitReminder,
+          activeFormModalLift, openFormCardByName, getLiftMeta, getMaxAllowedWeightForLift, getExercisePhoto, getQuickHitReminder,
           photoCdn, showModalPhotoFixer, toggleModalPhotoFixer, modalPhotoSearchQuery, externalDbLoaded, externalExerciseDb,
           filteredModalPhotoCandidates, applyModalPhotoSlug, customTopUrlInput, customBottomUrlInput, applyModalCustomUrls,
           aiPhotoGenerating, generateAiModalPhotos,
