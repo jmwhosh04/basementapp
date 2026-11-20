@@ -1377,6 +1377,395 @@
           </div>
         </section>
 
+        <!-- STAGE B: MAIN STRENGTH CIRCUIT PLAYER (STREAMLINED ZERO-CLUTTER MOBILE LAYOUT) -->
+        <section v-else class="p-3 rounded-2xl bg-slate-900 border border-emerald-500/50 space-y-2 shadow-2xl">
+          <!-- 1. Compact Header + Overall Set Counter ("Set 5/18") + Quit -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="px-2 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-400/50 text-[11px] font-mono font-black text-emerald-300">
+                SET {{ currentOverallSetNumber }}/{{ totalCircuitSetsCount }}
+              </span>
+              <span class="text-[10px] font-mono font-bold text-slate-400">
+                Rd {{ currentRound }}/{{ coachCtx.mesocyclePhase.rounds }} &bull; St {{ currentStationIndex + 1 }}/{{ activeCircuitStations.length }}
+              </span>
+              <span v-if="guidedState === 'resting' && nextPreviewStation" class="px-1.5 py-0.5 rounded bg-sky-500/20 border border-sky-400/40 text-[9px] font-mono font-black text-sky-300">
+                NEXT UP: {{ nextPreviewStation.name }}
+              </span>
+            </div>
+            <button @click="quitActiveCircuit('today')" class="px-2 py-0.5 rounded-lg bg-rose-950/70 border border-rose-500/50 hover:bg-rose-500 hover:text-white text-[10px] font-black text-rose-300 transition shrink-0">
+              &#10005; Quit
+            </button>
+          </div>
+
+          <!-- 2. Lift Name Directly Above the 2-Stage Images -->
+          <div class="pt-0.5">
+            <div v-if="guidedState === 'resting'" class="text-[10px] font-black uppercase tracking-wider text-sky-400 font-mono">
+              Resting &bull; Get Ready For Next Lift:
+            </div>
+            <h2 class="text-lg sm:text-xl font-black text-white leading-tight">
+              {{ displayedCardStation.name }}
+            </h2>
+          </div>
+
+          <!-- 3. Side-by-Side 2-Stage Human Photos (Shows Next Exercise While Resting!) -->
+          <div class="grid grid-cols-2 gap-2" @click="openFormCardByName(displayedCardStation.name, displayedCardStation.reason)">
+            <div class="rounded-xl overflow-hidden bg-slate-950 border cursor-pointer" :class="guidedState === 'resting' ? 'border-sky-500/50' : 'border-slate-800'">
+              <div class="px-2 py-0.5 bg-slate-900/90 text-[9px] font-mono font-bold text-emerald-400 uppercase flex justify-between">
+                <span>1. Setup</span>
+                <span class="text-slate-500">Tap &#128269;</span>
+              </div>
+              <img :src="getExercisePhoto(displayedCardStation.name, 'top')" class="w-full h-24 object-cover" />
+              <div class="px-2 py-1 text-[10px] text-slate-200 leading-snug">{{ getLiftMeta(displayedCardStation.name).topCue }}</div>
+            </div>
+            <div class="rounded-xl overflow-hidden bg-slate-950 border cursor-pointer" :class="guidedState === 'resting' ? 'border-sky-500/50' : 'border-slate-800'">
+              <div class="px-2 py-0.5 bg-slate-900/90 text-[9px] font-mono font-bold text-sky-400 uppercase flex justify-between">
+                <span>2. Peak</span>
+                <span class="text-slate-500">Tap &#128269;</span>
+              </div>
+              <img :src="getExercisePhoto(displayedCardStation.name, 'bottom')" class="w-full h-24 object-cover" />
+              <div class="px-2 py-1 text-[10px] text-slate-200 leading-snug">{{ getLiftMeta(displayedCardStation.name).bottomCue }}</div>
+            </div>
+          </div>
+
+          <!-- 4. Larger, High-Legibility Reminder Callout + Collapsible Full Form -->
+          <div class="rounded-xl bg-emerald-950/30 border-2 border-emerald-500/50 overflow-hidden shadow-md">
+            <div class="p-3 flex flex-col gap-1.5">
+              <div class="flex items-center justify-between gap-2 w-full">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">
+                  &#9889; REMINDER:
+                </span>
+                <button
+                  @click="showGuidedFormDetails = !showGuidedFormDetails"
+                  class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 hover:text-white shrink-0"
+                >
+                  {{ showGuidedFormDetails ? 'Hide Full Form &#9650;' : 'Full Form &amp; Traps &#9660;' }}
+                </button>
+              </div>
+              <p class="text-sm sm:text-base font-extrabold text-emerald-100 leading-snug w-full">
+                {{ getQuickHitReminder(displayedCardStation.name) }}
+              </p>
+            </div>
+
+            <div v-if="showGuidedFormDetails" class="px-3 pb-3 pt-2 border-t border-slate-900 space-y-2 text-[11px]">
+              <div class="text-indigo-200 text-[10px] font-semibold">{{ displayedCardEffort.effortDirective }}</div>
+              <div class="text-slate-200 whitespace-pre-line leading-relaxed"><strong class="text-emerald-400 block mb-0.5">How to Perform:</strong>{{ getLiftMeta(displayedCardStation.name).cue }}</div>
+              <div class="text-amber-200/90 whitespace-pre-line leading-relaxed"><strong class="text-amber-400 block mb-0.5">What to Watch Out For:</strong>{{ getLiftMeta(displayedCardStation.name).trap }}</div>
+            </div>
+          </div>
+
+          <!-- PRE-SET / ACTIVE WORK CONTROLS -->
+          <template v-if="guidedState !== 'resting'">
+
+            <!-- Compact Load / Band Selector -->
+            <div v-if="currentStation.equipment === 'Band'" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-teal-500/40 flex items-center justify-between gap-1.5">
+              <span class="text-[10px] font-bold uppercase text-teal-300 flex-shrink-0">Band:</span>
+              <div class="flex gap-1 flex-1 justify-end flex-wrap">
+                <button
+                  v-for="b in bandLevels"
+                  :key="b.id"
+                  @click="selectedBandLevel = b; currentStation.bandLevelLabel = b.label"
+                  class="px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition"
+                  :class="selectedBandLevel.id === b.id ? 'bg-teal-500 text-slate-950 border-teal-400 font-black' : 'bg-slate-900 text-slate-300 border-slate-800'"
+                >
+                  {{ b.shortLabel }}
+                </button>
+              </div>
+            </div>
+
+            <div v-else class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <span class="text-[9px] font-bold uppercase text-slate-400 block leading-none">Load (50 lb Cap)</span>
+                <span class="font-mono font-black text-xs text-emerald-400">{{ currentStation.plannedWeight }} lb &times; {{ currentStation.plannedReps }}</span>
+              </div>
+              <div class="flex gap-1">
+                <button @click="adjustPlannedWeight(-5)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600">-5</button>
+                <button @click="adjustPlannedWeight(-2.5)" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600">-2.5</button>
+                <button @click="adjustPlannedWeight(2.5)" :disabled="currentStation.plannedWeight >= 50" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+2.5</button>
+                <button @click="adjustPlannedWeight(5)" :disabled="currentStation.plannedWeight >= 50" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold font-mono hover:border-slate-600 disabled:opacity-30">+5</button>
+              </div>
+            </div>
+
+            <!-- EXTRA-LARGE START / STOP BUTTON WITH TARGET RPE EMBEDDED + SKIP SET OPTION -->
+            <div class="space-y-2 pt-0.5">
+              <button
+                v-if="!isSetTimerRunning"
+                @click="startTimer"
+                class="w-full py-5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 shadow-xl shadow-emerald-500/25 transition flex flex-col items-center justify-center text-center"
+              >
+                <span class="font-black text-lg sm:text-xl tracking-tight leading-tight">
+                  &#9654; START SET &bull; TARGET RPE {{ targetSessionRpe }}
+                </span>
+                <span class="text-xs font-mono font-extrabold opacity-90 mt-1">
+                  {{ currentStation.plannedWeight > 0 ? currentStation.plannedWeight + ' lb' : (currentStation.equipment === 'Band' ? selectedBandLevel.shortLabel + ' Band' : 'Bodyweight') }} &times; {{ currentStation.plannedReps }} reps ({{ targetRirLabel }}) &bull; {{ currentStation.tempoPrescription || currentStationEffort.shortTempo }}
+                </span>
+              </button>
+
+              <button
+                v-else
+                @click="completeSetAndEnterRestRpe"
+                class="w-full py-5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 shadow-xl shadow-amber-500/30 transition flex flex-col items-center justify-center text-center animate-pulse"
+              >
+                <span class="font-black text-lg sm:text-xl tracking-tight leading-tight">
+                  &#9209; STOP SET ({{ formatSeconds(setDurationSeconds) }}) &bull; RPE {{ targetSessionRpe }}
+                </span>
+                <span class="text-xs font-mono font-extrabold opacity-90 mt-1">
+                  Tap when done to enter reps &amp; RPE
+                </span>
+              </button>
+
+              <div class="flex items-center justify-between px-1 pt-0.5 gap-2">
+                <button
+                  @click="skipCurrentSet"
+                  class="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/50 text-xs font-black text-rose-300 transition"
+                >
+                  &#9197; Skip Set {{ currentOverallSetNumber }}/{{ totalCircuitSetsCount }}
+                </button>
+                <button @click="completeSetAndEnterRestRpe" class="text-xs font-bold text-slate-300 hover:text-emerald-400 underline">
+                  Finish Set &rarr;
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <!-- ACTIVE REST COUNTDOWN + POST-SET RPE & COMPLETED REPS ENTRY (SHOWING NEXT EXERCISE PHOTO ABOVE!) -->
+          <div v-else class="p-3 rounded-2xl bg-slate-950 border-2 border-indigo-500/60 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 block">
+                    {{ lastSetWasSkipped ? 'Set Skipped • Resting' : 'Set Logged • Rate Effort & Rest' }}
+                  </span>
+                  <span v-if="!lastSetWasSkipped && lastCompletedDurationSec > 0" class="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/40 text-[9px] font-mono font-bold text-emerald-300">
+                    &#9201; {{ lastCompletedDurationSec }}s TUT<template v-if="lastCompletedSecPerRep"> &middot; {{ lastCompletedSecPerRep }}s/rep</template>
+                  </span>
+                </div>
+                <span class="text-xs font-bold text-white">Rest: <strong class="font-mono text-emerald-400 text-sm">{{ formatSeconds(restRemainingSeconds) }}</strong></span>
+              </div>
+              <button @click="advanceToNextStationAfterRest" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow">
+                {{ nextPreviewStation ? 'Start Next Set →' : 'Finish Circuit →' }}
+              </button>
+            </div>
+
+            <!-- Adjust Completed Reps (When Set Was Logged) -->
+            <div v-if="!lastSetWasSkipped" class="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+              <span class="font-bold text-slate-300">Completed Reps:</span>
+              <div class="flex items-center gap-2">
+                <button @click="adjustLastLoggedReps(-1)" class="w-7 h-7 rounded-lg bg-slate-800 text-white font-black">-</button>
+                <span class="font-mono font-black text-sm text-emerald-400 w-8 text-center">{{ lastCompletedReps }}</span>
+                <button @click="adjustLastLoggedReps(1)" class="w-7 h-7 rounded-lg bg-slate-800 text-white font-black">+</button>
+              </div>
+            </div>
+
+            <!-- Post-Set Actual RPE Selector (When Set Was Logged) -->
+            <div v-if="!lastSetWasSkipped" class="space-y-1">
+              <div class="flex justify-between text-[10px]">
+                <span class="font-bold uppercase text-slate-400">Actual RPE</span>
+                <span class="font-mono font-black text-indigo-300">RPE {{ postSetRpe }}</span>
+              </div>
+              <div class="grid grid-cols-6 gap-1">
+                <button
+                  v-for="rpeOpt in [6.5, 7.0, 7.5, 8.0, 8.5, 9.5]"
+                  :key="rpeOpt"
+                  @click="updateLastLoggedRpe(rpeOpt)"
+                  class="py-1.5 rounded-xl font-mono text-xs font-black border transition"
+                  :class="postSetRpe === rpeOpt ? 'bg-indigo-500 text-white border-indigo-300 shadow' : 'bg-slate-900 text-slate-400 border-slate-800'"
+                >
+                  {{ rpeOpt }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STAGE C: POST-CIRCUIT WORKOUT COMPLETE + TRADITIONAL SAUNA LOGGER WITH SUBMIT -->
+        <section v-if="guidedStage === 'complete'" class="p-4 rounded-2xl bg-slate-900 border-2 border-emerald-500/60 space-y-4 shadow-2xl">
+          <div class="text-center space-y-1">
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[10px] font-mono font-black text-emerald-300 uppercase">
+              Circuit Complete &bull; {{ coachCtx.mesocyclePhase.rounds }} Rounds Logged
+            </span>
+            <h2 class="text-xl font-black text-white">Awesome Basement Session!</h2>
+            <p class="text-xs text-slate-300">
+              All sets have been saved to your Calendar for <strong>{{ todayIso }}</strong>.
+            </p>
+          </div>
+
+          <!-- Post-Workout Traditional Sauna Logger Card (Select Time -> Click OK / Log) -->
+          <div class="p-3.5 rounded-2xl bg-gradient-to-br from-orange-950/50 via-slate-950 to-slate-950 border border-orange-500/50 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <span class="text-[10px] font-black uppercase tracking-wider text-orange-400 block">Optional Post-Lift Recovery</span>
+                <h3 class="text-sm font-black text-white">🔥 Traditional Sauna Session</h3>
+              </div>
+              <span v-if="postWorkoutSaunaLogged" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-mono font-black text-emerald-300">
+                ✓ Saved {{ saunaDuration }}m
+              </span>
+            </div>
+
+            <!-- Show Caution Inside Post-Workout Card if Sauna Advisory is Active -->
+            <div v-if="saunaTodayAdvisory.shouldWarn" class="p-2 rounded-xl bg-rose-950/50 border border-rose-500/50 text-[10px] text-rose-200 leading-snug">
+              <strong class="text-rose-300 block">{{ saunaTodayAdvisory.headline }}</strong>
+              {{ saunaTodayAdvisory.reason }}
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-[10px] font-bold uppercase text-slate-300">1. Select Time in Sauna (Minutes):</label>
+              <div class="grid grid-cols-5 gap-1.5">
+                <button
+                  v-for="mins in [10, 15, 20, 25, 30]"
+                  :key="mins"
+                  @click="saunaDuration = mins; postWorkoutSaunaLogged = false"
+                  class="py-2 rounded-xl font-mono text-xs font-black border transition"
+                  :class="saunaDuration === mins ? 'bg-orange-500 text-slate-950 border-orange-300 shadow' : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'"
+                >
+                  {{ mins }}m
+                </button>
+              </div>
+            </div>
+
+            <!-- Explicit Submit / OK Button -->
+            <button
+              @click="submitPostWorkoutSauna"
+              class="w-full py-3 px-4 rounded-xl font-black text-xs transition shadow-lg flex items-center justify-center gap-1.5"
+              :class="postWorkoutSaunaLogged ? 'bg-emerald-500 text-slate-950' : 'bg-orange-500 hover:bg-orange-400 text-slate-950'"
+            >
+              <span v-if="!postWorkoutSaunaLogged">🔥 Log {{ saunaDuration }}m Traditional Sauna &mdash; OK</span>
+              <span v-else>✓ Logged {{ saunaDuration }}m Traditional Sauna (Tap to Update)</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button
+              @click="currentView = 'calendar'; selectedCalendarDate = todayIso"
+              class="py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs"
+            >
+              View Calendar &amp; Logs
+            </button>
+            <button
+              @click="allowAdditionalWorkoutToday = false; currentView = 'today'"
+              class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
+            >
+              Back to Today Hub
+            </button>
+          </div>
+        </section>
+
+        <!-- STAGE A: STEP 0 MOBILITY PRIMER PLAYER (SUPPORTS BOTH LIFT WARM-UP & PRE-RUN/ROW WARM-UP) -->
+        <section v-else-if="guidedStage === 'step0'" class="p-3.5 rounded-2xl bg-slate-900 border border-teal-500/50 space-y-2.5 shadow-2xl">
+          <!-- 1. Compact Header + Drill Title -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-black uppercase tracking-wider text-teal-400 font-mono">
+                  {{ isCardioWarmupMode ? `PRE-${activeTodayModality.toUpperCase()} WARM-UP` : 'STEP 0 WARM-UP' }} &bull; DRILL {{ currentPrimerIndex + 1 }}/{{ activeWarmupDrillsList.length }}
+                </span>
+                <span class="px-1.5 py-0.2 rounded bg-teal-500/20 border border-teal-400/40 text-[9px] font-mono font-black text-teal-300">
+                  {{ currentPrimerObj.triggerBadge }}
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button @click="skipStepZeroToMainCircuit" class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-bold text-teal-300 hover:text-white">
+                  {{ isCardioWarmupMode ? `Done → Go ${activeTodayModality === 'row' ? 'Row' : 'Run'} & Log` : 'Skip to Round 1 →' }}
+                </button>
+                <button v-if="!isCardioWarmupMode" @click="quitActiveCircuit('today')" class="px-2 py-0.5 rounded-lg bg-rose-950/70 border border-rose-500/50 text-[10px] font-black text-rose-300 hover:bg-rose-500 hover:text-white transition">
+                  ✕ Quit
+                </button>
+              </div>
+            </div>
+
+            <h2 class="text-base sm:text-lg font-black text-white leading-tight">{{ currentPrimerObj.title }}</h2>
+
+            <div class="px-3 py-1.5 rounded-xl bg-teal-950/70 border border-teal-400/50 flex items-center justify-between gap-2">
+              <span class="text-xs font-mono font-black text-teal-200">
+                🎯 TARGET EFFORT: Smooth Mobility &amp; Activation (RPE 5–6)
+              </span>
+            </div>
+          </div>
+
+          <!-- 2. Side-by-Side 2-Stage Human Photos -->
+          <div class="grid grid-cols-2 gap-2" @click="openFormCardByName(currentPrimerObj.catalogName, currentPrimerObj.reason)">
+            <div class="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 cursor-pointer">
+              <div class="px-2 py-0.5 bg-slate-900/90 text-[9px] font-mono font-bold text-emerald-400 uppercase flex justify-between">
+                <span>1. Setup</span>
+                <span class="text-slate-500">Tap &#128269;</span>
+              </div>
+              <img :src="getExercisePhoto(currentPrimerObj.catalogName, 'top')" class="w-full h-24 object-cover" />
+              <div class="px-2 py-1.5 text-[10px] text-slate-200 leading-snug">{{ getLiftMeta(currentPrimerObj.catalogName).topCue }}</div>
+            </div>
+            <div class="rounded-xl overflow-hidden bg-slate-950 border border-slate-800 cursor-pointer">
+              <div class="px-2 py-0.5 bg-slate-900/90 text-[9px] font-mono font-bold text-sky-400 uppercase flex justify-between">
+                <span>2. Peak</span>
+                <span class="text-slate-500">Tap &#128269;</span>
+              </div>
+              <img :src="getExercisePhoto(currentPrimerObj.catalogName, 'bottom')" class="w-full h-24 object-cover" />
+              <div class="px-2 py-1.5 text-[10px] text-slate-200 leading-snug">{{ getLiftMeta(currentPrimerObj.catalogName).bottomCue }}</div>
+            </div>
+          </div>
+
+          <!-- 3. Full-Width Quick Cue -->
+          <div class="rounded-xl bg-teal-950/25 border-2 border-teal-500/40 overflow-hidden text-xs shadow-md">
+            <div class="p-3 flex flex-col gap-1.5">
+              <div class="flex items-center justify-between gap-2 w-full">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-teal-300">
+                  &#9889; QUICK CUE &bull; WARM-UP FOCUS:
+                </span>
+                <button
+                  @click="showGuidedFormDetails = !showGuidedFormDetails"
+                  class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-[10px] font-mono font-bold text-slate-200 hover:text-white shrink-0"
+                >
+                  {{ showGuidedFormDetails ? 'Hide Full Form ▲' : 'Show Full Form & Traps ▼' }}
+                </button>
+              </div>
+              <p class="text-xs sm:text-sm font-extrabold text-teal-100 leading-snug w-full">
+                {{ getQuickHitReminder(currentPrimerObj.catalogName) }}
+              </p>
+            </div>
+
+            <div v-if="showGuidedFormDetails" class="px-3 pb-3 pt-2 border-t border-slate-900 space-y-2 text-[11px]">
+              <div class="text-teal-200 text-[10px] font-semibold">{{ currentPrimerObj.reason }}</div>
+              <div class="text-slate-200 whitespace-pre-line leading-relaxed"><strong class="text-emerald-400 block mb-0.5">How to Perform:</strong>{{ getLiftMeta(currentPrimerObj.catalogName).cue }}</div>
+              <div class="text-amber-200/90 whitespace-pre-line leading-relaxed"><strong class="text-amber-400 block mb-0.5">What to Watch Out For:</strong>{{ getLiftMeta(currentPrimerObj.catalogName).trap }}</div>
+            </div>
+          </div>
+
+          <!-- 4. Giant Single-Action Start / Finish Drill Button -->
+          <div class="space-y-2 pt-0.5">
+            <button
+              v-if="!isSetTimerRunning"
+              @click="startTimer"
+              class="w-full py-4 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 active:scale-[0.99] text-slate-950 shadow-xl shadow-teal-500/25 transition flex flex-col items-center justify-center text-center"
+            >
+              <span class="font-black text-base sm:text-lg tracking-tight leading-tight">
+                &#9654; START MOBILITY DRILL ({{ formatSeconds(setDurationSeconds) }})
+              </span>
+              <span class="text-[11px] font-mono font-bold opacity-90 mt-0.5">
+                Smooth controlled reps &bull; Zero joint pain
+              </span>
+            </button>
+
+            <button
+              v-else
+              @click="completeCurrentPrimerDrill"
+              class="w-full py-4 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 shadow-xl shadow-amber-500/30 transition flex flex-col items-center justify-center text-center animate-pulse"
+            >
+              <span class="font-black text-base sm:text-lg tracking-tight leading-tight">
+                &#9209; FINISH DRILL ({{ formatSeconds(setDurationSeconds) }}) &mdash; NEXT
+              </span>
+              <span class="text-[11px] font-mono font-bold opacity-90 mt-0.5">
+                Tap to advance to {{ currentPrimerIndex + 1 < activeWarmupDrillsList.length ? 'next mobility drill' : (isCardioWarmupMode ? `finish warm-up & go ${activeTodayModality}` : 'Round 1, Station 1') }}
+              </span>
+            </button>
+
+            <div class="flex items-center justify-between px-1 pt-0.5 text-xs">
+              <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-400/40 font-mono font-black text-amber-300">
+                ⏱️ TEMPO: Controlled 2s Hold
+              </span>
+              <button @click="completeCurrentPrimerDrill" class="font-bold text-slate-300 hover:text-teal-300 underline text-[11px]">
+                {{ currentPrimerIndex + 1 < activeWarmupDrillsList.length ? 'Next Drill →' : (isCardioWarmupMode ? `Finish Warm-Up & Go ${activeTodayModality === 'row' ? 'Row' : 'Run'} →` : 'Skip Drill →') }}
+              </button>
+            </div>
+          </div>
+        </section>
+
         <!-- STAGE B: MAIN STRENGTH CIRCUIT PLAYER (ABOVE-THE-FOLD ZERO-SCROLL MOBILE LAYOUT) -->
         <section v-else class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/50 space-y-2.5 shadow-2xl">
           <!-- 1. Compact Header + Exercise Title + High-Contrast Target RPE Strip Right Under Title -->
@@ -3719,6 +4108,51 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
 
         const currentPrimerObj = computed(() => activeWarmupDrillsList.value[currentPrimerIndex.value] || activeWarmupDrillsList.value[0]);
         const currentStation = computed(() => activeCircuitStations.value[currentStationIndex.value] || activeCircuitStations.value[0]);
+        const totalRoundsCount = computed(() => Math.max(1, Number(coachCtx.value.mesocyclePhase?.rounds) || 3));
+        const stationsPerRoundCount = computed(() => Math.max(1, activeCircuitStations.value.length || 6));
+        const totalCircuitSetsCount = computed(() => totalRoundsCount.value * stationsPerRoundCount.value);
+        const currentOverallSetNumber = computed(() => {
+          const raw = (currentRound.value - 1) * stationsPerRoundCount.value + currentStationIndex.value + 1;
+          return Math.min(totalCircuitSetsCount.value, Math.max(1, raw));
+        });
+        const nextPreviewStation = computed(() => {
+          const stList = activeCircuitStations.value || [];
+          if (!stList.length) return null;
+          if (currentStationIndex.value + 1 < stList.length) {
+            return stList[currentStationIndex.value + 1];
+          }
+          if (currentRound.value < totalRoundsCount.value) {
+            return stList[0];
+          }
+          return null;
+        });
+        const displayedCardStation = computed(() => {
+          if (guidedState.value === 'resting' && nextPreviewStation.value) {
+            return nextPreviewStation.value;
+          }
+          return currentStation.value;
+        });
+        const displayedCardEffort = computed(() => getStationEffortProfile(displayedCardStation.value));
+        const lastSetWasSkipped = ref(false);
+        const skipCurrentSet = () => {
+          const st = currentStation.value;
+          stopTimer();
+          lastSetWasSkipped.value = true;
+          lastCompletedDurationSec.value = 0;
+          lastCompletedSecPerRep.value = null;
+          setDurationSeconds.value = 0;
+          showGuidedFormDetails.value = false;
+          showToast(`Skipped Set ${currentOverallSetNumber.value}/${totalCircuitSetsCount.value}${st ? ' (' + st.name + ')' : ''}`);
+          if (nextPreviewStation.value) {
+            startRestCountdown();
+          } else {
+            allowAdditionalWorkoutToday.value = false;
+            clearSavedCircuitProgress();
+            guidedState.value = 'ready';
+            guidedStage.value = 'complete';
+            showToast('Circuit Complete! Log optional post-workout sauna or view Calendar.');
+          }
+        };
         const currentStationEffort = computed(() => getStationEffortProfile(currentStation.value));
         const targetSessionRpe = computed(() => currentStationEffort.value.targetRpe);
         const targetRirLabel = computed(() => sessionEffortGameplan.value.shortRir);
@@ -3828,6 +4262,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const lastCompletedSecPerRep = ref(null);
 
         const completeSetAndEnterRestRpe = () => {
+          lastSetWasSkipped.value = false;
           const st = currentStation.value;
           if (!st) return;
           const effort = getStationEffortProfile(st);
@@ -4205,6 +4640,8 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           bandLevels, selectedBandLevel, selectedManualBand,
           sessionEffortGameplan, getStationEffortProfile, currentStationEffort, targetSessionRpe, targetRirLabel,
           savedTodayCircuitProgress, resumeSavedCircuitToday, pauseAndLeaveCircuit, quitActiveCircuit,
+          totalCircuitSetsCount, currentOverallSetNumber, nextPreviewStation, displayedCardStation, displayedCardEffort,
+          lastSetWasSkipped, skipCurrentSet,
           guidedStage, currentPrimerIndex, currentPrimerObj, currentRound, currentStationIndex, currentStation,
           guidedState, isSetTimerRunning, showGuidedFormDetails, setDurationSeconds, restRemainingSeconds,
           lastCompletedReps, lastCompletedDurationSec, lastCompletedSecPerRep, postSetRpe,
