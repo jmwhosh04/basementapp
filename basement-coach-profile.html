@@ -1570,7 +1570,7 @@
           const localParsed = parseSpokenGuardrailLocally(raw);
 
           try {
-            const apiKey = "";
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
             const prompt = `The user described an ongoing fitness/joint guardrail in their own words: "${raw}".
 Return ONLY a valid JSON object with:
@@ -2319,7 +2319,7 @@ Return ONLY valid JSON with:
         const askGeminiCoachAnalysis = async () => {
           aiCoachLoading.value = true;
           try {
-            const apiKey = "";
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
             const prompt = `In 2 concise sentences, explain how today's 6-station circuit balances the user's profile (${athleteAge.value}yo, ${athleteProfile.value.heightFeet}'${athleteProfile.value.heightInches}", ${athleteProfile.value.weightLbs} lbs) and 2-3 month goal ("${activeGoal.value.title}") with active injuries (${activeTemporaryInjuries.value.map(i => i.name).join(', ') || 'None'}), chronic guards (${limits.value.filter(l => l.active).map(l => l.label).join(', ')}), and yesterday's workload (${activeScenario.value.label}).`;
             const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });

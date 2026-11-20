@@ -1526,7 +1526,12 @@
           <div v-else class="p-3.5 rounded-2xl bg-slate-950 border-2 border-indigo-500/60 space-y-3">
             <div class="flex items-center justify-between">
               <div>
-                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 block">Set Logged! Rate Effort &amp; Rest</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 block">Set Logged! Rate Effort &amp; Rest</span>
+                  <span v-if="lastCompletedDurationSec > 0" class="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/40 text-[9px] font-mono font-bold text-emerald-300">
+                    ⏱ {{ lastCompletedDurationSec }}s TUT<template v-if="lastCompletedSecPerRep"> · {{ lastCompletedSecPerRep }}s/rep</template>
+                  </span>
+                </div>
                 <span class="text-xs font-bold text-white">Next Set in <strong class="font-mono text-emerald-400 text-sm">{{ formatSeconds(restRemainingSeconds) }}</strong></span>
               </div>
               <button @click="advanceToNextStationAfterRest" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs shadow">
@@ -3559,14 +3564,26 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           st.weight = nextWeight;
         };
 
+        const lastCompletedDurationSec = ref(0);
+        const lastCompletedSecPerRep = ref(null);
+
         const completeSetAndEnterRestRpe = () => {
           const st = currentStation.value;
           if (!st) return;
           const effort = getStationEffortProfile(st);
-          lastCompletedReps.value = st.plannedReps || 10;
+          const repsVal = st.plannedReps || 10;
+          lastCompletedReps.value = repsVal;
           postSetRpe.value = Number(effort.targetRpe) || 8.0;
           const entryId = 'log-' + Date.now();
           lastLoggedEntryId.value = entryId;
+
+          const elapsedSec = Number(setDurationSeconds.value) || 0;
+          const validDurationSec = elapsedSec > 0 && elapsedSec <= 120 ? elapsedSec : null;
+          const derivedSecPerRep = validDurationSec && repsVal > 0
+            ? Number((validDurationSec / repsVal).toFixed(1))
+            : null;
+          lastCompletedDurationSec.value = validDurationSec || 0;
+          lastCompletedSecPerRep.value = derivedSecPerRep;
 
           workoutLogs.value.unshift({
             id: entryId,
@@ -3575,7 +3592,9 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             weight: st.equipment === 'Band' ? 0 : st.plannedWeight,
             bandLevel: st.equipment === 'Band' ? selectedBandLevel.value.label : null,
             reps: lastCompletedReps.value,
-            rpe: postSetRpe.value
+            rpe: postSetRpe.value,
+            durationSec: validDurationSec,
+            secPerRep: derivedSecPerRep
           });
           saveLogsToStorage();
           persistActiveCircuitProgress('circuit');
@@ -3925,7 +3944,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           savedTodayCircuitProgress, resumeSavedCircuitToday, pauseAndLeaveCircuit, quitActiveCircuit,
           guidedStage, currentPrimerIndex, currentPrimerObj, currentRound, currentStationIndex, currentStation,
           guidedState, isSetTimerRunning, showGuidedFormDetails, setDurationSeconds, restRemainingSeconds,
-          lastCompletedReps, postSetRpe,
+          lastCompletedReps, lastCompletedDurationSec, lastCompletedSecPerRep, postSetRpe,
           startGuidedWorkout, startTimer, resetActiveTimer, completeCurrentPrimerDrill, skipStepZeroToMainCircuit,
           adjustPlannedWeight, completeSetAndEnterRestRpe, adjustLastLoggedReps, updateLastLoggedRpe, advanceToNextStationAfterRest,
           formatSeconds, workoutLogs,
