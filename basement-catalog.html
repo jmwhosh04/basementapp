@@ -928,6 +928,9 @@
     if (window.BasementExercises) { BASE_CATALOG.splice(0, BASE_CATALOG.length, ...window.BasementExercises.mergeIntoCatalogArray(BASE_CATALOG)); }
 
 
+    if (window.BasementExercises) { BASE_CATALOG.splice(0, BASE_CATALOG.length, ...window.BasementExercises.mergeIntoCatalogArray(BASE_CATALOG)); }
+
+
     createApp({
       setup() {
         const photoCdn = PHOTO_CDN;
@@ -1334,15 +1337,34 @@
             const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
 
-            const buildStagePrompt = (stageLabel, cueText) =>
-              `Photorealistic fitness instructional photo of an athletic adult in a clean dark home gym performing "${ex.name}" (${ex.equipment}). Show ${stageLabel}: ${cueText}. Clear full-body anatomical angle, crisp studio lighting, no text overlays.`;
+            const stepLines = String(ex.cue || '')
+              .split('\n')
+              .map(s => s.trim())
+              .filter(Boolean)
+              .slice(0, 4)
+              .join(' ');
+            const trapSummary = String(ex.trap || '').replace(/^[•\s]+/, '').trim();
+            const muscleSummary = String(ex.muscles || '').trim();
+
+            const buildStagePrompt = (stageMode, stageLabel, cueText) => {
+              const stageFocus = stageMode === 'setup'
+                ? `Show the STARTING / SETUP position (${cueText}).`
+                : `Show the PEAK / END CONTRACTION position (${cueText}), clearly demonstrating the finish/stretch angle.`;
+              return [
+                `Photorealistic fitness instructional photo of an athletic adult in a dark home gym performing "${ex.name}" (Equipment: ${ex.equipment}, Target muscles: ${muscleSummary}).`,
+                stageFocus,
+                `Follow these exact step-by-step instructions so the posture, grip, stance, limb angles, and equipment match the written guide: ${stepLines}`,
+                trapSummary ? `Avoid this form mistake in the photo: ${trapSummary}.` : '',
+                `Full-body or relevant anatomical framing clearly showing the movement mechanics, natural gym lighting, no text or labels.`
+              ].filter(Boolean).join(' ');
+            };
 
             const [res1, res2] = await Promise.all([
               fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  contents: [{ role: 'user', parts: [{ text: buildStagePrompt('Stage 1 Starting Setup Position', ex.topCue) }] }],
+                  contents: [{ role: 'user', parts: [{ text: buildStagePrompt('setup', 'Stage 1 Starting Setup Position', ex.topCue) }] }],
                   generationConfig: { responseModalities: ['IMAGE'] }
                 })
               }),
@@ -1350,7 +1372,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  contents: [{ role: 'user', parts: [{ text: buildStagePrompt('Stage 2 Peak Contraction / End Position', ex.bottomCue) }] }],
+                  contents: [{ role: 'user', parts: [{ text: buildStagePrompt('peak', 'Stage 2 Peak Contraction / End Position', ex.bottomCue) }] }],
                   generationConfig: { responseModalities: ['IMAGE'] }
                 })
               })
