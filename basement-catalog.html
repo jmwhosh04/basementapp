@@ -6,6 +6,8 @@
   <title>Basement Lab · Module 3: Smart Catalog &amp; Visual Form Coach</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="basement-exercises.js"></script>
+  <script src="basement-exercises.js"></script>
   <style>
     :root { color-scheme: dark; }
     body {
@@ -921,6 +923,12 @@
         science: 'Builds true core stiffness and pelvic control without repetitive spinal flexion.'
       }
     ];
+
+    if (window.BasementExercises) { BASE_CATALOG.splice(0, BASE_CATALOG.length, ...window.BasementExercises.mergeIntoCatalogArray(BASE_CATALOG)); }
+
+
+    if (window.BasementExercises) { BASE_CATALOG.splice(0, BASE_CATALOG.length, ...window.BasementExercises.mergeIntoCatalogArray(BASE_CATALOG)); }
+
 
     createApp({
       setup() {

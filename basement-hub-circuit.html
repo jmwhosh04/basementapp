@@ -6,6 +6,9 @@
   <title>Basement Lab · Module 1: Daily Hub &amp; Circuit Coach</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="basement-exercises.js"></script>
+  <script src="basement-exercises.js"></script>
+  <script src="basement-exercises.js"></script>
   <style>
     :root { color-scheme: dark; }
     body {
@@ -2171,7 +2174,16 @@
         const postWorkoutSaunaLogged = ref(false);
 
         const getLiftMeta = (name) => LIFT_DB[name] || LIFT_DB['Goblet Squat'];
-        const getExercisePhoto = (name, stage = 'top') => {
+        
+    if (window.BasementExercises) { Object.assign(LIFT_DB, window.BasementExercises.mergeIntoLiftDb(LIFT_DB)); }
+
+    
+    if (window.BasementExercises) { Object.assign(LIFT_DB, window.BasementExercises.mergeIntoLiftDb(LIFT_DB)); }
+
+    
+    if (window.BasementExercises) { Object.assign(LIFT_DB, window.BasementExercises.mergeIntoLiftDb(LIFT_DB)); }
+
+    const getExercisePhoto = (name, stage = 'top') => {
           const _v = customCatalogVersion.value;
           const meta = getLiftMeta(name);
           if (stage === 'bottom' && meta.customPhotoBottom) return meta.customPhotoBottom;
@@ -3213,7 +3225,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           if (!ex || aiPhotoGenerating.value) return;
           aiPhotoGenerating.value = true;
           try {
-            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
+            const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
             const buildStagePrompt = (stageLabel, cueText) =>
               `Photorealistic fitness instructional photo of an athletic adult in a dark home gym performing "${ex.name}" (${ex.equipment}). Show ${stageLabel}: ${cueText}. Clear full-body anatomical angle, no text.`;

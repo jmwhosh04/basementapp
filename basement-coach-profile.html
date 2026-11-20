@@ -6,6 +6,7 @@
   <title>Basement Lab · Module 2: Coach Context Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="basement-exercises.js"></script>
   <style>
     :root { color-scheme: dark; }
     body {
@@ -1122,6 +1123,9 @@
       'Band Lateral Walk': { slug: 'Monster_Walk', equipment: 'Band', weight: 0, cue: 'Quarter-squat stance; step sideways keeping band taut.', trap: 'Knees caving inward.' },
       'Dead Bug': { slug: 'Dead_Bug', equipment: 'Bodyweight', weight: 0, cue: 'Crush lower back into mat while extending opposite limbs.', trap: 'Lower back arching off floor.' }
     };
+
+    if (window.BasementExercises) { Object.assign(LIFT_PHOTOS, window.BasementExercises.mergeIntoPhotoMap(LIFT_PHOTOS)); }
+
 
     createApp({
       setup() {
