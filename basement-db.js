@@ -229,13 +229,18 @@
       }
 
       if (catalogRes.data) {
-        const mapped = catalogRes.data.map((r) => ({
+        const existingLocal = safeParse(safeGet('basement_custom_catalog'), []);
+        const cloudMapped = catalogRes.data.map((r) => ({
           ...(r.data || {}),
           id: r.id,
           owner_id: r.owner_id,
           is_shared: r.is_shared
         }));
-        safeSet('basement_custom_catalog', JSON.stringify(mapped));
+        const byName = new Map();
+        existingLocal.forEach((it) => { if (it && it.name) byName.set(it.name.toLowerCase(), it); });
+        cloudMapped.forEach((it) => { if (it && it.name) byName.set(it.name.toLowerCase(), it); });
+        const mergedCatalog = Array.from(byName.values());
+        safeSet('basement_custom_catalog', JSON.stringify(mergedCatalog));
       }
 
       snapshotCurrentLocal();
@@ -371,15 +376,38 @@
       if (rows.length) await client.from('trainer_notes').upsert(rows);
     } else if (key === 'basement_custom_catalog') {
       const ownItems = items.filter((it) => !it.owner_id || it.owner_id === userId);
-      const rows = ownItems.map((it, idx) => ({
-        id: String(it.id || it.slug || `custom_${idx}`),
-        owner_id: userId,
-        is_shared: it.is_shared !== false,
-        data: it,
-        updated_at: new Date().toISOString()
-      }));
-      await client.from('custom_catalog').delete().eq('owner_id', userId);
-      if (rows.length) await client.from('custom_catalog').upsert(rows);
+      const rows = ownItems.map((it, idx) => {
+        const cleanId = String(it.id || it.name || `custom_${idx}`)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+        return {
+          id: `${userId.slice(0, 8)}_${cleanId || idx}`,
+          owner_id: userId,
+          is_shared: it.is_shared !== false,
+          data: { ...it, id: `${userId.slice(0, 8)}_${cleanId || idx}`, owner_id: userId },
+          updated_at: new Date().toISOString()
+        };
+      });
+      if (rows.length) {
+        const { error: upErr } = await client.from('custom_catalog').upsert(rows);
+        if (upErr) {
+          console.error('BasementDB custom_catalog upsert error:', upErr);
+          return;
+        }
+        // Only remove stale rows that are no longer in ownItems
+        const keepIds = new Set(rows.map((r) => r.id));
+        const { data: existingRows } = await client
+          .from('custom_catalog')
+          .select('id')
+          .eq('owner_id', userId);
+        const toDelete = (existingRows || []).map((r) => r.id).filter((id) => !keepIds.has(id));
+        if (toDelete.length) {
+          await client.from('custom_catalog').delete().in('id', toDelete);
+        }
+      } else {
+        await client.from('custom_catalog').delete().eq('owner_id', userId);
+      }
     }
   }
 

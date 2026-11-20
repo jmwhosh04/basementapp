@@ -1166,7 +1166,7 @@
   },
   {
     "name": "Banded Clamshell",
-    "slug": "Clam",
+    "slug": "Side_Leg_Raises",
     "category": "Lower",
     "equipment": "Band",
     "weight": 0,

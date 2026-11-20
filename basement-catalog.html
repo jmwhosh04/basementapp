@@ -613,7 +613,6 @@
 
     // Verified 100% existing slugs in yuhonas/free-exercise-db (zero 404s)
     const VERIFIED_PHOTO_SLUGS = [
-      { slug: 'Clam', label: 'Clam (Side-Lying Clamshell)', muscles: 'abductors, glutes' },
       { slug: 'Side_Leg_Raises', label: 'Side Leg Raises (Side-Lying Hip Abduction)', muscles: 'abductors, glutes' },
       { slug: 'External_Rotation', label: 'External Rotation (Rotator Cuff)', muscles: 'shoulders' },
       { slug: 'External_Rotation_with_Cable', label: 'External Rotation with Band/Cable', muscles: 'shoulders' },
@@ -649,7 +648,8 @@
     const BROKEN_SLUG_MIGRATION_MAP = {
       'Side_Lying_Hip_Adduction': 'Side_Leg_Raises',
       'External_Rotation_with_Dumbbell': 'External_Rotation',
-      'Hip_Lift_with_Band': 'Clam'
+      'Hip_Lift_with_Band': 'Side_Leg_Raises',
+      'Clam': 'Side_Leg_Raises'
     };
 
     const BASE_CATALOG = [
@@ -844,7 +844,7 @@
         science: 'Straight-knee ankle plantarflexion places the gastrocnemius under maximum mechanical stretch.'
       },
       {
-        name: 'Banded Clamshell', slug: 'Clam', category: 'Calves & Hips', equipment: 'Band', weight: 0, reps: 15,
+        name: 'Banded Clamshell', slug: 'Side_Leg_Raises', category: 'Calves & Hips', equipment: 'Band', weight: 0, reps: 15,
         muscles: 'Gluteus Medius & Deep Hip External Rotators',
         topCue: 'Lie on side with loop band above knees; hips and heels stacked vertically.',
         bottomCue: 'Keep heels glued together and open top knee like a clamshell without rolling pelvis back.',
@@ -1032,8 +1032,8 @@
             persistCatalogOverride(ex, false);
             return;
           }
-          if (ex.name === 'Banded Clamshell' && ex.slug !== 'Clam') {
-            ex.slug = 'Clam';
+          if (ex.name === 'Banded Clamshell' && ex.slug === 'Clam') {
+            ex.slug = 'Side_Leg_Raises';
             persistCatalogOverride(ex, false);
             return;
           }
@@ -1054,8 +1054,8 @@
               ex.slug = BROKEN_SLUG_MIGRATION_MAP[ex.slug];
               persistCatalogOverride(ex, false);
               healed++;
-            } else if (ex.name === 'Banded Clamshell' && ex.slug === 'Side_Bridge') {
-              ex.slug = 'Clam';
+            } else if (ex.name === 'Banded Clamshell' && (ex.slug === 'Side_Bridge' || ex.slug === 'Clam')) {
+              ex.slug = 'Side_Leg_Raises';
               persistCatalogOverride(ex, false);
               healed++;
             }
@@ -1390,22 +1390,31 @@
               let finalBottom = rawBottom === rawTop ? finalTop : await compressDataUrlToJpeg(rawBottom);
 
               const db = window.BasementDB || window.parent?.BasementDB;
+              let uploadedToBucket = false;
               if (db && typeof db.uploadCatalogImage === 'function') {
                 const session = await db.getSession();
                 if (session?.user?.id) {
-                  finalTop = await db.uploadCatalogImage(session.user.id, ex.name, 'top', finalTop);
-                  finalBottom = finalBottom === rawTop
-                    ? finalTop
+                  const upTop = await db.uploadCatalogImage(session.user.id, ex.name, 'top', finalTop);
+                  const upBot = finalBottom === rawTop
+                    ? upTop
                     : await db.uploadCatalogImage(session.user.id, ex.name, 'bottom', finalBottom);
+                  if (upTop && upTop.startsWith('http')) {
+                    finalTop = upTop;
+                    finalBottom = upBot;
+                    uploadedToBucket = true;
+                  }
                 }
               }
 
               ex.customPhotoTop = finalTop;
               ex.customPhotoBottom = finalBottom;
+              ex.isCustom = true;
               photoHealthMap.value[ex.name] = 'ok';
               persistCatalogOverride(ex, false);
               showPhotoFixer.value = false;
-              showToast(`✨ Generated & cloud-synced 2-stage photos for "${ex.name}"!`);
+              showToast(uploadedToBucket
+                ? `✨ Saved "${ex.name}" photos to Supabase Storage & synced!`
+                : `✨ Generated "${ex.name}" photos (Sign in via Google in top bar to sync to cloud)`);
             } else {
               showToast('Could not generate AI image right now—try selecting from the 873-exercise library below.');
             }
@@ -1460,7 +1469,7 @@
 
         const pickBestPhotoSlugLocally = (name, category, equipment) => {
           const lower = name.toLowerCase();
-          if (lower.includes('clamshell') || lower.includes('clam')) return 'Clam';
+          if (lower.includes('clamshell') || lower.includes('clam')) return 'Side_Leg_Raises';
           if (lower.includes('abduction') || lower.includes('side-lying') || lower.includes('hip raise') || lower.includes('leg raise')) return 'Side_Leg_Raises';
           if (lower.includes('external rotation') || lower.includes('rotator cuff')) return 'External_Rotation';
           if (lower.includes('copenhagen') || lower.includes('side-plank') || lower.includes('side plank')) return 'Side_Bridge';
@@ -1600,8 +1609,8 @@ Return ONLY a valid JSON object with:
                   item.slug = BROKEN_SLUG_MIGRATION_MAP[item.slug];
                   migratedAny = true;
                 }
-                if (item.name === 'Banded Clamshell' && item.slug === 'Side_Bridge') {
-                  item.slug = 'Clam';
+                if (item.name === 'Banded Clamshell' && (item.slug === 'Side_Bridge' || item.slug === 'Clam')) {
+                  item.slug = 'Side_Leg_Raises';
                   migratedAny = true;
                 }
                 const idx = merged.findIndex(m => m.name === item.name);
