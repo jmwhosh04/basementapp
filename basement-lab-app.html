@@ -96,14 +96,13 @@
       </button>
     </div>
 
-    <!-- Main Dynamic Viewport Container (Module Iframe with Bottom Dock Clearance) -->
-    <main class="flex-1 flex flex-col relative w-full pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+    <!-- Main Dynamic Viewport Container (Viewport-Locked Iframe so fixed modals always center on screen!) -->
+    <main class="flex-1 flex flex-col relative w-full overflow-hidden">
       <iframe
         ref="moduleFrame"
         :src="activeModule.file"
-        @load="onFrameLoad"
         class="w-full flex-1 border-0 bg-slate-950 block"
-        style="min-height: calc(100dvh - 7.75rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));"
+        style="height: calc(100dvh - 3.25rem - env(safe-area-inset-top));"
         allow="microphone; autoplay"
         title="Basement Lab Active Module"
       ></iframe>
@@ -412,27 +411,7 @@
           }
         }
 
-        let activeResizeObserver = null;
-        function onFrameLoad() {
-          try {
-            if (activeResizeObserver) {
-              activeResizeObserver.disconnect();
-              activeResizeObserver = null;
-            }
-            const doc = moduleFrame.value?.contentDocument;
-            if (doc && doc.body) {
-              let lastHeight = 0;
-              activeResizeObserver = new ResizeObserver(() => {
-                const h = doc.documentElement.scrollHeight;
-                if (h > 400 && Math.abs(h - lastHeight) > 8 && moduleFrame.value) {
-                  lastHeight = h;
-                  moduleFrame.value.style.minHeight = h + 'px';
-                }
-              });
-              activeResizeObserver.observe(doc.body);
-            }
-          } catch (e) {}
-        }
+        function onFrameLoad() {}
 
         function buildSnapshot() {
           const bundle = {

@@ -2260,12 +2260,7 @@ Return ONLY valid JSON with:
         const openFormCardByName = (name) => {
           const item = LIFT_PHOTOS[name] || LIFT_PHOTOS['Goblet Squat'];
           activeFormModalLift.value = { name, ...item };
-          try {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            if (window.parent && window.parent !== window) {
-              window.parent.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          } catch (e) {}
+
           showModalPhotoFixer.value = false;
         };
 

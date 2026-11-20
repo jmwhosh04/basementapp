@@ -1130,12 +1130,7 @@
         };
 
         const scrollViewportToTop = () => {
-          try {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            if (window.parent && window.parent !== window) {
-              window.parent.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          } catch (e) {}
+
         };
 
         const openExerciseDetail = (ex) => {
@@ -1144,7 +1139,7 @@
           editingCue.value = false;
           customTopUrlInput.value = ex.customPhotoTop || '';
           customBottomUrlInput.value = ex.customPhotoBottom || '';
-          scrollViewportToTop();
+          
         };
 
         const openPhotoFixerDrawer = () => {
@@ -1460,7 +1455,7 @@
         const openQuickAddWithSeed = (seedText) => {
           newExName.value = seedText || '';
           showQuickAddModal.value = true;
-          scrollViewportToTop();
+          
         };
 
         const pickBestPhotoSlugLocally = (name, category, equipment) => {

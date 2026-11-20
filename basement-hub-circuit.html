@@ -3098,12 +3098,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const openFormCardByName = (name, customReason = '') => {
           const meta = getLiftMeta(name);
           activeFormModalLift.value = { name, customReason, ...meta };
-          try {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            if (window.parent && window.parent !== window) {
-              window.parent.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          } catch (e) {}
+
           showModalPhotoFixer.value = false;
           customTopUrlInput.value = meta.customPhotoTop || '';
           customBottomUrlInput.value = meta.customPhotoBottom || '';
