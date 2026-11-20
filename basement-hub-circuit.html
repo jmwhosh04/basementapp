@@ -44,10 +44,20 @@
           </div>
           <h1 class="text-base font-black tracking-tight text-white mt-0.5">Daily Hub &amp; Circuit Coach</h1>
         </div>
-        <button @click="reloadCoachContext(true)" class="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 text-right transition">
-          <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400 block">&#8635; Sync Context</span>
-          <span class="text-xs font-mono font-black text-slate-200">{{ coachCtx.readinessScore }}% Ready</span>
-        </button>
+        <div class="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-left min-w-[116px]">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Body Readiness</span>
+            <span class="text-[10px] font-mono font-black text-emerald-400">{{ coachCtx.readinessScore }}/92</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden flex mt-1 border border-slate-700/80">
+            <div class="h-full bg-emerald-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, ((coachCtx.readinessScore || 0) / 92) * 100)) + '%' }"></div>
+            <div v-if="(coachCtx.readinessScore || 0) < 92" class="h-full bg-rose-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, ((92 - (coachCtx.readinessScore || 0)) / 92) * 100)) + '%' }"></div>
+          </div>
+          <div class="flex items-center justify-between text-[8px] font-mono mt-0.5">
+            <span class="text-emerald-400">{{ coachCtx.readinessScore }} pts</span>
+            <span v-if="(coachCtx.readinessScore || 0) < 92" class="text-rose-400">-{{ 92 - (coachCtx.readinessScore || 0) }} pts</span>
+          </div>
+        </div>
       </div>
 
       <!-- Main Navigation Tabs (Only 1. Today & 2. Calendar & Logs) -->
