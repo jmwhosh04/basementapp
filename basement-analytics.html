@@ -1199,8 +1199,8 @@
           const audit = shinSplintAuditStats.value;
           const s7 = sevenDayStats.value;
           const localFallback = {
-            text: `Looking at your logged data (${s7.sets} sets over 7d @ Avg RPE ${s7.avgRpe}, ${audit.calfSets} Calf sets vs. ${audit.hipStabilitySets} Hip-Stability sets and ${audit.tibialisSets} Tibialis sets): your primary strength is progressing well, and I have automatically synced Side-Lying Hip Abduction & Weighted Wall Tibialis Raises into your Module 1 circuit to keep your shins protected at 215 lb.`,
-            dataEvidence: `${s7.sets} sets (7d) • Calf:Hip:Tib = ${audit.calfSets}:${audit.hipStabilitySets}:${audit.tibialisSets}`
+            text: `Across your recent logs (${s7.sets} sets in 7d @ Avg RPE ${s7.avgRpe}, ${audit.calfSets} calf sets, ${s7.runMiles} mi run, ${s7.rowMins}m row, and ${s7.saunaMins}m sauna), I adjust suggested weights, target reps, and rest intervals automatically in Module 1 so you can complete sets cleanly without cumulative overload. If reps drop across consecutive sets, I either adjust target reps or step down weight so you finish strong.`,
+            dataEvidence: `7d: ${s7.sets} sets • RPE ${s7.avgRpe} • Calf sets: ${audit.calfSets} • Run: ${s7.runMiles}mi`
           };
 
           try {

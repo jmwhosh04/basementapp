@@ -698,7 +698,10 @@
 
                   <div class="flex items-center gap-2 flex-wrap text-[10px] font-mono">
                     <span class="px-1.5 py-0.5 rounded bg-indigo-950/90 border border-indigo-500/40 text-indigo-200 font-bold">
-                      🎯 Target RPE {{ getStationEffortProfile(st).targetRpe }} ({{ getStationEffortProfile(st).rirText }})
+                      🎯 RPE {{ getStationEffortProfile(st).targetRpe }}
+                    </span>
+                    <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-sky-300 font-bold">
+                      ⏱ {{ st.restSeconds || 45 }}s rest
                     </span>
                     <span class="text-amber-300 font-bold">&bull; {{ st.tempoPrescription }}</span>
                   </div>
@@ -3080,13 +3083,75 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           return map[liftName] || 'Dead Bug';
         };
 
+        const computeDynamicPrescription = (liftName) => {
+          const meta = getLiftMeta(liftName);
+          const baseWeight = Math.min(50, Number(meta.weight) || 0);
+          const baseReps = Number(meta.reps) || 12;
+          const trend = getExerciseHistoryTrend(liftName);
+          const recentSets = trend.recent.slice(-3);
+
+          let suggestedWeight = baseWeight;
+          let suggestedReps = baseReps;
+          let restSeconds = 45;
+
+          const baseRpe = parseFloat(sessionEffortGameplan.value.baseRpe) || 8.0;
+          const doms = coachCtx.value.sorenessMap || {};
+          const mGroup = getMuscleGroupForLift(liftName);
+          const mSoreness = Number(doms[mGroup] ?? 0);
+          const sleep = Number(coachCtx.value.dailyBiometrics?.sleepHours ?? 7.5);
+          const highStress = (coachCtx.value.externalLifeLoads || []).includes('high_stress');
+
+          // Adjust rest period based on whether the trainer wants a higher-HR push or longer recovery
+          if (baseRpe >= 8.5 && mSoreness === 0 && sleep >= 7.0 && !highStress) {
+            restSeconds = 30;
+          } else if (baseRpe <= 7.0 || mSoreness === 2 || sleep < 6.5 || highStress) {
+            restSeconds = 60;
+          } else if (mSoreness === 1 || trend.rpeDelta >= 0.8) {
+            restSeconds = 50;
+          }
+
+          if (meta.equipment === 'Dumbbell' && baseWeight > 0 && recentSets.length >= 2) {
+            const repsList = recentSets.map(x => Number(x.reps) || baseReps);
+            const isDropping = repsList.length >= 3 && repsList[0] >= repsList[1] && repsList[1] > repsList[2] && repsList[2] < baseReps;
+            const lastReps = repsList[repsList.length - 1];
+            const lastWeight = Math.min(50, Number(recentSets[recentSets.length - 1].weight) || baseWeight);
+
+            if (isDropping) {
+              if (lastWeight >= 45) {
+                suggestedWeight = lastWeight;
+                suggestedReps = Math.max(6, lastReps);
+                restSeconds = Math.max(restSeconds, 55);
+              } else {
+                suggestedWeight = Math.max(5, Number((lastWeight - 5).toFixed(1)));
+                suggestedReps = baseReps;
+              }
+            } else if (lastReps < baseReps - 1 && lastWeight > 0) {
+              suggestedWeight = Math.max(5, Number((lastWeight - 2.5).toFixed(1)));
+              suggestedReps = baseReps;
+            } else if (lastReps >= baseReps && (Number(recentSets[recentSets.length - 1].rpe) || 8.0) <= 7.5 && lastWeight < 50) {
+              suggestedWeight = Math.min(50, Number((lastWeight + 2.5).toFixed(1)));
+              suggestedReps = baseReps;
+            } else {
+              suggestedWeight = lastWeight;
+              suggestedReps = baseReps;
+            }
+          }
+
+          if (mSoreness === 2 && meta.equipment === 'Dumbbell' && suggestedWeight > 0) {
+            suggestedWeight = Math.max(5, Number((suggestedWeight - 5).toFixed(1)));
+          }
+
+          return { suggestedWeight, suggestedReps, restSeconds };
+        };
+
         const makeStationObj = (name, reason, isGoalFocus = false, goalBadge = '') => {
           const meta = getLiftMeta(name);
           const isBand = meta.equipment === 'Band';
           const trend = getExerciseHistoryTrend(name);
+          const rx = computeDynamicPrescription(name);
           const capMode = coachCtx.value.capProgressionMode || 'tempo_pause';
           let tempoPrescription = isBand ? '2s Peak Hold + 3s Return' : '3s Lower + 2s Pause';
-          if (!isBand && Number(meta.weight) >= 45) {
+          if (!isBand && Number(rx.suggestedWeight) >= 45) {
             if (capMode === 'unilateral') tempoPrescription = 'Unilateral Focus + 2s Pause';
             else if (capMode === 'band_combo') tempoPrescription = 'Band-Assisted + 2s Pause';
           }
@@ -3097,9 +3162,10 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             name,
             category: meta.category,
             equipment: meta.equipment,
-            weight: meta.weight,
-            plannedWeight: meta.weight,
-            plannedReps: meta.reps || 12,
+            weight: rx.suggestedWeight,
+            plannedWeight: rx.suggestedWeight,
+            plannedReps: rx.suggestedReps,
+            restSeconds: rx.restSeconds,
             bandLevelLabel: selectedBandLevel.value.label,
             tempoPrescription,
             reason,
@@ -3683,7 +3749,8 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const startRestCountdown = () => {
           stopTimer();
           guidedState.value = 'resting';
-          restRemainingSeconds.value = 45;
+          const stRest = Number(currentStation.value?.restSeconds) || 45;
+          restRemainingSeconds.value = Math.max(15, Math.min(120, stRest));
           timerInterval = setInterval(() => {
             if (restRemainingSeconds.value > 0) {
               restRemainingSeconds.value--;
