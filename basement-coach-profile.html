@@ -817,20 +817,100 @@
             </div>
           </div>
 
-          <!-- Hard Rules: Never Lift 3 Days in a Row + Never Run 2 Days in a Row -->
-          <div class="space-y-1.5">
-            <div
-              @click="modalityPreferences.neverRunConsecutiveDays = !modalityPreferences.neverRunConsecutiveDays; saveContextToStorage()"
-              class="p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between gap-2"
-              :class="modalityPreferences.neverRunConsecutiveDays ? 'bg-rose-950/35 border-rose-500/50 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
-            >
-              <div class="min-w-0">
-                <div class="text-xs font-black text-rose-300">🛑 Hard Guardrails: Never Run 2 Days in a Row &amp; Never Lift 3 Days in a Row</div>
-                <div class="text-[10px] text-slate-300 leading-tight">Locks 48h tibial impact recovery between runs and forces a cardio/conditioning day after any 2 consecutive strength sessions.</div>
+          <!-- User-Configurable Consecutive-Day Rules (Add, Edit & Remove) -->
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <span class="text-[9px] font-black uppercase tracking-wider text-amber-400 block">User Consecutive-Day Rules</span>
+                <div class="text-xs font-black text-white">Your Personal Spacing &amp; Streak Rules</div>
               </div>
-              <span class="px-2 py-0.5 rounded text-[10px] font-black shrink-0" :class="modalityPreferences.neverRunConsecutiveDays ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'">
-                {{ modalityPreferences.neverRunConsecutiveDays ? 'LOCKED ON' : 'OFF' }}
-              </span>
+              <button
+                @click="showAddSpacingRule = !showAddSpacingRule"
+                class="px-2.5 py-1 rounded-lg bg-slate-900 border border-amber-500/40 text-[10px] font-bold text-amber-300 hover:text-white shrink-0"
+              >
+                {{ showAddSpacingRule ? 'Done' : '+ Add Rule' }}
+              </button>
+            </div>
+
+            <div v-if="showAddSpacingRule" class="p-2.5 rounded-xl bg-slate-900 border border-amber-500/40 space-y-2">
+              <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                  <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Activity Type</label>
+                  <select v-model="newSpacingActivity" class="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white">
+                    <option value="lifting">Lifting / Strength</option>
+                    <option value="running">Running / Cardio</option>
+                    <option value="rowing">Rowing</option>
+                    <option value="any_workout">Any Workout</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Max Days in a Row</label>
+                  <select v-model.number="newSpacingMaxDays" class="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono">
+                    <option :value="1">1 (No Back-to-Back)</option>
+                    <option :value="2">2 Days Max</option>
+                    <option :value="3">3 Days Max</option>
+                  </select>
+                </div>
+              </div>
+              <input
+                v-model="newSpacingNote"
+                type="text"
+                placeholder="Optional note (e.g., my personal preference, swap to row/rest)..."
+                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
+              />
+              <button
+                @click="addSpacingRuleItem"
+                class="w-full py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px]"
+              >
+                + Save Spacing Rule
+              </button>
+            </div>
+
+            <div v-if="spacingRulesList.length === 0" class="p-2.5 rounded-xl bg-slate-900/70 border border-dashed border-slate-800 text-[10px] text-slate-400 text-center">
+              No consecutive-day rules set. Tap <strong>+ Add Rule</strong> to add your own rule or remove what you don't want.
+            </div>
+
+            <div v-else class="space-y-2">
+              <div
+                v-for="rule in spacingRulesList"
+                :key="rule.id"
+                class="p-2.5 rounded-xl bg-slate-900/90 border space-y-1.5"
+                :class="rule.enabled ? 'border-amber-500/40 text-white' : 'border-slate-800 text-slate-400 opacity-75'"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="text-xs font-black truncate">
+                    {{ formatSpacingRuleLabel(rule) }}
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button
+                      @click="rule.enabled = !rule.enabled; syncSpacingRulesToContext()"
+                      class="px-2 py-0.5 rounded text-[10px] font-bold"
+                      :class="rule.enabled ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'"
+                    >
+                      {{ rule.enabled ? 'ON' : 'OFF' }}
+                    </button>
+                    <button
+                      @click="removeSpacingRuleItem(rule.id)"
+                      title="Remove rule"
+                      class="px-2 py-0.5 rounded bg-slate-950 border border-rose-500/40 text-rose-300 hover:bg-rose-500/20 text-[10px] font-bold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between gap-2 text-[10px]">
+                  <span class="text-slate-400 truncate">{{ rule.note || 'User-defined streak rule' }}</span>
+                  <select
+                    v-model.number="rule.maxConsecutiveDays"
+                    @change="syncSpacingRulesToContext()"
+                    class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-[10px] font-mono text-amber-300 shrink-0"
+                  >
+                    <option :value="1">1d max (no back-to-back)</option>
+                    <option :value="2">2d max</option>
+                    <option :value="3">3d max</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -902,21 +982,84 @@
             </div>
           </div>
 
-          <!-- Running vs Rowing Coaching Role -->
-          <div class="grid grid-cols-2 gap-2">
-            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] font-bold text-emerald-400">🏃 Running (Aerobic &amp; Legs)</span>
-                <span class="text-[9px] font-mono text-slate-400">Enjoy Most</span>
+          <!-- Dynamic Cardio Equipment & Preference Rules (User-Configurable & Removable) -->
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <span class="text-[9px] font-black uppercase tracking-wider text-sky-400 block">Cardio Options &amp; Preference Rules</span>
+                <div class="text-xs font-black text-white">Treadmill &amp; Rowing Machine Preferences</div>
               </div>
-              <p class="text-[9px] text-slate-400 leading-tight">Prescribed when shins/ankles have 48h clearance and lower-body tendons are fresh (25–35 min, &le;1.5% incline).</p>
+              <button
+                @click="showAddCardioPref = !showAddCardioPref"
+                class="px-2.5 py-1 rounded-lg bg-slate-900 border border-sky-500/40 text-[10px] font-bold text-sky-300 hover:text-white shrink-0"
+              >
+                {{ showAddCardioPref ? 'Done' : '+ Add Option' }}
+              </button>
             </div>
-            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] font-bold text-sky-400">🚣 Rowing (86% Muscle Activation)</span>
-                <span class="text-[9px] font-mono text-slate-400">Posture + Lats</span>
+
+            <div v-if="showAddCardioPref" class="p-2.5 rounded-xl bg-slate-900 border border-sky-500/40 space-y-2">
+              <input
+                v-model="newCardioPrefName"
+                type="text"
+                placeholder="e.g., Treadmill Walk, Rowing Machine..."
+                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
+              />
+              <select
+                v-model="newCardioPrefRule"
+                class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
+              >
+                <option value="preferred">Regular Option (Whenever Scheduled)</option>
+                <option value="when_coach_feels_important_rest">Only When Coach Feels It's Important &amp; Rest Helps</option>
+                <option value="low_impact_fallback">Low-Impact / Joint-Rest Swap Only</option>
+                <option value="rarely_if_needed">Rarely / Only If Needed</option>
+              </select>
+              <button
+                @click="addCardioPreferenceItem"
+                :disabled="!newCardioPrefName.trim()"
+                class="w-full py-1.5 rounded-lg bg-sky-500 text-slate-950 font-black text-[10px] disabled:opacity-40"
+              >
+                + Save Cardio Option
+              </button>
+            </div>
+
+            <div v-if="cardioPreferenceItems.length === 0" class="p-2.5 rounded-xl bg-slate-900/70 border border-dashed border-slate-800 text-[10px] text-slate-400 text-center">
+              No cardio options configured. Tap <strong>+ Add Option</strong> to add Treadmill or Rowing Machine.
+            </div>
+
+            <div v-else class="space-y-2">
+              <div
+                v-for="item in cardioPreferenceItems"
+                :key="item.id"
+                class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="font-black text-xs text-white truncate">
+                    {{ item.icon }} {{ item.name }}
+                  </div>
+                  <button
+                    @click="removeCardioPreferenceItem(item.id)"
+                    title="Remove cardio option"
+                    class="px-2 py-0.5 rounded bg-slate-950 border border-rose-500/40 text-rose-300 hover:bg-rose-500/20 text-[10px] font-bold shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <select
+                  v-model="item.rule"
+                  @change="syncCardioPreferencesToContext(); showToast('Updated ' + item.name + ' preference')"
+                  class="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-[11px] text-slate-200"
+                >
+                  <option value="preferred">Regular Option (Whenever Scheduled)</option>
+                  <option value="when_coach_feels_important_rest">Only When Coach Feels It's Important &amp; Rest Helps</option>
+                  <option value="low_impact_fallback">Low-Impact / Joint-Rest Swap Only</option>
+                  <option value="rarely_if_needed">Rarely / Only If Needed</option>
+                </select>
+
+                <p class="text-[10px] text-slate-400 leading-snug">
+                  {{ getCardioPreferenceRuleSummary(item.rule) }}
+                </p>
               </div>
-              <p class="text-[9px] text-slate-400 leading-tight">Prescribed whenever your body needs upper-back/lat/posterior-chain activation (counteracting desk posture) or zero-impact conditioning.</p>
             </div>
           </div>
         </div>
@@ -1638,6 +1781,133 @@ Return ONLY a valid JSON object with:
           targetDurationMax: 40,
           durationWindowPreset: '25-40'
         });
+
+        const showAddCardioPref = ref(false);
+        const newCardioPrefName = ref('');
+        const newCardioPrefRule = ref('when_coach_feels_important_rest');
+        const cardioPreferenceItems = ref([
+          {
+            id: 'cardio-treadmill',
+            icon: '🏃',
+            name: 'Treadmill',
+            rule: 'preferred'
+          },
+          {
+            id: 'cardio-rower',
+            icon: '🚣',
+            name: 'Rowing Machine',
+            rule: 'when_coach_feels_important_rest'
+          }
+        ]);
+
+        const getCardioPreferenceRuleSummary = (rule) => {
+          if (rule === 'when_coach_feels_important_rest') {
+            return 'Coach only suggests this when it feels genuinely important and a rest/recovery swap from lifting or impact helps.';
+          }
+          if (rule === 'low_impact_fallback') {
+            return 'Used as a low-impact / rest alternative rather than a default pick when the user prefers other cardio.';
+          }
+          if (rule === 'rarely_if_needed') {
+            return 'Kept in the background unless explicitly needed for recovery or variety.';
+          }
+          return 'Available as a standard cardio option based on user preference and schedule.';
+        };
+
+        const syncCardioPreferencesToContext = () => {
+          modalityPreferences.value.cardioOptions = cardioPreferenceItems.value.map(x => ({ ...x }));
+          const tItem = cardioPreferenceItems.value.find(x => x.name.toLowerCase().includes('treadmill') || x.name.toLowerCase().includes('run'));
+          const rItem = cardioPreferenceItems.value.find(x => x.name.toLowerCase().includes('row'));
+          modalityPreferences.value.primaryCardio = tItem ? tItem.name : (cardioPreferenceItems.value[0]?.name || 'None');
+          modalityPreferences.value.secondaryCardio = rItem ? rItem.name : 'None';
+          modalityPreferences.value.rowingRule = rItem ? rItem.rule : 'disabled';
+          saveContextToStorage();
+        };
+
+        const addCardioPreferenceItem = () => {
+          const clean = newCardioPrefName.value.trim();
+          if (!clean) return;
+          const lower = clean.toLowerCase();
+          const icon = lower.includes('row') ? '🚣' : (lower.includes('walk') || lower.includes('run') || lower.includes('tread') ? '🏃' : '⚡');
+          cardioPreferenceItems.value.push({
+            id: 'cardio-' + Date.now(),
+            icon,
+            name: clean,
+            rule: newCardioPrefRule.value
+          });
+          newCardioPrefName.value = '';
+          showAddCardioPref.value = false;
+          syncCardioPreferencesToContext();
+          showToast(`Added "${clean}" to cardio preferences`);
+        };
+
+        const removeCardioPreferenceItem = (id) => {
+          const target = cardioPreferenceItems.value.find(x => x.id === id);
+          cardioPreferenceItems.value = cardioPreferenceItems.value.filter(x => x.id !== id);
+          syncCardioPreferencesToContext();
+          if (target) showToast(`Removed "${target.name}" from cardio preferences`);
+        };
+
+        const showAddSpacingRule = ref(false);
+        const newSpacingActivity = ref('lifting');
+        const newSpacingMaxDays = ref(2);
+        const newSpacingNote = ref('');
+        const spacingRulesList = ref([
+          {
+            id: 'rule-lift-cap',
+            activity: 'lifting',
+            maxConsecutiveDays: 2,
+            note: 'User preference: max 2 consecutive lift days',
+            enabled: true
+          },
+          {
+            id: 'rule-run-spacing',
+            activity: 'running',
+            maxConsecutiveDays: 1,
+            note: 'Avoid back-to-back running days',
+            enabled: true
+          }
+        ]);
+
+        const formatSpacingRuleLabel = (rule) => {
+          const actMap = {
+            lifting: 'Lifting',
+            running: 'Running',
+            rowing: 'Rowing',
+            any_workout: 'Any Workout'
+          };
+          const actLabel = actMap[rule.activity] || rule.activity;
+          if (rule.maxConsecutiveDays === 1) return `${actLabel}: No Back-to-Back Days (1d max)`;
+          return `${actLabel}: Max ${rule.maxConsecutiveDays} Days in a Row`;
+        };
+
+        const syncSpacingRulesToContext = () => {
+          modalityPreferences.value.spacingRules = spacingRulesList.value.map(r => ({ ...r }));
+          const liftRule = spacingRulesList.value.find(r => r.activity === 'lifting' && r.enabled);
+          const runRule = spacingRulesList.value.find(r => r.activity === 'running' && r.enabled);
+          modalityPreferences.value.maxConsecutiveLiftDays = liftRule ? liftRule.maxConsecutiveDays : 99;
+          modalityPreferences.value.neverRunConsecutiveDays = Boolean(runRule && runRule.maxConsecutiveDays === 1);
+          saveContextToStorage();
+        };
+
+        const addSpacingRuleItem = () => {
+          spacingRulesList.value.push({
+            id: 'rule-' + Date.now(),
+            activity: newSpacingActivity.value,
+            maxConsecutiveDays: Number(newSpacingMaxDays.value) || 2,
+            note: newSpacingNote.value.trim() || 'Custom user rule',
+            enabled: true
+          });
+          newSpacingNote.value = '';
+          showAddSpacingRule.value = false;
+          syncSpacingRulesToContext();
+          showToast('Added consecutive-day rule');
+        };
+
+        const removeSpacingRuleItem = (id) => {
+          spacingRulesList.value = spacingRulesList.value.filter(r => r.id !== id);
+          syncSpacingRulesToContext();
+          showToast('Removed consecutive-day rule');
+        };
 
         const modalityPreferences = ref({
           targetDaysPerWeek: 5,
@@ -2583,7 +2853,15 @@ Return ONLY valid JSON with:
               if (parsed.exercisePreferences?.banned) bannedLifts.value = parsed.exercisePreferences.banned;
               if (parsed.sorenessMap) sorenessMap.value = { ...sorenessMap.value, ...parsed.sorenessMap };
               if (parsed.dailyBiometrics) dailyBiometrics.value = { ...dailyBiometrics.value, ...parsed.dailyBiometrics };
-              if (parsed.modalityPreferences) modalityPreferences.value = { ...modalityPreferences.value, ...parsed.modalityPreferences };
+              if (parsed.modalityPreferences) {
+                modalityPreferences.value = { ...modalityPreferences.value, ...parsed.modalityPreferences };
+                if (Array.isArray(parsed.modalityPreferences.cardioOptions)) {
+                  cardioPreferenceItems.value = parsed.modalityPreferences.cardioOptions.map(x => ({ ...x }));
+                }
+                if (Array.isArray(parsed.modalityPreferences.spacingRules)) {
+                  spacingRulesList.value = parsed.modalityPreferences.spacingRules.map(r => ({ ...r }));
+                }
+              }
             }
             const customCat = localStorage.getItem('basement_custom_catalog');
             if (customCat) {
@@ -2646,7 +2924,7 @@ Return ONLY valid JSON with:
           newChronicLabel, newChronicRegion, newChronicDescription, chronicGuardPresets,
           prefillChronicGuardPreset, toggleChronicVoiceRecording, summarizeSpokenChronicGuardWithAi,
           addChronicGuardrail, removeChronicGuardrail,
-          dailyBiometrics, modalityPreferences, applyDurationWindowPreset, syncCustomDurationWindow, readinessScore, stepZeroPrimers,
+          dailyBiometrics, modalityPreferences, spacingRulesList, showAddSpacingRule, newSpacingActivity, newSpacingMaxDays, newSpacingNote, formatSpacingRuleLabel, addSpacingRuleItem, removeSpacingRuleItem, syncSpacingRulesToContext, cardioPreferenceItems, showAddCardioPref, newCardioPrefName, newCardioPrefRule, getCardioPreferenceRuleSummary, addCardioPreferenceItem, removeCardioPreferenceItem, syncCardioPreferencesToContext, applyDurationWindowPreset, syncCustomDurationWindow, readinessScore, stepZeroPrimers,
           simulationScenarios, activeScenarioId, applySimulationScenario, simulatedStations,
           aiCoachLoading, geminiCoachBrief, askGeminiCoachAnalysis,
           getExercisePhoto, openFormCardByName,
