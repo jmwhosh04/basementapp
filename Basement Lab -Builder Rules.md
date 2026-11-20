@@ -63,10 +63,8 @@ Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coa
    - Adjustable bench, treadmill, rower (`Resistance 1–30`), and Traditional Sauna.  
 2. **Modality Cadence Rules:**  
    - **Never Run 2 Days in a Row:** Enforces 48-hour tibial and Achilles impact clearance scaled dynamically to the active user's body weight. Selecting `Run (30m)` when `ranYesterday === true` displays `🛑 Ran Yest.` on the pill and triggers the `🛑 Shin-Splint Guardrail Violation` banner.  
-   - **Never Lift 3 Days in a Row:** Caps consecutive strength days at 2 (`maxConsecutiveLiftDays: 2`).  
-     - When `consecutivePriorLiftDays === 1` (`liftedYesterday`), selecting `Lift Circuit` shows the indigo `💪 Pro Trainer Day-2 Split (2nd Consecutive Lift Day Allowed)` banner and rotates 100% away from yesterday's exercises.  
-     - When `consecutivePriorLiftDays >= 2`, the AI prescribes a 30-minute Row or Run and shows the rose `🛑 Pro Trainer Rule: You Lifted 2 Days in a Row` banner.  
-   - **Target Session Window:** `25–40 minutes` sweet spot.  
+   - **User-Configurable Consecutive-Day & Cardio Preference Rules:** Consecutive-day spacing rules (`spacingRules`, e.g., max consecutive lift days or avoiding back-to-back running) and cardio machine preferences (`cardioOptions` such as Treadmill and Rowing Machine, including rules like "Only When Coach Feels It's Important & Rest Helps") are user-configurable in Module 2 (`3. Life & DOMS`)—users can add, edit, toggle, or remove them rather than having personal preferences hard-locked.  
+- **Target Session Window:** `25–40 minutes` sweet spot.  
 3. **50-lb Dumbbell Cap Mastery:**  
    - Automatically prescribes `3s Lower + 2s Pause` (or unilateral upgrades / band combos per Module 2 settings) when lifts reach the `50 lb` ceiling.
 
