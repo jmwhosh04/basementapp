@@ -17,12 +17,12 @@
     "weight": 50,
     "reps": 10,
     "muscles": "Quadriceps, Glutes & Core",
-    "topCue": "Set posture and brace core before starting Goblet Squat (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Quadriceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Goblet Squat, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Goblet Squat.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Goblet Squat.",
-    "science": "Targets Quadriceps, Glutes & Core with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Cup vertical dumbbell snug against sternum; feet shoulder-width, toes turned out 15\u00b0.",
+    "bottomCue": "Sit hips straight down between heels with chest tall and elbows brushing inside knees.",
+    "quickCue": "Remember to keep the DB glued against your breastbone, sit your hips straight down between your heels (don't fold forward like a lawnchair), and push your knees out over your toes.",
+    "cue": "1. Cup the top head of a vertical dumbbell tightly against your breastbone with both palms.\n2. Stand shoulder-width apart with toes flared 15\u201320 degrees.\n3. Sit your hips straight down between your heels while letting your elbows brush inside your knees.\n4. Drive through your whole foot to stand tall without locking knees violently.",
+    "trap": "\u2022 The \"Folding Lawnchair\" Trap: Letting the dumbbell drift away from your chest so your upper back rounds forward and heels peel off the floor.",
+    "science": "Anterior load counterbalances your center of mass, maximizing quad flexion with minimal lumbar shear."
   },
   {
     "name": "Dumbbell Sumo Squat",
@@ -32,12 +32,12 @@
     "weight": 45,
     "reps": 12,
     "muscles": "Adductors, Glutes & Quads",
-    "topCue": "Set posture and brace core before starting Dumbbell Sumo Squat (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Adductors at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Sumo Squat, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Sumo Squat.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Sumo Squat.",
-    "science": "Targets Adductors, Glutes & Quads with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Take a wide 1.5x shoulder-width stance with toes flared 45\u00b0; hold DB vertically at center.",
+    "bottomCue": "Drop hips straight down like an elevator while driving knees wide over pinky toes.",
+    "quickCue": "Remember to push your knees wide in line with your 45\u00b0 flared toes (never let knees cave inward) and lower your torso straight down like an elevator.",
+    "cue": "1. Step out to 1.5x shoulder width and flare your toes out 45 degrees.\n2. Hold one heavy dumbbell vertically between your legs or goblet-style at your chest.\n3. Lower your hips straight down like an elevator while actively pushing knees outward.\n4. Drive through your heels and squeeze inner thighs and glutes at the top.",
+    "trap": "\u2022 The \"Valgus Knee Cave\" Trap: Letting your knees collapse inward toward each other as you push out of the bottom.",
+    "science": "Wide hip abduction shifts mechanical tension onto the adductor magnus and glute medius with low ankle dorsiflexion demand."
   },
   {
     "name": "Dumbbell Bulgarian Split Squat",
@@ -47,12 +47,12 @@
     "weight": 25,
     "reps": 10,
     "muscles": "Unilateral Quads & Glutes",
-    "topCue": "Set posture and brace core before starting Dumbbell Bulgarian Split Squat (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Unilateral Quads & Glutes at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Bulgarian Split Squat, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Bulgarian Split Squat.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Bulgarian Split Squat.",
-    "science": "Targets Unilateral Quads & Glutes with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Rest laces of rear foot on bench; keep feet hip-width apart like train tracks, 85% weight on front foot.",
+    "bottomCue": "Lower rear knee toward mat with a slight 10\u00b0 forward torso lean; front shin stays vertical.",
+    "quickCue": "Remember to keep feet hip-width apart like train tracks (not a tightrope), put 85% of your weight on your front foot, and track your front knee straight over your middle toes.",
+    "cue": "1. Stand 2 feet ahead of your bench and rest the laces of your back foot on the pad.\n2. Hold dumbbells at your sides and hinge your torso forward 10 degrees over your front midfoot.\n3. Lower over 3 seconds until your back knee hovers 1 inch above the floor.\n4. Drive hard through your front midfoot to stand back up.",
+    "trap": "\u2022 The \"Tightrope Wobble\" Trap: Lining your front foot directly in front of your rear foot so your pelvis twists and front knee caves in.",
+    "science": "Places full unilateral overload on a single leg within the 50-lb dumbbell ceiling with zero axial spinal compression."
   },
   {
     "name": "Dumbbell Romanian Deadlift",
@@ -62,12 +62,12 @@
     "weight": 45,
     "reps": 10,
     "muscles": "Hamstrings, Glutes & Erectors",
-    "topCue": "Set posture and brace core before starting Dumbbell Romanian Deadlift (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Hamstrings at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Romanian Deadlift, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Romanian Deadlift.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Romanian Deadlift.",
-    "science": "Targets Hamstrings, Glutes & Erectors with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand hip-width with soft 15\u00b0 knee bend; hold dumbbells resting against front of thighs.",
+    "bottomCue": "Push hips straight back like shutting a car door until dumbbells reach mid-shin with flat back.",
+    "quickCue": "Remember to push your butt straight back like shutting a car door, shave the DBs down your thighs/shins, and stop at mid-shin before your lower back rounds.",
+    "cue": "1. Stand hip-width apart with a soft 15-degree bend in your knees that stays locked all set.\n2. Push your hips straight back behind you as if closing a car door with your glutes.\n3. Shave the dumbbells down your thighs and shins until you feel a deep hamstring stretch at mid-shin.\n4. Pause 2 seconds at the bottom stretch, then drive hips forward.",
+    "trap": "\u2022 The \"Fishing Rod Spine\" Trap: Reaching toward your toes by rounding your lower back after your hips stop moving backward.",
+    "science": "Pure hip hinge loads the hamstrings in their lengthened position for high sarcomere hypertrophy."
   },
   {
     "name": "Dumbbell Walking Lunge",
@@ -77,12 +77,12 @@
     "weight": 25,
     "reps": 10,
     "muscles": "Quads, Glutes & Hip Stabilizers",
-    "topCue": "Set posture and brace core before starting Dumbbell Walking Lunge (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Quads at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Walking Lunge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Walking Lunge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Walking Lunge.",
-    "science": "Targets Quads, Glutes & Hip Stabilizers with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding dumbbells at sides; step forward onto a hip-width stride track.",
+    "bottomCue": "Drop rear knee straight toward floor until both knees form 90\u00b0 angles; push off front heel.",
+    "quickCue": "Remember to step onto hip-width train tracks (not a tightrope), keep your torso tall, and drive through your front heel to step smoothly into the next stride.",
+    "cue": "1. Hold dumbbells at your sides with shoulders packed down.\n2. Step forward onto a hip-width stride track and plant your whole front foot.\n3. Lower straight down until both knees reach 90 degrees and rear knee hovers above the floor.\n4. Push off your front heel to bring your trail leg forward into the next step.",
+    "trap": "\u2022 The \"Over-Stride Knee Slam\" Trap: Stepping too short so your front heel pops up, or letting your back knee slam into the floor.",
+    "science": "Combines dynamic single-leg deceleration with hip-flexor lengthening and gait stability."
   },
   {
     "name": "Dumbbell Reverse Lunge",
@@ -92,12 +92,12 @@
     "weight": 25,
     "reps": 10,
     "muscles": "Glutes, Quads & Knee-Friendly Tracking",
-    "topCue": "Set posture and brace core before starting Dumbbell Reverse Lunge (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Glutes at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Reverse Lunge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Reverse Lunge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Reverse Lunge.",
-    "science": "Targets Glutes, Quads & Knee-Friendly Tracking with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with dumbbells at sides; keep weight centered over your stationary front foot.",
+    "bottomCue": "Step one foot back onto the ball of the foot and drop rear knee gently toward floor.",
+    "quickCue": "Remember to keep 85% of your weight anchored on your front heel as you step backward\u2014push back up through your front leg rather than vaulting off your back toes.",
+    "cue": "1. Stand tall holding dumbbells at your sides with chest up.\n2. Step one leg straight back onto the ball of your foot.\n3. Lower your back knee toward the mat while keeping your front shin nearly vertical.\n4. Drive through your front heel to pull your back foot forward to the start.",
+    "trap": "\u2022 The \"Back-Foot Vault\" Trap: Pushing off your rear toes instead of pulling yourself up with your front glute and quad.",
+    "science": "Stepping backward reduces anterior shear force on the patellar tendon compared to forward lunging."
   },
   {
     "name": "Dumbbell Step-Up",
@@ -107,12 +107,12 @@
     "weight": 25,
     "reps": 10,
     "muscles": "Unilateral Quads & Glute Max",
-    "topCue": "Set posture and brace core before starting Dumbbell Step-Up (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Unilateral Quads & Glute Max at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Step-Up, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Step-Up.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Step-Up.",
-    "science": "Targets Unilateral Quads & Glute Max with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Plant entire working foot flat on top of sturdy bench/box; hold dumbbells at sides.",
+    "bottomCue": "Drive through top heel to stand tall on bench without bouncing off the floor foot.",
+    "quickCue": "Remember to pull yourself up strictly through the heel of your elevated foot\u2014keep the toes of your floor foot pulled up so you don't cheat-push off the ground.",
+    "cue": "1. Place your entire working foot flat on a sturdy bench or step.\n2. Lean your torso slightly forward so your nose is over your elevated toes.\n3. Pull your floor-foot toes up and drive through your top heel to stand tall on the bench.\n4. Lower back down over a controlled 3-second count.",
+    "trap": "\u2022 The \"Trampoline Floor Push\" Trap: Pushing off the toes of your bottom foot to launch yourself onto the step.",
+    "science": "Trains concentric hip and knee extension from a dead stop without momentum."
   },
   {
     "name": "Dumbbell Front Squat",
@@ -122,12 +122,12 @@
     "weight": 35,
     "reps": 10,
     "muscles": "Quads, Upper Back & Core",
-    "topCue": "Set posture and brace core before starting Dumbbell Front Squat (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Quads at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Front Squat, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Front Squat.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Front Squat.",
-    "science": "Targets Quads, Upper Back & Core with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Rest rear heads of dumbbells on top of front shoulders with elbows lifted high.",
+    "bottomCue": "Descend between heels keeping elbows pointed forward and torso upright.",
+    "quickCue": "Remember to keep your elbows lifted high like headlights so the dumbbells stay shelfed on your front shoulders and your chest never collapses forward.",
+    "cue": "1. Clean two dumbbells to your shoulders and rest the rear heads on your front delts with elbows lifted.\n2. Stand shoulder-width apart with ribs stacked over pelvis.\n3. Sit straight down between your heels while keeping elbows pointed forward.\n4. Drive through midfoot to stand tall.",
+    "trap": "\u2022 The \"Drooping Elbow\" Trap: Letting your elbows drop toward your ribs, which pulls your chest forward and dumps the dumbbells.",
+    "science": "Double-dumbbell front rack load increases anterior core and upper-back thoracic extension demand."
   },
   {
     "name": "Dumbbell Stiff-Leg Deadlift",
@@ -137,12 +137,12 @@
     "weight": 40,
     "reps": 10,
     "muscles": "Hamstrings & Posterior Chain",
-    "topCue": "Set posture and brace core before starting Dumbbell Stiff-Leg Deadlift (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Hamstrings & Posterior Chain at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Stiff-Leg Deadlift, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Stiff-Leg Deadlift.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Stiff-Leg Deadlift.",
-    "science": "Targets Hamstrings & Posterior Chain with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand with knees nearly straight (5\u00b0 micro-bend); hold dumbbells in front of thighs.",
+    "bottomCue": "Hinge hips back keeping shins completely vertical until deep hamstring stretch at mid-shin.",
+    "quickCue": "Remember to keep your shins vertical and knees nearly straight (5\u00b0 unlock), shave the DBs close to your legs, and stop the instant your pelvis stops tilting.",
+    "cue": "1. Stand hip-width apart with only a 5-degree micro-bend in your knees.\n2. Keep dumbbells close to your legs and push your hips back while keeping shins vertical.\n3. Lower until you feel maximum tension across the upper hamstrings.\n4. Squeeze glutes to return to standing without hyperextending your back.",
+    "trap": "\u2022 The \"Drifting Dumbbell\" Trap: Letting the dumbbells swing 6 inches out in front of your shins, multiplying lower-back shear.",
+    "science": "Minimal knee flexion maximizes hamstring biarticular stretch and eccentric overload."
   },
   {
     "name": "Single-Leg Dumbbell RDL",
@@ -152,12 +152,12 @@
     "weight": 25,
     "reps": 10,
     "muscles": "Hamstrings, Glute Medius & Balance",
-    "topCue": "Set posture and brace core before starting Single-Leg Dumbbell RDL (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Hamstrings at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Single-Leg Dumbbell RDL, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Single-Leg Dumbbell RDL.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Single-Leg Dumbbell RDL.",
-    "science": "Targets Hamstrings, Glute Medius & Balance with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand on one leg with soft knee; hold dumbbell in opposite hand against thigh.",
+    "bottomCue": "Hinge torso forward as back leg kicks straight behind you into a horizontal T-shape.",
+    "quickCue": "Remember to keep your hips square to the floor (don't open your raised hip toward the wall) and reach your back heel straight behind you like a seesaw.",
+    "cue": "1. Hold a dumbbell in your left hand while standing on your right leg with a soft knee.\n2. Hinge at the hip and kick your left heel straight back so torso and back leg move as one rigid board.\n3. Keep both hip bones pointing straight down at the floor.\n4. Drive your standing heel into the floor to return upright.",
+    "trap": "\u2022 The \"Rotating Hip Open\" Trap: Letting your non-working hip roll open toward the side wall instead of keeping pelvis level.",
+    "science": "Contralateral load fires the glute medius and hip external rotators to prevent pelvic drop during running."
   },
   {
     "name": "Dumbbell Hip Thrust",
@@ -167,12 +167,12 @@
     "weight": 50,
     "reps": 12,
     "muscles": "Glute Maximus & Hamstrings",
-    "topCue": "Set posture and brace core before starting Dumbbell Hip Thrust (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Maximus & Hamstrings at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Hip Thrust, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Hip Thrust.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Hip Thrust.",
-    "science": "Targets Glute Maximus & Hamstrings with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Rest upper back (bottom of shoulder blades) across bench edge; hold heavy dumbbell across hip crease.",
+    "bottomCue": "Drive through heels until shins are vertical and torso is parallel to floor; tuck chin.",
+    "quickCue": "Remember to keep your chin tucked toward your chest and ribs down as you drive your hips up\u2014finish with vertical shins and a 2-second glute squeeze.",
+    "cue": "1. Rest the bottom edge of your shoulder blades on the bench with a heavy dumbbell padded across your hip crease.\n2. Plant heels so your shins are vertical at the top of the rep.\n3. Keep your chin tucked and drive through your heels to lift hips parallel to the floor.\n4. Squeeze glutes hard for 2 seconds at the top.",
+    "trap": "\u2022 The \"Rib-Flare Hyperextension\" Trap: Throwing your head back and arching your lower back instead of posteriorly tilting your pelvis.",
+    "science": "Peak hip-extension torque occurs at lockout when the gluteus maximus is maximally shortened."
   },
   {
     "name": "Dumbbell Glute Bridge",
@@ -182,12 +182,12 @@
     "weight": 45,
     "reps": 15,
     "muscles": "Glutes & Pelvic Stability",
-    "topCue": "Set posture and brace core before starting Dumbbell Glute Bridge (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Glutes & Pelvic Stability at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Glute Bridge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Glute Bridge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Glute Bridge.",
-    "science": "Targets Glutes & Pelvic Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on floor with knees bent, heels 6 inches from glutes, and dumbbell resting on hip crease.",
+    "bottomCue": "Tuck tailbone under and press hips into a straight diagonal line from knees to shoulders.",
+    "quickCue": "Remember to flatten your lower back into the mat first (\"belt buckle toward chin\"), drive through your heels, and hold a 2-second glute squeeze at the top.",
+    "cue": "1. Lie on your back on the floor with heels planted 6 inches in front of your glutes.\n2. Hold a dumbbell securely across your hip crease with both hands.\n3. Tuck your tailbone under and drive through your heels to lift hips into a straight line.\n4. Hold 2 seconds at the top, then lower slowly.",
+    "trap": "\u2022 The \"Belly Flare\" Trap: Pushing your stomach toward the ceiling by arching your lumbar spine instead of squeezing your glutes.",
+    "science": "Delivers high glute max activation with zero axial spine compression or ankle impact."
   },
   {
     "name": "Standing Dumbbell Calf Raise",
@@ -197,12 +197,12 @@
     "weight": 40,
     "reps": 15,
     "muscles": "Gastrocnemius & Ankle Stability",
-    "topCue": "Set posture and brace core before starting Standing Dumbbell Calf Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Gastrocnemius & Ankle Stability at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Standing Dumbbell Calf Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Standing Dumbbell Calf Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Standing Dumbbell Calf Raise.",
-    "science": "Targets Gastrocnemius & Ankle Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand with balls of feet on edge of step/plate, knees straight, holding dumbbell at side.",
+    "bottomCue": "Lower heel below step for a 2s stretch, then press high onto big-toe knuckle.",
+    "quickCue": "Remember to pause 2 full seconds in the bottom heel stretch and press straight up onto your big-toe knuckle\u2014never roll outward onto your pinky toes.",
+    "cue": "1. Place the ball of your foot on a raised step or weight plate with free hand lightly holding a post.\n2. Lower your heel over 3 seconds into a deep stretch below step level and pause 2 seconds.\n3. Drive straight up onto your big-toe knuckle and squeeze for 1 second at the top.",
+    "trap": "\u2022 The \"Pinky-Toe Sickle\" Trap: Rolling your ankle outward onto your pinky toes at the top of the raise.",
+    "science": "Straight-knee ankle plantarflexion places the biarticular gastrocnemius under peak mechanical stretch."
   },
   {
     "name": "Seated Calf Raise",
@@ -212,12 +212,12 @@
     "weight": 45,
     "reps": 15,
     "muscles": "Soleus & Achilles Tendon",
-    "topCue": "Set posture and brace core before starting Seated Calf Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Soleus & Achilles Tendon at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Seated Calf Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Seated Calf Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Seated Calf Raise.",
-    "science": "Targets Soleus & Achilles Tendon with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit tall on bench with knees bent 90\u00b0, balls of feet on block, and 50 lb DBs resting on knees.",
+    "bottomCue": "Lower heels into a 2-second dead-stop stretch, then drive high onto big toes.",
+    "quickCue": "Remember to hold a strict 2-second dead-stop pause at the bottom stretch (zero pogo-stick bouncing) before driving straight up through your big-toe knuckle.",
+    "cue": "1. Sit on the bench with knees at 90 degrees, balls of feet on a 2-inch block, and heavy dumbbells on knees.\n2. Lower your heels over 3 seconds into a deep stretch and pause 2 full seconds.\n3. Drive high onto your big-toe knuckle and hold 1 second at peak contraction.",
+    "trap": "\u2022 The \"Pogo-Stick Bounce\" Trap: Bouncing out of the bottom so the Achilles tendon steals 70% of the work from the soleus.",
+    "science": "A 90-degree bent knee slackens the gastrocnemius, isolating the deep soleus that absorbs running impact."
   },
   {
     "name": "Single-Leg Seated Calf Raise",
@@ -227,12 +227,12 @@
     "weight": 30,
     "reps": 15,
     "muscles": "Unilateral Soleus & Ankle Armor",
-    "topCue": "Set posture and brace core before starting Single-Leg Seated Calf Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Unilateral Soleus & Ankle Armor at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Single-Leg Seated Calf Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Single-Leg Seated Calf Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Single-Leg Seated Calf Raise.",
-    "science": "Targets Unilateral Soleus & Ankle Armor with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit on bench with working forefoot on block and a 50 lb dumbbell stacked directly over that knee.",
+    "bottomCue": "Sink heel deep below block for 2 seconds, then press onto big toe without leaning torso.",
+    "quickCue": "Remember to keep the 50 lb DB centered directly over your working ankle and pause 2 full seconds at the bottom stretch before pressing onto your big toe.",
+    "cue": "1. Sit tall on the bench with one forefoot on a raised block and a heavy dumbbell held over that knee.\n2. Lower your heel slowly into a full 2-second bottom stretch.\n3. Press straight up onto the ball of your big toe for a 1-second squeeze.",
+    "trap": "\u2022 The \"Knee Wobble\" Trap: Letting your knee cave inward or outward instead of tracking straight over your second toe.",
+    "science": "Concentrates full 50-lb load onto one soleus tendon at a time to eliminate left-right strength asymmetries."
   },
   {
     "name": "Dumbbell Lateral Lunge",
@@ -242,12 +242,12 @@
     "weight": 25,
     "reps": 10,
     "muscles": "Adductors, Glute Medius & Quads",
-    "topCue": "Set posture and brace core before starting Dumbbell Lateral Lunge (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Adductors at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Lateral Lunge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Lateral Lunge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Lateral Lunge.",
-    "science": "Targets Adductors, Glute Medius & Quads with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with feet together holding dumbbells; step wide to one side with toes pointing straight ahead.",
+    "bottomCue": "Sit hips back over the stepping heel while keeping the trailing leg completely straight.",
+    "quickCue": "Remember to point both feet straight ahead and sit your hips backward over your stepping heel\u2014keep your trail leg straight to stretch the inner thigh.",
+    "cue": "1. Stand tall with dumbbells at your sides and step wide to the right.\n2. Keep both feet pointing straight ahead and sit your hips backward over your right heel.\n3. Keep your left leg straight so you feel a strong adductor stretch.\n4. Push off your right heel to return to center.",
+    "trap": "\u2022 The \"Knee-Forward Collapse\" Trap: Letting your stepping knee shoot past your toes while your heel lifts off the mat.",
+    "science": "Trains frontal-plane hip deceleration and lengthens the adductor magnus under load."
   },
   {
     "name": "Dumbbell Curtsy Lunge",
@@ -257,12 +257,12 @@
     "weight": 20,
     "reps": 10,
     "muscles": "Glute Medius & Outer Hip",
-    "topCue": "Set posture and brace core before starting Dumbbell Curtsy Lunge (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Medius & Outer Hip at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Curtsy Lunge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Curtsy Lunge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Curtsy Lunge.",
-    "science": "Targets Glute Medius & Outer Hip with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand hip-width holding dumbbells at sides; keep shoulders and hips squared straight ahead.",
+    "bottomCue": "Step one foot diagonally behind the front leg and drop rear knee while keeping front knee aligned.",
+    "quickCue": "Remember to keep your hips squared forward and track your front knee straight over your second toe\u2014step just far enough behind to feel your outer glute stretch.",
+    "cue": "1. Stand tall with dumbbells at your sides and shoulders squared forward.\n2. Step your right foot diagonally behind your left leg as if bowing.\n3. Lower until your front thigh is parallel to the floor while keeping your front knee aligned over your toes.\n4. Drive through your front heel to stand back up.",
+    "trap": "\u2022 The \"Over-Cross Knee Twist\" Trap: Stepping too far across behind you so your front knee twists inward.",
+    "science": "Places the gluteus medius and upper glute max on stretch in hip adduction."
   },
   {
     "name": "Dumbbell Heel-Elevated Squat",
@@ -272,12 +272,12 @@
     "weight": 40,
     "reps": 12,
     "muscles": "Vastus Medialis (VMO) & Quads",
-    "topCue": "Set posture and brace core before starting Dumbbell Heel-Elevated Squat (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Vastus Medialis (VMO) & Quads at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Heel-Elevated Squat, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Heel-Elevated Squat.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Heel-Elevated Squat.",
-    "science": "Targets Vastus Medialis (VMO) & Quads with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Place heels on a 1\u20131.5 inch wedge or weight plates; hold dumbbells at sides or goblet-style.",
+    "bottomCue": "Drop hips straight down allowing knees to travel smoothly forward over toes with upright torso.",
+    "quickCue": "Remember to keep your torso upright and ride straight down onto your elevated heels\u2014let your knees glide smoothly forward over your toes.",
+    "cue": "1. Elevate your heels 1\u20131.5 inches on weight plates with feet hip-width apart.\n2. Hold dumbbells at your sides or goblet-style at your chest.\n3. Lower straight down keeping your torso upright until hamstrings cover calves.\n4. Drive smoothly back up through midfoot and heels.",
+    "trap": "\u2022 The \"Heel Lift-Off\" Trap: Letting your heels peel off the plates at the bottom of the squat.",
+    "science": "Heel elevation increases knee flexion range of motion, targeting the vastus medialis (VMO) teardrop."
   },
   {
     "name": "Flat Dumbbell Bench Press",
@@ -287,12 +287,12 @@
     "weight": 45,
     "reps": 10,
     "muscles": "Pectoralis Major, Anterior Delts & Triceps",
-    "topCue": "Set posture and brace core before starting Flat Dumbbell Bench Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Pectoralis Major at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Flat Dumbbell Bench Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Flat Dumbbell Bench Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Flat Dumbbell Bench Press.",
-    "science": "Targets Pectoralis Major, Anterior Delts & Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on bench with shoulder blades pinched into pad; dumbbells stacked over shoulders.",
+    "bottomCue": "Lower dumbbells to chest level with a 45\u00b0 arrow elbow tuck (not flared 90\u00b0 like a T).",
+    "quickCue": "Remember to pinch your shoulder blades into your back pockets and tuck your elbows at a 45\u00b0 arrow angle (\u2197 \u2196) \u2014 do NOT flare your elbows 90\u00b0 wide into a capital \"T\".",
+    "cue": "1. Lie flat on the bench and retract your shoulder blades down and together.\n2. Angle your elbows 45 degrees from your ribs in an arrow shape.\n3. Lower dumbbells over 3 seconds until handles reach chest level.\n4. Press up and slightly inward over your collarbones.",
+    "trap": "\u2022 The \"Letter T\" Flare Trap: Flaring elbows out 90 degrees in line with your shoulders, pinching the rotator cuff.",
+    "science": "A 45-degree scapular-plane elbow tuck clears the subacromial space while maximizing sternal pectoral stretch."
   },
   {
     "name": "Incline Dumbbell Bench Press",
@@ -302,12 +302,12 @@
     "weight": 40,
     "reps": 10,
     "muscles": "Clavicular Upper Chest & Front Delts",
-    "topCue": "Set posture and brace core before starting Incline Dumbbell Bench Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Clavicular Upper Chest & Front Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Incline Dumbbell Bench Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Incline Dumbbell Bench Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Incline Dumbbell Bench Press.",
-    "science": "Targets Clavicular Upper Chest & Front Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set bench to shallow 30\u00b0 incline; plant feet flat and pin upper back against pad.",
+    "bottomCue": "Lower dumbbells to upper chest with 45\u00b0 elbow tuck; press straight toward ceiling.",
+    "quickCue": "Remember to use a shallow 30\u00b0 bench angle, tuck your elbows 45\u00b0 into an arrow shape, and keep your lower back anchored to the pad.",
+    "cue": "1. Set adjustable bench to a 30-degree incline (1\u20132 notches up).\n2. Pinch shoulder blades into the pad and plant your feet firmly.\n3. Lower dumbbells over 3 seconds with a 45-degree elbow tuck toward your upper chest.\n4. Press straight up toward the ceiling.",
+    "trap": "\u2022 The \"Belly Bridge\" Trap: Arching your lower back high off the incline pad to turn it into a flat press.",
+    "science": "30-degree incline aligns resistance with the clavicular (upper) fibers of the pectoralis major."
   },
   {
     "name": "Dumbbell Floor Press",
@@ -317,12 +317,12 @@
     "weight": 45,
     "reps": 10,
     "muscles": "Mid Chest, Triceps & Shoulder-Safe",
-    "topCue": "Set posture and brace core before starting Dumbbell Floor Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Mid Chest at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Floor Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Floor Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Floor Press.",
-    "science": "Targets Mid Chest, Triceps & Shoulder-Safe with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on floor with knees bent and feet planted; press dumbbells over mid-chest.",
+    "bottomCue": "Lower under control until backs of triceps rest gently on floor for a 1-second dead-stop.",
+    "quickCue": "Remember to tuck elbows 45\u00b0 and pause the backs of your triceps gently on the floor for 1 full second \u2014 never bounce your elbows off the mat.",
+    "cue": "1. Lie on the mat with knees bent and feet flat.\n2. Tuck elbows at a 45-degree angle from your ribs.\n3. Lower until backs of triceps touch the mat gently and pause 1 full second.\n4. Press smoothly back to lockout.",
+    "trap": "\u2022 The \"Trampoline Elbow\" Trap: Dropping weights fast and bouncing your elbows off the floor.",
+    "science": "The floor acts as a physical stop at 90 degrees, eliminating anterior shoulder capsule strain."
   },
   {
     "name": "Dumbbell Flyes",
@@ -332,12 +332,12 @@
     "weight": 25,
     "reps": 12,
     "muscles": "Pectoralis Major Stretch & Sternal Chest",
-    "topCue": "Set posture and brace core before starting Dumbbell Flyes (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Pectoralis Major Stretch & Sternal Chest at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Flyes, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Flyes.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Flyes.",
-    "science": "Targets Pectoralis Major Stretch & Sternal Chest with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on bench holding dumbbells over chest with palms facing each other and 15\u00b0 soft elbow bend.",
+    "bottomCue": "Open arms wide in a hugging arc until elbows reach bench level; squeeze chest to bring bells back.",
+    "quickCue": "Remember to keep a fixed 15\u00b0 elbow bend (like hugging a wide tree) and stop when your upper arms are parallel to the floor so your front shoulders don't overstretch.",
+    "cue": "1. Lie flat on the bench with palms facing each other and a soft 15-degree bend in elbows.\n2. Open your arms wide in a smooth arc over 3 seconds until upper arms align with the bench.\n3. Squeeze your pecs to hug the dumbbells back together over your sternum.",
+    "trap": "\u2022 The \"Deep Drop & Curl\" Trap: Dropping elbows far below the bench or bending elbows 90\u00b0 into a press.",
+    "science": "Isolates horizontal shoulder adduction across the sternal pectorals in the lengthened position."
   },
   {
     "name": "Incline Dumbbell Flyes",
@@ -347,12 +347,12 @@
     "weight": 20,
     "reps": 12,
     "muscles": "Upper Chest Stretch",
-    "topCue": "Set posture and brace core before starting Incline Dumbbell Flyes (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Upper Chest Stretch at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Incline Dumbbell Flyes, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Incline Dumbbell Flyes.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Incline Dumbbell Flyes.",
-    "science": "Targets Upper Chest Stretch with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on 30\u00b0 incline bench with palms facing inward and a soft 15\u00b0 bend in both elbows.",
+    "bottomCue": "Arc dumbbells wide to shoulder level for an upper-chest stretch without dropping elbows below torso.",
+    "quickCue": "Remember to keep your chest lifted, lock a soft 15\u00b0 bend in your elbows, and open wide only to torso level before squeezing your upper pecs back together.",
+    "cue": "1. Set bench to 30 degrees and hold dumbbells over your upper chest with palms facing each other.\n2. Maintain a fixed 15-degree elbow bend as you open your arms wide to shoulder height.\n3. Pause 1 second in the upper-chest stretch, then hug the weights back together.",
+    "trap": "\u2022 The \"Shoulder-Roll Forward\" Trap: Letting the fronts of your shoulders roll off the bench pad as you bring the weights together.",
+    "science": "Targets the upper clavicular chest fibers through a long horizontal adduction arc."
   },
   {
     "name": "Neutral-Grip Dumbbell Press",
@@ -362,12 +362,12 @@
     "weight": 40,
     "reps": 10,
     "muscles": "Chest, Triceps & Rotator-Friendly",
-    "topCue": "Set posture and brace core before starting Neutral-Grip Dumbbell Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Chest at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Neutral-Grip Dumbbell Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Neutral-Grip Dumbbell Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Neutral-Grip Dumbbell Press.",
-    "science": "Targets Chest, Triceps & Rotator-Friendly with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on bench holding dumbbells with palms facing each other (hammer grip) and elbows tucked close.",
+    "bottomCue": "Lower dumbbells alongside outer ribs until thumbs brush chest; press straight up.",
+    "quickCue": "Remember to keep your palms facing each other all set and glide your elbows straight down close to your ribs\u2014this keeps your shoulders packed and rotator-cuff friendly.",
+    "cue": "1. Lie flat on the bench with shoulder blades retracted and palms facing each other.\n2. Keep elbows tucked 20\u201330 degrees from your ribs as you lower dumbbells to your outer chest.\n3. Pause 1 second at the bottom, then press straight up to lockout.",
+    "trap": "\u2022 The \"Wrist Twist\" Trap: Letting your wrists rotate outward or elbows flare wide as you fatigue.",
+    "science": "Neutral humeral rotation maximizes subacromial clearance while heavily recruiting triceps and sternal pecs."
   },
   {
     "name": "Single-Arm Dumbbell Floor Press",
@@ -377,12 +377,12 @@
     "weight": 40,
     "reps": 10,
     "muscles": "Chest, Triceps & Anti-Rotation Core",
-    "topCue": "Set posture and brace core before starting Single-Arm Dumbbell Floor Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Chest at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Single-Arm Dumbbell Floor Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Single-Arm Dumbbell Floor Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Single-Arm Dumbbell Floor Press.",
-    "science": "Targets Chest, Triceps & Anti-Rotation Core with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on floor with knees bent; hold one dumbbell over chest and brace abs hard against rotation.",
+    "bottomCue": "Lower working tricep gently to floor for 1s pause while keeping opposite hip pinned down.",
+    "quickCue": "Remember to crush your opposite shoulder and hip flat into the floor so your torso doesn't roll sideways toward the working dumbbell.",
+    "cue": "1. Lie on the mat with knees bent and hold a single dumbbell over your chest.\n2. Press your non-working hand and both hips firmly into the floor.\n3. Lower your working tricep to the mat with a 45-degree tuck, pause 1 second, and press up.",
+    "trap": "\u2022 The \"Torso Roll\" Trap: Rolling your ribcage and opposite hip off the mat toward the weighted side.",
+    "science": "Unilateral pressing forces the obliques and transverse abdominis to fire isometrically against rotation."
   },
   {
     "name": "Dumbbell Pullover",
@@ -392,12 +392,12 @@
     "weight": 40,
     "reps": 12,
     "muscles": "Lats, Serratus & Ribcage Expansion",
-    "topCue": "Set posture and brace core before starting Dumbbell Pullover (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lats at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Pullover, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Pullover.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Pullover.",
-    "science": "Targets Lats, Serratus & Ribcage Expansion with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on bench holding one dumbbell diamond-style over chest with a soft 15\u00b0 elbow bend.",
+    "bottomCue": "Exhale to keep lower ribs down while arcing dumbbell overhead until biceps pass ears.",
+    "quickCue": "Remember to exhale and press your lower ribs flat into the bench as the DB arcs overhead, then pull the weight back using your armpits/lats (don't flare your back).",
+    "cue": "1. Lie flat on the bench cupping the top plate of one dumbbell with both hands.\n2. Keep a fixed 15-degree bend in your elbows and exhale to anchor your ribs.\n3. Arc the dumbbell behind your head over 3 seconds until you feel a deep lat stretch.\n4. Pull back over your chest by driving elbows forward with your lats.",
+    "trap": "\u2022 The \"Rib Flare Arch\" Trap: Popping your lower back and ribcage high off the bench as the dumbbell goes overhead.",
+    "science": "Directly loads the latissimus dorsi in its fully lengthened overhead position for V-taper width."
   },
   {
     "name": "Decline Dumbbell Bench Press",
@@ -407,12 +407,12 @@
     "weight": 40,
     "reps": 10,
     "muscles": "Lower Pectorals & Triceps",
-    "topCue": "Set posture and brace core before starting Decline Dumbbell Bench Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lower Pectorals & Triceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Decline Dumbbell Bench Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Decline Dumbbell Bench Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Decline Dumbbell Bench Press.",
-    "science": "Targets Lower Pectorals & Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on slight decline setup with feet anchored, shoulder blades pinched, and dumbbells over lower chest.",
+    "bottomCue": "Lower dumbbells to lower sternum with 45\u00b0 elbow tuck; press back over lower pecs.",
+    "quickCue": "Remember to keep your shoulder blades pinched down away from your ears and lower the dumbbells toward your lower sternum with a 45\u00b0 elbow tuck.",
+    "cue": "1. Set bench to a slight decline (or elevate hips slightly) with shoulder blades retracted.\n2. Lower dumbbells with a 45-degree elbow tuck toward your lower chest.\n3. Press smoothly back up without shrugging shoulders.",
+    "trap": "\u2022 The \"Neck-Line Press\" Trap: Pressing the dumbbells high over your face/neck instead of over your lower chest.",
+    "science": "Aligns line of force with the costal (lower) sternal fibers of the pectoralis major."
   },
   {
     "name": "Close-Grip Dumbbell Press",
@@ -422,12 +422,12 @@
     "weight": 35,
     "reps": 12,
     "muscles": "Inner Chest & Triceps",
-    "topCue": "Set posture and brace core before starting Close-Grip Dumbbell Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Inner Chest & Triceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Close-Grip Dumbbell Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Close-Grip Dumbbell Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Close-Grip Dumbbell Press.",
-    "science": "Targets Inner Chest & Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Press two dumbbells firmly together over sternum with palms facing each other and elbows tucked.",
+    "bottomCue": "Keep dumbbells squeezed together as you lower handles to center of chest; press to lockout.",
+    "quickCue": "Remember to crush the two dumbbells inward against each other the entire set while keeping your elbows tucked tight to your sides.",
+    "cue": "1. Lie flat on the bench and press two dumbbells tightly together with neutral palms.\n2. Keep constant inward pressure on the bells as you lower them to your sternum.\n3. Press straight up to full elbow lockout, squeezing triceps and inner chest.",
+    "trap": "\u2022 The \"Bell Separation\" Trap: Letting the dumbbells drift apart and elbows flare outward during the press.",
+    "science": "Combines isometric pectoral adduction with extended elbow-extension range for triceps hypertrophy."
   },
   {
     "name": "Alternating Dumbbell Bench Press",
@@ -437,12 +437,12 @@
     "weight": 35,
     "reps": 10,
     "muscles": "Pecs, Triceps & Core Stability",
-    "topCue": "Set posture and brace core before starting Alternating Dumbbell Bench Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Pecs at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Alternating Dumbbell Bench Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Alternating Dumbbell Bench Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Alternating Dumbbell Bench Press.",
-    "science": "Targets Pecs, Triceps & Core Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hold both dumbbells locked out over chest; keep non-working arm pressed high toward ceiling.",
+    "bottomCue": "Lower one dumbbell to chest with 45\u00b0 tuck while stabilizing the opposite bell overhead.",
+    "quickCue": "Remember to keep the stationary dumbbell actively reaching toward the ceiling while the working arm lowers over 3 seconds\u2014keep both shoulders flat on the bench.",
+    "cue": "1. Press both dumbbells over your chest with shoulder blades pinched into the bench.\n2. Keep your left arm locked out steady while lowering your right dumbbell over 3 seconds.\n3. Press right bell up, then repeat on the left side.",
+    "trap": "\u2022 The \"Sagging Static Arm\" Trap: Letting the stationary arm drift halfway down and lose tension.",
+    "science": "Doubles time under tension per set and challenges anti-rotation trunk stability."
   },
   {
     "name": "Squeeze Press (Crush Press)",
@@ -452,12 +452,12 @@
     "weight": 30,
     "reps": 12,
     "muscles": "Sternal Pec Adduction",
-    "topCue": "Set posture and brace core before starting Squeeze Press (Crush Press) (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Sternal Pec Adduction at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Squeeze Press (Crush Press), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Squeeze Press (Crush Press).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Squeeze Press (Crush Press).",
-    "science": "Targets Sternal Pec Adduction with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on bench crushing hex dumbbells together flat-face-to-flat-face directly over sternum.",
+    "bottomCue": "Maintain maximum inward crush force while lowering bells to mid-chest and pressing up.",
+    "quickCue": "Remember to squeeze the dumbbells inward against each other as hard as possible on every inch of the rep\u2014don't just rest them together.",
+    "cue": "1. Lie flat on bench and press the flat sides of two dumbbells together over your chest.\n2. Actively crush the dumbbells inward toward each other at 80% effort.\n3. Lower to your sternum over 3 seconds and press back up while maintaining the crush.",
+    "trap": "\u2022 The \"Passive Touch\" Trap: Letting the dumbbells merely touch without actively squeezing them inward.",
+    "science": "Sustained isometric horizontal adduction drives high metabolic stress and sternal pec recruitment with moderate loads."
   },
   {
     "name": "Dumbbell Svend Press",
@@ -467,12 +467,12 @@
     "weight": 20,
     "reps": 12,
     "muscles": "Inner Chest & Anterior Delts",
-    "topCue": "Set posture and brace core before starting Dumbbell Svend Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Inner Chest & Anterior Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Svend Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Svend Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Svend Press.",
-    "science": "Targets Inner Chest & Anterior Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with ribs down, clamping a single dumbbell vertically between both palms at sternum.",
+    "bottomCue": "Press dumbbell straight out to full arm extension while crushing palms inward; return slowly.",
+    "quickCue": "Remember to keep your shoulders rolled back and down (never hunched forward) as you press the clamped dumbbell straight out at chest height.",
+    "cue": "1. Stand tall with core braced and clamp a single dumbbell between both open palms at chest height.\n2. Crush your palms inward against the dumbbell while pressing it straight out until arms are straight.\n3. Pause 1 second at full extension, then pull back to sternum.",
+    "trap": "\u2022 The \"Hunched Shoulder\" Trap: Protracting your shoulders forward and shrugging traps as your hands reach out.",
+    "science": "Generates continuous sternal pectoral and anterior deltoid tension without requiring heavy loads."
   },
   {
     "name": "Flat Dumbbell Hammer Press",
@@ -482,12 +482,12 @@
     "weight": 40,
     "reps": 10,
     "muscles": "Chest & Shoulder-Friendly Press",
-    "topCue": "Set posture and brace core before starting Flat Dumbbell Hammer Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Chest & Shoulder-Friendly Press at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Flat Dumbbell Hammer Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Flat Dumbbell Hammer Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Flat Dumbbell Hammer Press.",
-    "science": "Targets Chest & Shoulder-Friendly Press with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on bench with palms facing each other, wrists neutral, and elbows tucked 30\u00b0 from ribs.",
+    "bottomCue": "Lower dumbbells until handles touch outer chest; drive straight up keeping wrists stacked.",
+    "quickCue": "Remember to keep your wrists stacked straight over your elbows and palms facing each other\u2014drive smoothly without flaring your elbows out.",
+    "cue": "1. Lie flat on the bench with shoulder blades tucked down and together.\n2. Hold dumbbells in a neutral hammer grip and lower over 3 seconds to your outer chest.\n3. Press straight up to lockout while keeping wrists neutral.",
+    "trap": "\u2022 The \"Bent-Back Wrist\" Trap: Letting the dumbbells roll your wrists backward into hyperextension.",
+    "science": "Reduces anterior shoulder torque while overloading the triceps and lower-sternal chest."
   },
   {
     "name": "Single-Arm Dumbbell Row",
@@ -497,12 +497,12 @@
     "weight": 50,
     "reps": 10,
     "muscles": "Lats, Rhomboids & Mid-Back",
-    "topCue": "Set posture and brace core before starting Single-Arm Dumbbell Row (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lats at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Single-Arm Dumbbell Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Single-Arm Dumbbell Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Single-Arm Dumbbell Row.",
-    "science": "Targets Lats, Rhomboids & Mid-Back with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Brace non-working hand on bench with a flat table-top back; working arm hanging straight down.",
+    "bottomCue": "Sweep elbow back in an arc toward your rear hip pocket; pause 1 second at top squeeze.",
+    "quickCue": "Remember to keep your back flat like a table and saw your elbow back in an arc toward your rear hip pocket \u2014 don't yank with your torso or shrug toward your ear.",
+    "cue": "1. Place your non-working hand on the bench with knees soft and back flat like a table.\n2. Let the dumbbell hang straight down to stretch the lat.\n3. Pull your elbow back in an arc toward your rear hip pocket.\n4. Pause 1 second at the top, then lower over 3 seconds.",
+    "trap": "\u2022 The \"Lawnmower Torso Twist\" Trap: Rotating your chest sideways and yanking the dumbbell straight up to your neck.",
+    "science": "Arcing the elbow toward the hip aligns directly with the lower latissimus dorsi fibers."
   },
   {
     "name": "Chest-Supported Incline Row",
@@ -512,12 +512,12 @@
     "weight": 35,
     "reps": 12,
     "muscles": "Upper Back, Rhomboids & Rear Delts",
-    "topCue": "Set posture and brace core before starting Chest-Supported Incline Row (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Upper Back at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Chest-Supported Incline Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Chest-Supported Incline Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Chest-Supported Incline Row.",
-    "science": "Targets Upper Back, Rhomboids & Rear Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie chest-down on a 30\u00b0 incline bench with arms hanging straight down under shoulders.",
+    "bottomCue": "Drive elbows past ribs and squeeze shoulder blades together for 1s with sternum glued to pad.",
+    "quickCue": "Remember to keep your breastbone glued to the bench pad the entire rep (no heaving your chest up) and drive your elbows past your ribs for a 1-second squeeze.",
+    "cue": "1. Set bench to 30 degrees and lie chest-down with sternum pressed into the pad.\n2. Let dumbbells hang straight down.\n3. Drive elbows back past your ribs and squeeze shoulder blades for 1 second.\n4. Lower over 3 seconds without lifting your chest.",
+    "trap": "\u2022 The \"Dolphin Heave\" Trap: Lifting your chest off the bench pad at the top of every rep.",
+    "science": "Eliminates 100% of lumbar shear and lower-back erector fatigue after running or yard work."
   },
   {
     "name": "Bent-Over Dumbbell Row",
@@ -527,12 +527,12 @@
     "weight": 35,
     "reps": 10,
     "muscles": "Lats, Traps & Posterior Chain",
-    "topCue": "Set posture and brace core before starting Bent-Over Dumbbell Row (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lats at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bent-Over Dumbbell Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bent-Over Dumbbell Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bent-Over Dumbbell Row.",
-    "science": "Targets Lats, Traps & Posterior Chain with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hinge hips back to a 45\u00b0 torso angle with flat spine and dumbbells hanging below shoulders.",
+    "bottomCue": "Row both dumbbells toward lower ribs/hip crease while keeping torso angle frozen.",
+    "quickCue": "Remember to lock your torso at a 45\u00b0 hip hinge (don't stand up as you pull) and drive your elbows back toward your waist.",
+    "cue": "1. Stand hip-width apart, hinge your hips back to a 45-degree torso angle, and brace your core.\n2. Let dumbbells hang straight below your shoulders.\n3. Row both elbows back toward your waist and pause 1 second at the top.\n4. Lower over 3 seconds keeping your torso angle locked.",
+    "trap": "\u2022 The \"Stand-Up Cheat\" Trap: Raising your torso upright with every pull so your upper traps take over.",
+    "science": "Builds bilateral lat and erector spinae thickness with coordinated posterior-chain bracing."
   },
   {
     "name": "Dumbbell Renegade Row",
@@ -542,12 +542,12 @@
     "weight": 25,
     "reps": 8,
     "muscles": "Lats, Anti-Rotation Core & Shoulders",
-    "topCue": "Set posture and brace core before starting Dumbbell Renegade Row (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lats at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Renegade Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Renegade Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Renegade Row.",
-    "science": "Targets Lats, Anti-Rotation Core & Shoulders with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set up in a wide-foot push-up plank gripping hex dumbbells directly beneath shoulders.",
+    "bottomCue": "Row one dumbbell to hip pocket while pressing opposite hand into floor and keeping hips level.",
+    "quickCue": "Remember to set your feet wider than shoulder-width and freeze your belt buckle parallel to the floor\u2014zero hip twisting as you row one arm.",
+    "cue": "1. Place two hex dumbbells shoulder-width apart and hold a rigid plank with feet wide.\n2. Press your left hand hard into the floor while rowing the right dumbbell to your hip pocket.\n3. Lower the dumbbell with control without letting your hips twist, then switch sides.",
+    "trap": "\u2022 The \"Helicopter Hip Twist\" Trap: Rotating your pelvis 45 degrees toward the ceiling every time you lift a dumbbell.",
+    "science": "Pairs unilateral lat pulling with intense anti-rotation core stabilization."
   },
   {
     "name": "Dumbbell Shrug",
@@ -557,12 +557,12 @@
     "weight": 50,
     "reps": 15,
     "muscles": "Upper Trapezius & Neck Stability",
-    "topCue": "Set posture and brace core before starting Dumbbell Shrug (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Upper Trapezius & Neck Stability at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Shrug, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Shrug.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Shrug.",
-    "science": "Targets Upper Trapezius & Neck Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding heavy dumbbells at sides with chest up, chin tucked, and arms straight.",
+    "bottomCue": "Elevate shoulders straight up toward ears for a 2-second squeeze; never roll shoulders.",
+    "quickCue": "Remember to pull your shoulders straight up toward your ears like an elevator (never roll them in circles) and hold the top squeeze for 2 full seconds.",
+    "cue": "1. Stand tall with dumbbells at your sides, arms straight, and chin slightly tucked.\n2. Shrug your shoulders straight upward toward your ears.\n3. Pause 2 full seconds at peak contraction, then lower over 3 seconds into a full stretch.",
+    "trap": "\u2022 The \"Shoulder Circle\" Trap: Rolling your shoulders forward and backward in circles, which grinds the AC joint.",
+    "science": "Vertical scapular elevation directly loads the upper trapezius and levator scapulae."
   },
   {
     "name": "Incline Dumbbell Y-T-W Raise",
@@ -572,12 +572,12 @@
     "weight": 10,
     "reps": 12,
     "muscles": "Lower Traps, Rhomboids & Posture",
-    "topCue": "Set posture and brace core before starting Incline Dumbbell Y-T-W Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lower Traps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Incline Dumbbell Y-T-W Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Incline Dumbbell Y-T-W Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Incline Dumbbell Y-T-W Raise.",
-    "science": "Targets Lower Traps, Rhomboids & Posture with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie chest-down on 30\u00b0 incline bench holding light dumbbells (5\u201310 lb) with thumbs pointing up.",
+    "bottomCue": "Raise straight arms into a Y, then a wide T, then bent-elbow W with 1s pauses.",
+    "quickCue": "Remember to use light weights (5\u201310 lb), point your thumbs toward the ceiling, and keep your shoulders down away from your ears on every Y, T, and W.",
+    "cue": "1. Lie chest-down on a 30-degree incline bench holding 5\u201310 lb dumbbells.\n2. With thumbs pointing up, raise arms overhead into a 'Y', then out to a 'T', then pull elbows into a 'W'.\n3. Pause 1 second at the top of each letter.",
+    "trap": "\u2022 The \"Heavy Shrug\" Trap: Using 20 lb dumbbells and shrugging your upper traps instead of firing lower traps and rhomboids.",
+    "science": "Strengthens the lower trapezius and serratus anterior to correct desk-job scapular winging."
   },
   {
     "name": "Dumbbell Seal Row (Incline)",
@@ -587,12 +587,12 @@
     "weight": 30,
     "reps": 12,
     "muscles": "Mid-Back & Lats (Zero Lumbar Shear)",
-    "topCue": "Set posture and brace core before starting Dumbbell Seal Row (Incline) (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Mid-Back & Lats (Zero Lumbar Shear) at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Seal Row (Incline), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Seal Row (Incline).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Seal Row (Incline).",
-    "science": "Targets Mid-Back & Lats (Zero Lumbar Shear) with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie prone on elevated incline bench so dumbbells hang freely at full arm extension off the floor.",
+    "bottomCue": "Pull dumbbells straight up until elbows clear torso; pause 1s without lifting sternum.",
+    "quickCue": "Remember to start each rep from a dead-hang stretch at the bottom and pull your elbows straight up past your torso without lifting your chest.",
+    "cue": "1. Lie face-down on a high incline bench so dumbbells hang freely above the floor.\n2. Pull both elbows straight upward until handles reach bench height.\n3. Squeeze shoulder blades together for 1 second, then lower to a dead hang.",
+    "trap": "\u2022 The \"Partial-Rep Bounce\" Trap: Cutting the bottom stretch short instead of letting shoulder blades protract fully.",
+    "science": "Strict dead-stop horizontal pulling eliminates body English and isolates the mid-back and rear delts."
   },
   {
     "name": "Underhand Dumbbell Row",
@@ -602,12 +602,12 @@
     "weight": 35,
     "reps": 10,
     "muscles": "Lower Lats & Biceps",
-    "topCue": "Set posture and brace core before starting Underhand Dumbbell Row (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lower Lats & Biceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Underhand Dumbbell Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Underhand Dumbbell Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Underhand Dumbbell Row.",
-    "science": "Targets Lower Lats & Biceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hinge torso to 45\u00b0 holding dumbbells with palms facing forward (supinated grip) and elbows tucked.",
+    "bottomCue": "Pull dumbbells into lower belly/hip crease, driving elbows tight past your ribs.",
+    "quickCue": "Remember to keep your palms facing forward and graze your elbows tight against your ribs toward your belly button to target the lower lats.",
+    "cue": "1. Hinge hips back to 45 degrees holding dumbbells with palms facing forward.\n2. Keep elbows tucked tight against your sides.\n3. Pull dumbbells into your lower abdomen/hip crease and pause 1 second.",
+    "trap": "\u2022 The \"Bicep-Only Curl\" Trap: Curling your wrists and bending elbows without driving your upper arms behind your torso.",
+    "science": "Supinated shoulder extension places the lower fibers of the latissimus dorsi in an optimal line of pull."
   },
   {
     "name": "Dumbbell High Pull",
@@ -617,12 +617,12 @@
     "weight": 30,
     "reps": 10,
     "muscles": "Upper Back, Traps & Posterior Delts",
-    "topCue": "Set posture and brace core before starting Dumbbell High Pull (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Upper Back at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell High Pull, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell High Pull.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell High Pull.",
-    "science": "Targets Upper Back, Traps & Posterior Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand hip-width with slight athletic knee bend; hold dumbbells in front of thighs with palms facing you.",
+    "bottomCue": "Drive hips and pull elbows high and wide until dumbbells reach collarbone height.",
+    "quickCue": "Remember to lead with your elbows high and wide toward the ceiling\u2014keep the dumbbells close to your torso and stop at collarbone height.",
+    "cue": "1. Stand hip-width apart with dumbbells resting in front of thighs.\n2. Extend hips crisply and pull your elbows high and wide until bells reach collarbone level.\n3. Lower under control over 2 seconds back to thighs.",
+    "trap": "\u2022 The \"Wrist-Flip\" Trap: Letting your hands rise higher than your elbows, which strains the wrists and rotator cuff.",
+    "science": "Develops upper-back, rear-delt, and trap power with triple-extension hip drive."
   },
   {
     "name": "Incline Dumbbell Lat Pullover",
@@ -632,12 +632,12 @@
     "weight": 35,
     "reps": 12,
     "muscles": "Lats & Thoracic Mobility",
-    "topCue": "Set posture and brace core before starting Incline Dumbbell Lat Pullover (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lats & Thoracic Mobility at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Incline Dumbbell Lat Pullover, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Incline Dumbbell Lat Pullover.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Incline Dumbbell Lat Pullover.",
-    "science": "Targets Lats & Thoracic Mobility with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie back on a 30\u00b0 incline bench holding a single dumbbell overhead with arms nearly straight.",
+    "bottomCue": "Lower dumbbell behind bench head into a deep lat stretch; pull back over upper chest.",
+    "quickCue": "Remember to keep your ribs pinned down to the incline pad so the stretch happens in your lats and armpits rather than your lower back.",
+    "cue": "1. Lie back on a 30-degree incline bench cupping one dumbbell over your upper chest.\n2. Keep a soft 15-degree bend in elbows and lower the bell behind your head over 3 seconds.\n3. Pull back over your chest using your lats.",
+    "trap": "\u2022 The \"Lower-Back Arch\" Trap: Letting your lumbar spine arch high off the incline pad at the bottom.",
+    "science": "Incline angle shifts peak resistance to the fully stretched overhead lat position."
   },
   {
     "name": "Kroc Row (High-Rep DB Row)",
@@ -647,12 +647,12 @@
     "weight": 50,
     "reps": 15,
     "muscles": "Lats, Grip & Upper Back Density",
-    "topCue": "Set posture and brace core before starting Kroc Row (High-Rep DB Row) (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lats at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Kroc Row (High-Rep DB Row), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Kroc Row (High-Rep DB Row).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Kroc Row (High-Rep DB Row).",
-    "science": "Targets Lats, Grip & Upper Back Density with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Brace one hand firmly on bench in a wide athletic stance; grip 50 lb dumbbell with tight wrist.",
+    "bottomCue": "Row 50 lb dumbbell explosively to lower ribs with controlled upper-back stretch at bottom.",
+    "quickCue": "Remember to let your shoulder blade protract fully at the bottom stretch on every rep, then drive your elbow hard past your ribs for high-rep density.",
+    "cue": "1. Place your non-working hand on the bench with a wide, stable stance and flat back.\n2. Let the 50 lb dumbbell stretch your lat fully at the bottom.\n3. Drive your elbow powerfully past your ribs for 15\u201320 crisp reps.",
+    "trap": "\u2022 The \"Sloppy Spine Twist\" Trap: Rounding your lower back or jerking your neck instead of driving through your upper back.",
+    "science": "High-rep heavy unilateral rowing maximizes mechanical tension and grip/upper-back endurance within the 50-lb cap."
   },
   {
     "name": "Dumbbell Deadstop Row",
@@ -662,12 +662,12 @@
     "weight": 45,
     "reps": 10,
     "muscles": "Explosive Lat & Mid-Back Pull",
-    "topCue": "Set posture and brace core before starting Dumbbell Deadstop Row (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Explosive Lat & Mid-Back Pull at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Deadstop Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Deadstop Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Deadstop Row.",
-    "science": "Targets Explosive Lat & Mid-Back Pull with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hinge over a single dumbbell resting on floor beside front foot; set flat back and brace core.",
+    "bottomCue": "Pull dumbbell cleanly off floor to hip pocket; set it down to a complete 1s dead-stop each rep.",
+    "quickCue": "Remember to let the dumbbell come to a complete 1-second dead stop on the floor between reps so you build pure starting power with zero bounce.",
+    "cue": "1. Take a staggered stance over a dumbbell resting on the floor with a flat back.\n2. Pull the dumbbell explosively to your hip pocket and squeeze 1 second.\n3. Lower it back to the floor for a complete 1-second dead stop before the next rep.",
+    "trap": "\u2022 The \"Touch-and-Go Bounce\" Trap: Bouncing the hex dumbbell off the rubber mat instead of resetting your back.",
+    "science": "Eliminating the stretch-shortening reflex forces maximum motor-unit recruitment on every pull."
   },
   {
     "name": "Prone Incline Rear Delt Row",
@@ -677,12 +677,12 @@
     "weight": 25,
     "reps": 12,
     "muscles": "Rear Delts & Mid-Traps",
-    "topCue": "Set posture and brace core before starting Prone Incline Rear Delt Row (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Rear Delts & Mid-Traps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Prone Incline Rear Delt Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Prone Incline Rear Delt Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Prone Incline Rear Delt Row.",
-    "science": "Targets Rear Delts & Mid-Traps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie chest-down on 30\u00b0 incline bench holding dumbbells with palms facing back toward your feet.",
+    "bottomCue": "Pull elbows out wide at 75\u201390\u00b0 from torso until upper arms align with shoulders.",
+    "quickCue": "Remember to flare your elbows wide away from your ribs (unlike a lat row) so the rear deltoids and mid-traps do 100% of the lifting.",
+    "cue": "1. Lie chest-down on a 30-degree incline bench with palms facing backward.\n2. Pull your elbows out wide away from your torso until upper arms align with your shoulders.\n3. Pause 1 second at the top, then lower over 3 seconds.",
+    "trap": "\u2022 The \"Tucked-Elbow Lat Pull\" Trap: Tucking elbows into your ribs, which shifts the load off your rear delts onto your lats.",
+    "science": "Wide-elbow horizontal abduction isolates the posterior deltoid and rhomboids without momentum."
   },
   {
     "name": "Dumbbell Lateral Raise",
@@ -692,12 +692,12 @@
     "weight": 15,
     "reps": 15,
     "muscles": "Medial Deltoids (Shoulder Width)",
-    "topCue": "Set posture and brace core before starting Dumbbell Lateral Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Medial Deltoids (Shoulder Width) at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Lateral Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Lateral Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Lateral Raise.",
-    "science": "Targets Medial Deltoids (Shoulder Width) with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with dumbbells slightly in front of thighs angled 30\u00b0 forward in the scapular plane.",
+    "bottomCue": "Push hands outward toward side walls to shoulder height without shrugging upper traps.",
+    "quickCue": "Remember to angle your arms 30\u00b0 slightly forward (not straight out to the sides) and push your hands OUT toward the side walls without shrugging your shoulders toward your ears.",
+    "cue": "1. Stand tall with shoulder blades relaxed down away from ears.\n2. Angle arms 20\u201330 degrees forward in the scapular plane.\n3. Push dumbbells outward to shoulder height, pause 1 second, and lower over 3 seconds.",
+    "trap": "\u2022 The \"Ear Shrug & Body Swing\" Trap: Shrugging shoulders toward your ears and swinging your hips to fling the weights up.",
+    "science": "Raising in the 30-degree scapular plane isolates the lateral deltoid while preventing shoulder impingement."
   },
   {
     "name": "Dumbbell Arnold Press",
@@ -707,12 +707,12 @@
     "weight": 30,
     "reps": 10,
     "muscles": "All 3 Deltoid Heads & Triceps",
-    "topCue": "Set posture and brace core before starting Dumbbell Arnold Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze All 3 Deltoid Heads & Triceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Arnold Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Arnold Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Arnold Press.",
-    "science": "Targets All 3 Deltoid Heads & Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit tall on bench holding dumbbells at chin height with palms facing your chest.",
+    "bottomCue": "Open elbows outward while rotating palms forward and pressing dumbbells overhead.",
+    "quickCue": "Remember to start with palms facing your chin, smoothly rotate your wrists outward as you press up, and keep your lower back pressed flat against the seat pad.",
+    "cue": "1. Sit on bench with back support holding dumbbells at chin level, palms facing you.\n2. Sweep elbows open while rotating palms away from you and pressing overhead.\n3. Reverse the rotation smoothly over 3 seconds back to chin level.",
+    "trap": "\u2022 The \"Lumbar Arch\" Trap: Arching your lower back off the seat pad as the dumbbells press overhead.",
+    "science": "Rotational path recruits anterior, lateral, and posterior deltoid heads through a long arc."
   },
   {
     "name": "Seated DB Overhead Press",
@@ -722,12 +722,12 @@
     "weight": 35,
     "reps": 10,
     "muscles": "Anterior & Medial Delts",
-    "topCue": "Set posture and brace core before starting Seated DB Overhead Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Anterior & Medial Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Seated DB Overhead Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Seated DB Overhead Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Seated DB Overhead Press.",
-    "science": "Targets Anterior & Medial Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit upright with back supported; hold dumbbells at ear level angled 30\u00b0 forward.",
+    "bottomCue": "Press dumbbells straight overhead without flaring ribs; lower over 3 seconds to ear level.",
+    "quickCue": "Remember to keep your elbows angled 30\u00b0 slightly forward in the scapular plane and brace your abs tight so your lower back stays glued to the bench pad.",
+    "cue": "1. Sit upright with back supported and feet planted firmly.\n2. Hold dumbbells at ear level with elbows angled 30 degrees forward.\n3. Press straight overhead and lower slowly over 3 seconds.",
+    "trap": "\u2022 The \"90\u00b0 Elbow Flare & Back Arch\" Trap: Flaring elbows straight back and overarching your spine.",
+    "science": "Seated back support isolates deltoid force output without lumbar compression."
   },
   {
     "name": "Dumbbell Rear Delt Reverse Fly",
@@ -737,12 +737,12 @@
     "weight": 15,
     "reps": 15,
     "muscles": "Posterior Deltoids & Mid-Traps",
-    "topCue": "Set posture and brace core before starting Dumbbell Rear Delt Reverse Fly (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Posterior Deltoids & Mid-Traps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Rear Delt Reverse Fly, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Rear Delt Reverse Fly.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Rear Delt Reverse Fly.",
-    "science": "Targets Posterior Deltoids & Mid-Traps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hinge torso forward 45\u201360\u00b0 (or lie chest-down on 30\u00b0 incline bench) with soft elbow bend.",
+    "bottomCue": "Sweep arms out wide like spreading wings with palms facing floor; pause 1s at top.",
+    "quickCue": "Remember to keep a soft, fixed bend in your elbows and sweep your hands out wide like spreading wings \u2014 don't bend your elbows 90\u00b0 into a narrow back row.",
+    "cue": "1. Hinge forward at the hips or lie chest-down on a 30-degree incline bench.\n2. Keep a soft fixed elbow bend.\n3. Sweep dumbbells out wide away from each other.\n4. Lower slowly over 3 seconds.",
+    "trap": "\u2022 The \"Narrow Row\" Trap: Bending your elbows 90 degrees and turning the fly into a mid-back row.",
+    "science": "Wide horizontal abduction isolates the posterior deltoid head for 3D shoulder balance."
   },
   {
     "name": "Standing Dumbbell Shoulder Press",
@@ -752,12 +752,12 @@
     "weight": 30,
     "reps": 10,
     "muscles": "Delts, Triceps & Braced Core",
-    "topCue": "Set posture and brace core before starting Standing Dumbbell Shoulder Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Standing Dumbbell Shoulder Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Standing Dumbbell Shoulder Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Standing Dumbbell Shoulder Press.",
-    "science": "Targets Delts, Triceps & Braced Core with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand hip-width with glutes and abs braced; hold dumbbells at shoulder height with elbows 30\u00b0 forward.",
+    "bottomCue": "Press dumbbells overhead until biceps align with ears without leaning torso backward.",
+    "quickCue": "Remember to squeeze your glutes and brace your ribs down before pressing\u2014never lean backward like a limbo dancer to get the weights overhead.",
+    "cue": "1. Stand hip-width apart with glutes squeezed and ribs stacked over pelvis.\n2. Hold dumbbells at shoulder height with elbows angled 30 degrees forward.\n3. Press straight overhead until biceps align with ears, then lower over 3 seconds.",
+    "trap": "\u2022 The \"Limbo Back-Lean\" Trap: Hyperextending your lower back and flaring ribs as the weights go up.",
+    "science": "Builds overhead pressing strength alongside standing anterior-core and glute anti-extension."
   },
   {
     "name": "Dumbbell Front Raise",
@@ -767,12 +767,12 @@
     "weight": 15,
     "reps": 12,
     "muscles": "Anterior Deltoids",
-    "topCue": "Set posture and brace core before starting Dumbbell Front Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Anterior Deltoids at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Front Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Front Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Front Raise.",
-    "science": "Targets Anterior Deltoids with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with shoulders back; hold dumbbells in front of thighs with thumbs angled slightly up.",
+    "bottomCue": "Raise dumbbells smoothly to eye level with soft elbows; lower over 3 seconds without swinging.",
+    "quickCue": "Remember to keep your shoulder blades pinned back and stop at eye level\u2014never lean your torso backward or swing your hips to start the lift.",
+    "cue": "1. Stand tall holding dumbbells in front of thighs with thumbs angled slightly upward.\n2. Keep elbows softly bent and raise dumbbells smoothly to eye level.\n3. Pause 1 second at the top, then lower over 3 seconds.",
+    "trap": "\u2022 The \"Torso Rock\" Trap: Leaning backward and swinging your hips to heave the dumbbells up.",
+    "science": "Targets the clavicular anterior deltoid through shoulder flexion."
   },
   {
     "name": "Single-Arm DB Overhead Press",
@@ -782,12 +782,12 @@
     "weight": 30,
     "reps": 10,
     "muscles": "Delts & Oblique Anti-Lateral Flexion",
-    "topCue": "Set posture and brace core before starting Single-Arm DB Overhead Press (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Delts & Oblique Anti-Lateral Flexion at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Single-Arm DB Overhead Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Single-Arm DB Overhead Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Single-Arm DB Overhead Press.",
-    "science": "Targets Delts & Oblique Anti-Lateral Flexion with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding one dumbbell at shoulder height; squeeze opposite fist and brace obliques.",
+    "bottomCue": "Press dumbbell straight overhead keeping shoulders and hips completely level.",
+    "quickCue": "Remember to lock your ribcage straight over your hips\u2014don't let your torso lean sideways away from the pressing dumbbell.",
+    "cue": "1. Stand hip-width apart holding a single dumbbell at your right shoulder.\n2. Brace your left obliques and glutes so your torso stays vertical.\n3. Press the dumbbell straight overhead, pause 1 second, and lower over 3 seconds.",
+    "trap": "\u2022 The \"Side-Lean Cheat\" Trap: Tilting your torso sideways to turn the press into an incline press.",
+    "science": "Trains unilateral overhead shoulder stability while firing the contralateral quadratus lumborum and obliques."
   },
   {
     "name": "Lean-Away DB Lateral Raise",
@@ -797,12 +797,12 @@
     "weight": 15,
     "reps": 15,
     "muscles": "Lengthened Medial Deltoid",
-    "topCue": "Set posture and brace core before starting Lean-Away DB Lateral Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lengthened Medial Deltoid at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Lean-Away DB Lateral Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Lean-Away DB Lateral Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Lean-Away DB Lateral Raise.",
-    "science": "Targets Lengthened Medial Deltoid with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hold upright post with free hand and lean body 15\u201320\u00b0 away; hold dumbbell in front of thigh.",
+    "bottomCue": "Sweep dumbbell outward to shoulder height; lower slowly into deep stretch across front of hip.",
+    "quickCue": "Remember to let your body hang in a steady 15\u201320\u00b0 lean from the post and sweep the dumbbell wide without shrugging your shoulder toward your ear.",
+    "cue": "1. Grip a sturdy post with your left hand and lean your body 15\u201320 degrees to the right.\n2. Hold a dumbbell in your right hand and sweep it out to shoulder height.\n3. Lower slowly over 3 seconds all the way across your front hip.",
+    "trap": "\u2022 The \"Momentum Pull\" Trap: Pulling yourself upright with your support arm to swing the dumbbell up.",
+    "science": "Leaning away shifts peak resistance curve into the lengthened bottom range of the medial deltoid."
   },
   {
     "name": "Dumbbell Upright Row (Wide)",
@@ -812,12 +812,12 @@
     "weight": 25,
     "reps": 12,
     "muscles": "Side Delts & Upper Traps",
-    "topCue": "Set posture and brace core before starting Dumbbell Upright Row (Wide) (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Side Delts & Upper Traps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Upright Row (Wide), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Upright Row (Wide).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Upright Row (Wide).",
-    "science": "Targets Side Delts & Upper Traps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding dumbbells slightly wider than shoulder-width in front of thighs.",
+    "bottomCue": "Pull elbows out wide to shoulder height (hands stay below elbows) for a 1-second pause.",
+    "quickCue": "Remember to keep your hands wider than your shoulders and stop when your upper arms reach parallel to the floor\u2014never pull hands above your elbows.",
+    "cue": "1. Hold dumbbells slightly wider than shoulder width in front of your thighs.\n2. Lead with your elbows out wide until upper arms reach parallel to the floor.\n3. Keep wrists neutral and lower slowly over 3 seconds.",
+    "trap": "\u2022 The \"Narrow High-Pull Impingement\" Trap: Using a narrow grip and pulling hands higher than elbows, internally rotating the shoulder.",
+    "science": "A wider shoulder-width path emphasizes the lateral deltoid while keeping the shoulder joint open."
   },
   {
     "name": "Dumbbell External Rotation",
@@ -827,12 +827,12 @@
     "weight": 10,
     "reps": 15,
     "muscles": "Infraspinatus & Rotator Cuff",
-    "topCue": "Set posture and brace core before starting Dumbbell External Rotation (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Infraspinatus & Rotator Cuff at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell External Rotation, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell External Rotation.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell External Rotation.",
-    "science": "Targets Infraspinatus & Rotator Cuff with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on side with top elbow bent 90\u00b0 and pinned tightly against ribs holding a light dumbbell.",
+    "bottomCue": "Rotate forearm upward in an arc toward ceiling without letting elbow lift off ribs.",
+    "quickCue": "Remember to keep your top elbow pinned tightly against your ribs like a door hinge and rotate your forearm upward across your body without swinging.",
+    "cue": "1. Lie on your side holding a light (5\u201312.5 lb) dumbbell in your top hand.\n2. Pin your top elbow against your ribs at a 90-degree angle.\n3. Rotate your forearm upward toward the ceiling and lower over 3 seconds.",
+    "trap": "\u2022 The \"Elbow Lift-Off\" Trap: Using too heavy a dumbbell and lifting your elbow off your ribs.",
+    "science": "Isolates the infraspinatus and teres minor across gravity to bullet-proof the rotator cuff."
   },
   {
     "name": "Dumbbell Scaption Raise",
@@ -842,12 +842,12 @@
     "weight": 12,
     "reps": 12,
     "muscles": "Supraspinatus & Scapular Plane Delts",
-    "topCue": "Set posture and brace core before starting Dumbbell Scaption Raise (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Supraspinatus & Scapular Plane Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Scaption Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Scaption Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Scaption Raise.",
-    "science": "Targets Supraspinatus & Scapular Plane Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding dumbbells at sides with thumbs pointing up and arms angled 30\u00b0 forward.",
+    "bottomCue": "Raise straight arms in a V-shape to shoulder height; pause 1s with shoulders depressed.",
+    "quickCue": "Remember to point your thumbs toward the ceiling (empty-can is out, thumbs-up is in) and raise in a 30\u00b0 V-angle to shoulder height.",
+    "cue": "1. Stand tall with thumbs pointing up and arms angled 30 degrees forward in a 'V'.\n2. Raise dumbbells to shoulder height while keeping shoulder blades down.\n3. Lower slowly over 3 seconds.",
+    "trap": "\u2022 The \"Thumbs-Down Internal Rotation\" Trap: Rotating thumbs downward, which narrows the subacromial space.",
+    "science": "Thumbs-up scaption aligns the humerus with the scapular plane for pain-free supraspinatus and deltoid loading."
   },
   {
     "name": "Dumbbell Bus Driver",
@@ -857,12 +857,12 @@
     "weight": 15,
     "reps": 12,
     "muscles": "Anterior & Medial Deltoid Endurance",
-    "topCue": "Set posture and brace core before starting Dumbbell Bus Driver (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Anterior & Medial Deltoid Endurance at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Bus Driver, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Bus Driver.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Bus Driver.",
-    "science": "Targets Anterior & Medial Deltoid Endurance with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hold a single dumbbell by both ends straight out in front of chest at shoulder height.",
+    "bottomCue": "Rotate dumbbell smoothly left and right like turning a steering wheel while keeping arms level.",
+    "quickCue": "Remember to keep your shoulders packed down away from your ears and hold the dumbbell steady at chest height as you steer left and right.",
+    "cue": "1. Grip both heads of a single dumbbell and extend arms straight out at chest height.\n2. Rotate the dumbbell 90 degrees left, then 90 degrees right like steering a bus.\n3. Keep core braced and shoulders down for the entire set.",
+    "trap": "\u2022 The \"Drooping Arms\" Trap: Letting the dumbbell sag down toward your belly button as your shoulders fatigue.",
+    "science": "Combines isometric anterior/medial deltoid endurance with rotational forearm and cuff stability."
   },
   {
     "name": "Dumbbell Hammer Curl",
@@ -872,12 +872,12 @@
     "weight": 30,
     "reps": 12,
     "muscles": "Brachialis, Biceps & Forearms",
-    "topCue": "Set posture and brace core before starting Dumbbell Hammer Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Brachialis at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Hammer Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Hammer Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Hammer Curl.",
-    "science": "Targets Brachialis, Biceps & Forearms with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with elbows pinned at sides, palms facing inward toward thighs (neutral handshake grip).",
+    "bottomCue": "Curl dumbbells toward shoulders keeping thumbs up and upper arms completely motionless.",
+    "quickCue": "Remember to pin your elbows to your ribs like hinges and keep your thumbs pointing up\u2014don't swing your elbows forward or lean your back.",
+    "cue": "1. Stand tall holding dumbbells at your sides with palms facing inward.\n2. Keep elbows pinned against your ribs and curl the bells upward toward your shoulders.\n3. Squeeze 1 second at the top, then lower over 3 seconds.",
+    "trap": "\u2022 The \"Elbow Swing\" Trap: Driving your elbows forward and leaning back to heave the weights up.",
+    "science": "Neutral wrist alignment heavily recruits the brachialis and brachioradialis while protecting elbow tendons."
   },
   {
     "name": "Dumbbell Bicep Curl",
@@ -887,12 +887,12 @@
     "weight": 25,
     "reps": 12,
     "muscles": "Biceps Brachii",
-    "topCue": "Set posture and brace core before starting Dumbbell Bicep Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Biceps Brachii at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Bicep Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Bicep Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Bicep Curl.",
-    "science": "Targets Biceps Brachii with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with palms facing forward, shoulders rolled back, and elbows tucked at sides.",
+    "bottomCue": "Curl dumbbells up keeping pinkies turned slightly higher than thumbs; lower to full extension.",
+    "quickCue": "Remember to keep your elbows glued to your sides and turn your pinkies slightly upward at the top squeeze\u2014lower all the way until arms are straight.",
+    "cue": "1. Stand tall holding dumbbells with palms facing forward and elbows tucked at your sides.\n2. Curl the dumbbells upward while keeping upper arms still.\n3. Squeeze 1 second at the top, then lower over 3 seconds to full elbow extension.",
+    "trap": "\u2022 The \"Half-Rep Swing\" Trap: Stopping halfway down and swinging your shoulders forward on every rep.",
+    "science": "Full elbow extension to peak supinated flexion maximizes biceps brachii mechanical tension."
   },
   {
     "name": "Incline Dumbbell Curl",
@@ -902,12 +902,12 @@
     "weight": 20,
     "reps": 12,
     "muscles": "Long-Head Bicep Stretch",
-    "topCue": "Set posture and brace core before starting Incline Dumbbell Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Long-Head Bicep Stretch at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Incline Dumbbell Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Incline Dumbbell Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Incline Dumbbell Curl.",
-    "science": "Targets Long-Head Bicep Stretch with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit back on a 45\u00b0 incline bench letting arms hang straight down behind torso with palms forward.",
+    "bottomCue": "Curl dumbbells upward while keeping elbows pointed straight at floor behind your ribs.",
+    "quickCue": "Remember to keep your elbows pinned back behind your torso all set\u2014never let your elbows swing forward as you curl up.",
+    "cue": "1. Set bench to 45 degrees, sit back with head on pad, and let arms hang straight down.\n2. Keeping elbows pointed straight at the floor, curl dumbbells up toward shoulders.\n3. Lower over 3 seconds back into the deep long-head stretch.",
+    "trap": "\u2022 The \"Forward Elbow Drift\" Trap: Pulling your elbows forward in front of your ribs, which removes the long-head stretch.",
+    "science": "Shoulder extension behind the torso stretches the biceps long head across the shoulder joint."
   },
   {
     "name": "Dumbbell Concentration Curl",
@@ -917,12 +917,12 @@
     "weight": 25,
     "reps": 12,
     "muscles": "Bicep Peak & Elbow Stability",
-    "topCue": "Set posture and brace core before starting Dumbbell Concentration Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Bicep Peak & Elbow Stability at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Concentration Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Concentration Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Concentration Curl.",
-    "science": "Targets Bicep Peak & Elbow Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit on bench edge with legs wide; brace back of working upper arm firmly against inner thigh.",
+    "bottomCue": "Curl dumbbell smoothly toward opposite shoulder without lifting elbow off inner thigh.",
+    "quickCue": "Remember to lock the back of your upper arm flat against your inner thigh so zero shoulder momentum can help lift the weight.",
+    "cue": "1. Sit on the bench edge and press the back of your right tricep firmly against your right inner thigh.\n2. Curl the dumbbell smoothly toward your chest while keeping your upper arm braced.\n3. Lower over 3 seconds to full extension.",
+    "trap": "\u2022 The \"Shoulder Hunch\" Trap: Lifting your elbow off your thigh and twisting your torso to heave the bell.",
+    "science": "Eliminates all shoulder flexion cheating to isolate peak biceps brachii contraction."
   },
   {
     "name": "Zottman Curl",
@@ -932,12 +932,12 @@
     "weight": 20,
     "reps": 10,
     "muscles": "Biceps & Eccentric Forearm Extensors",
-    "topCue": "Set posture and brace core before starting Zottman Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Biceps & Eccentric Forearm Extensors at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Zottman Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Zottman Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Zottman Curl.",
-    "science": "Targets Biceps & Eccentric Forearm Extensors with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding dumbbells at sides with palms facing forward at the bottom.",
+    "bottomCue": "Curl up with palms up, rotate palms downward at the top, and lower over 3s in overhand grip.",
+    "quickCue": "Remember to curl up palms-up, rotate your wrists to palms-down at the top, and take a slow 3-second lowering phase to armor your forearms and elbows.",
+    "cue": "1. Curl dumbbells upward with palms facing up (supinated).\n2. At the top squeeze, rotate your wrists so palms face downward (pronated).\n3. Lower slowly over 3 seconds with palms down, then rotate back to palms-up at the bottom.",
+    "trap": "\u2022 The \"Fast Drop\" Trap: Dropping the weights quickly on the overhand lowering phase instead of controlling the eccentric.",
+    "science": "Overloads the biceps concentrically and the brachioradialis/wrist extensors eccentrically."
   },
   {
     "name": "Cross-Body Hammer Curl",
@@ -947,12 +947,12 @@
     "weight": 25,
     "reps": 12,
     "muscles": "Brachialis & Brachioradialis",
-    "topCue": "Set posture and brace core before starting Cross-Body Hammer Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Brachialis & Brachioradialis at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Cross-Body Hammer Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Cross-Body Hammer Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Cross-Body Hammer Curl.",
-    "science": "Targets Brachialis & Brachioradialis with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding dumbbells at sides with thumbs pointing forward.",
+    "bottomCue": "Curl one dumbbell diagonally across torso toward opposite collarbone keeping elbow tucked.",
+    "quickCue": "Remember to curl diagonally across your chest toward your opposite shoulder while keeping your elbow pinned to your side.",
+    "cue": "1. Stand tall with dumbbells at sides in a neutral grip.\n2. Curl your right dumbbell diagonally across your torso toward your left collarbone.\n3. Pause 1 second, lower slowly, and alternate arms.",
+    "trap": "\u2022 The \"Flared Elbow\" Trap: Winged-out elbows that turn the curl into a shoulder swing.",
+    "science": "Emphasizes the brachialis muscle underneath the biceps to add upper-arm thickness."
   },
   {
     "name": "Overhead Dumbbell Tricep Extension",
@@ -962,12 +962,12 @@
     "weight": 35,
     "reps": 12,
     "muscles": "Long-Head Triceps Stretch",
-    "topCue": "Set posture and brace core before starting Overhead Dumbbell Tricep Extension (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Long-Head Triceps Stretch at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Overhead Dumbbell Tricep Extension, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Overhead Dumbbell Tricep Extension.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Overhead Dumbbell Tricep Extension.",
-    "science": "Targets Long-Head Triceps Stretch with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit or stand tall holding one dumbbell overhead with both hands cupping the top inner plate.",
+    "bottomCue": "Lower dumbbell behind head by bending elbows while keeping upper arms vertical next to ears.",
+    "quickCue": "Remember to keep your elbows pointed straight toward the ceiling next to your ears (don't flare them wide) and brace your abs so your lower back doesn't arch.",
+    "cue": "1. Cup the top head of a single dumbbell with both hands and press it straight overhead.\n2. Keep your upper arms vertical next to your ears and lower the dumbbell behind your head over 3 seconds.\n3. Extend elbows smoothly back to lockout without flaring ribs.",
+    "trap": "\u2022 The \"Wide-Wing Elbow & Rib Flare\" Trap: Flaring elbows out wide and overarching your lower back.",
+    "science": "Overhead shoulder flexion stretches the biarticular triceps long head for maximum hypertrophy."
   },
   {
     "name": "Dumbbell Skullcrusher",
@@ -977,12 +977,12 @@
     "weight": 25,
     "reps": 12,
     "muscles": "Triceps Brachii",
-    "topCue": "Set posture and brace core before starting Dumbbell Skullcrusher (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Triceps Brachii at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Skullcrusher, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Skullcrusher.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Skullcrusher.",
-    "science": "Targets Triceps Brachii with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on bench holding dumbbells over shoulders with palms facing each other.",
+    "bottomCue": "Hinge at elbows to lower dumbbells alongside temples/ears; extend back to vertical lockout.",
+    "quickCue": "Remember to keep your upper arms angled slightly back (10\u00b0) over your forehead so tension stays on your triceps even at the top lockout.",
+    "cue": "1. Lie flat on the bench holding dumbbells with neutral palms angled 10 degrees back behind vertical.\n2. Bend only at the elbows to lower the dumbbells beside your temples over 3 seconds.\n3. Extend elbows smoothly back to the starting angle.",
+    "trap": "\u2022 The \"Pullover Swing\" Trap: Swinging your upper arms back and forth like a pullover instead of hinging strictly at the elbow.",
+    "science": "Loads all three triceps heads in the mid-to-lengthened position with neutral wrist alignment."
   },
   {
     "name": "Dumbbell Tricep Kickback",
@@ -992,12 +992,12 @@
     "weight": 20,
     "reps": 12,
     "muscles": "Lateral & Long-Head Triceps",
-    "topCue": "Set posture and brace core before starting Dumbbell Tricep Kickback (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Lateral & Long-Head Triceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Tricep Kickback, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Tricep Kickback.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Tricep Kickback.",
-    "science": "Targets Lateral & Long-Head Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hinge torso to 45\u00b0 with upper arms pinned parallel to floor and elbows bent 90\u00b0.",
+    "bottomCue": "Extend forearms straight back until arms are completely straight; pause 1 second at lockout.",
+    "quickCue": "Remember to freeze your upper arms high and parallel to the floor\u2014only move your forearms backward and pause 1 full second at straight-arm lockout.",
+    "cue": "1. Hinge torso forward to 45 degrees and pin your upper arms parallel to your torso.\n2. Kick both forearms straight backward until elbows lock out completely.\n3. Hold 1 second at full extension, then lower back to 90 degrees without dropping elbows.",
+    "trap": "\u2022 The \"Pendulum Swing\" Trap: Dropping your elbows toward the floor and swinging the dumbbells like a pendulum.",
+    "science": "Places peak torque on the lateral and long triceps heads at full elbow extension."
   },
   {
     "name": "Single-Arm Overhead DB Extension",
@@ -1007,12 +1007,12 @@
     "weight": 20,
     "reps": 12,
     "muscles": "Unilateral Triceps Long Head",
-    "topCue": "Set posture and brace core before starting Single-Arm Overhead DB Extension (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Unilateral Triceps Long Head at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Single-Arm Overhead DB Extension, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Single-Arm Overhead DB Extension.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Single-Arm Overhead DB Extension.",
-    "science": "Targets Unilateral Triceps Long Head with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit tall holding one dumbbell straight overhead with working bicep beside ear; free hand braces ribs.",
+    "bottomCue": "Lower dumbbell behind opposite shoulder over 3 seconds; extend back to full lockout.",
+    "quickCue": "Remember to keep your working upper arm vertical right next to your ear and use your free hand on your ribs to remind your core not to arch.",
+    "cue": "1. Sit upright on the bench and press one dumbbell overhead with palm facing forward or inward.\n2. Keep your upper arm vertical next to your ear and lower the bell behind your head over 3 seconds.\n3. Extend elbow cleanly to lockout.",
+    "trap": "\u2022 The \"Forward-Falling Elbow\" Trap: Letting your elbow drift forward in front of your face as you press up.",
+    "science": "Allows custom natural wrist rotation and deep long-head triceps stretch on each arm independently."
   },
   {
     "name": "Dumbbell Wrist Curl",
@@ -1022,12 +1022,12 @@
     "weight": 20,
     "reps": 15,
     "muscles": "Wrist Flexors & Grip",
-    "topCue": "Set posture and brace core before starting Dumbbell Wrist Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Wrist Flexors & Grip at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Wrist Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Wrist Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Wrist Curl.",
-    "science": "Targets Wrist Flexors & Grip with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit on bench resting forearms flat on thighs with palms facing up and wrists hanging past knees.",
+    "bottomCue": "Let dumbbells roll down toward fingertips, then curl wrists upward for a 1-second squeeze.",
+    "quickCue": "Remember to keep your forearms glued flat to your thighs\u2014only your wrists and fingers should move.",
+    "cue": "1. Sit on the bench with forearms resting flat on your thighs, palms up, and wrists just past your knees.\n2. Lower the dumbbells into a full wrist extension stretch.\n3. Curl your wrists upward and squeeze forearms for 1 second.",
+    "trap": "\u2022 The \"Forearm Lift\" Trap: Lifting your elbows off your thighs to curl the weight with your biceps.",
+    "science": "Strengthens the wrist flexors and grip endurance for heavy 50-lb rows and carries."
   },
   {
     "name": "Dumbbell Reverse Wrist Curl",
@@ -1037,12 +1037,12 @@
     "weight": 12,
     "reps": 15,
     "muscles": "Wrist Extensors & Elbow Armor",
-    "topCue": "Set posture and brace core before starting Dumbbell Reverse Wrist Curl (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Wrist Extensors & Elbow Armor at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Reverse Wrist Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Reverse Wrist Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Reverse Wrist Curl.",
-    "science": "Targets Wrist Extensors & Elbow Armor with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit on bench resting forearms on thighs with palms facing down and wrists hanging over knees.",
+    "bottomCue": "Lift backs of hands upward toward ceiling using light dumbbells; lower over 3 seconds.",
+    "quickCue": "Remember to use a light dumbbell (5\u201315 lb) and lift the backs of your hands smoothly toward the ceiling without lifting your forearms off your thighs.",
+    "cue": "1. Rest forearms on thighs with palms facing down and wrists just past your knees.\n2. Extend the backs of your hands upward toward the ceiling.\n3. Pause 1 second at the top, then lower slowly over 3 seconds.",
+    "trap": "\u2022 The \"Jerky Whip\" Trap: Using too heavy a weight and jerking your wrists upward.",
+    "science": "Balances forearm flexors by strengthening the wrist extensors to prevent lateral epicondylitis (tennis elbow)."
   },
   {
     "name": "Dumbbell Farmer's Carry",
@@ -1052,12 +1052,12 @@
     "weight": 50,
     "reps": 40,
     "muscles": "Grip, Traps, Core & Gait Stability",
-    "topCue": "Set posture and brace core before starting Dumbbell Farmer's Carry (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Grip at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Farmer's Carry, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Farmer's Carry.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Farmer's Carry.",
-    "science": "Targets Grip, Traps, Core & Gait Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding heavy 50 lb dumbbells at sides with shoulders packed down and chest proud.",
+    "bottomCue": "Walk brisk, controlled heel-to-toe steps with zero side-to-side shoulder sway.",
+    "quickCue": "Remember to pack your shoulder blades down away from your ears, brace your abs tight, and take smooth controlled steps without swinging the dumbbells.",
+    "cue": "1. Pick up heavy dumbbells (up to 50 lb each) with a flat back and stand tall.\n2. Pull shoulders down and back so your neck stays long.\n3. Walk 20\u201330 controlled steps keeping your ribcage stacked over your pelvis.",
+    "trap": "\u2022 The \"Slumped Trap-Hang\" Trap: Letting your shoulders slump forward and downward while looking at your feet.",
+    "science": "Builds crush grip, upper-back postural endurance, and dynamic gait stability."
   },
   {
     "name": "Suitcase Carry (Single-Arm)",
@@ -1067,12 +1067,12 @@
     "weight": 45,
     "reps": 30,
     "muscles": "Quadratus Lumborum, Obliques & Grip",
-    "topCue": "Set posture and brace core before starting Suitcase Carry (Single-Arm) (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Quadratus Lumborum at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Suitcase Carry (Single-Arm), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Suitcase Carry (Single-Arm).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Suitcase Carry (Single-Arm).",
-    "science": "Targets Quadratus Lumborum, Obliques & Grip with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Hold a single 50 lb dumbbell in one hand like a heavy suitcase; level both shoulders.",
+    "bottomCue": "Walk 12 slow steps per side as if balancing a glass of water on your head.",
+    "quickCue": "Remember to walk slow and tall as if balancing a glass of water on your head \u2014 do NOT let the 50 lb dumbbell pull your shoulders sideways or lean like a teapot.",
+    "cue": "1. Pick up a single 50 lb dumbbell in one hand only.\n2. Level your shoulders so you neither sag toward the weight nor lean sideways.\n3. Walk 12 slow heel-to-toe steps per side, then switch hands.",
+    "trap": "\u2022 The \"Teapot Lean\" Trap: Tilting your torso sideways away from the dumbbell or letting the weighted shoulder sag.",
+    "science": "Unilateral 50-lb load forces the opposite-side quadratus lumborum (QL) and glute medius to fire isometrically."
   },
   {
     "name": "Dumbbell Russian Twist",
@@ -1082,12 +1082,12 @@
     "weight": 20,
     "reps": 20,
     "muscles": "Obliques & Rotational Core",
-    "topCue": "Set posture and brace core before starting Dumbbell Russian Twist (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Obliques & Rotational Core at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Russian Twist, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Russian Twist.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Russian Twist.",
-    "science": "Targets Obliques & Rotational Core with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit on mat with knees bent, heels grounded (or hovering), and torso leaned back at 45\u00b0 with flat spine.",
+    "bottomCue": "Rotate ribcage and shoulders side-to-side tapping dumbbell gently near each hip.",
+    "quickCue": "Remember to keep your chest proud and rotate your entire ribcage side-to-side\u2014don't just wave your hands while your torso stays frozen.",
+    "cue": "1. Sit with knees bent, heels on the floor, and lean back to a 45-degree angle with a flat back.\n2. Hold one dumbbell at your chest and rotate your ribcage to the right, then to the left.\n3. Move with a controlled 2-second tempo per side.",
+    "trap": "\u2022 The \"Arm-Wave Slouch\" Trap: Rounding your lower back and swinging only your arms side to side.",
+    "science": "Trains rotational oblique torque and trunk control."
   },
   {
     "name": "Dumbbell Side Bend",
@@ -1097,12 +1097,12 @@
     "weight": 35,
     "reps": 12,
     "muscles": "Obliques & Lateral Core",
-    "topCue": "Set posture and brace core before starting Dumbbell Side Bend (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Obliques & Lateral Core at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Side Bend, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Side Bend.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Side Bend.",
-    "science": "Targets Obliques & Lateral Core with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding a single dumbbell in one hand with free hand behind head or on hip.",
+    "bottomCue": "Tilt torso straight sideways toward dumbbell a few inches; pull back upright with opposite obliques.",
+    "quickCue": "Remember to move strictly in a flat side-to-side plane (as if between two panes of glass)\u2014never twist or lean forward as you bend.",
+    "cue": "1. Stand hip-width apart holding one dumbbell at your side.\n2. Slide the dumbbell straight down the side of your thigh a few inches.\n3. Contract your opposite obliques to pull your torso back to vertical.",
+    "trap": "\u2022 The \"Forward-Twist Slump\" Trap: Bending forward and twisting your chest toward the floor.",
+    "science": "Loads lateral trunk flexion and oblique anti-lateral-flexion strength."
   },
   {
     "name": "Weighted Crunch (DB)",
@@ -1112,12 +1112,12 @@
     "weight": 25,
     "reps": 15,
     "muscles": "Rectus Abdominis",
-    "topCue": "Set posture and brace core before starting Weighted Crunch (DB) (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Rectus Abdominis at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Weighted Crunch (DB), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Weighted Crunch (DB).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Weighted Crunch (DB).",
-    "science": "Targets Rectus Abdominis with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with knees bent, feet flat, and dumbbell held snug against upper chest/collarbone.",
+    "bottomCue": "Exhale hard and curl ribcage toward pelvis lifting shoulder blades off mat for 1s squeeze.",
+    "quickCue": "Remember to exhale all your air as you curl your ribs down toward your belt buckle\u2014never yank on your neck or swing the dumbbell forward.",
+    "cue": "1. Lie on your back with knees bent and hold a dumbbell securely against your upper chest.\n2. Exhale hard and curl your shoulder blades off the floor by pulling ribs toward pelvis.\n3. Pause 1 second at peak ab contraction, then lower over 3 seconds.",
+    "trap": "\u2022 The \"Dumbbell Momentum Throw\" Trap: Heaving the dumbbell forward toward your knees to sit up.",
+    "science": "Adds progressive overload to thoracic spinal flexion for rectus abdominis hypertrophy."
   },
   {
     "name": "Dumbbell Woodchopper",
@@ -1127,12 +1127,12 @@
     "weight": 20,
     "reps": 12,
     "muscles": "Rotational Core & Hips",
-    "topCue": "Set posture and brace core before starting Dumbbell Woodchopper (Dumbbell).",
-    "bottomCue": "Control the full range of motion and squeeze Rotational Core & Hips at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dumbbell Woodchopper, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dumbbell Woodchopper.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dumbbell Woodchopper.",
-    "science": "Targets Rotational Core & Hips with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand wider than shoulder-width holding one dumbbell with both hands outside your right hip in a quarter-squat.",
+    "bottomCue": "Pivot back foot and rotate torso diagonally upward to press dumbbell above left shoulder.",
+    "quickCue": "Remember to pivot your back foot and drive the rotation from your hips and core\u2014keep your arms long and lower back braced.",
+    "cue": "1. Squat slightly and hold one dumbbell outside your right hip with both hands.\n2. Pivot your right foot and rotate your hips and ribcage diagonally upward toward your left shoulder.\n3. Control the return back down to your right hip over 2 seconds.",
+    "trap": "\u2022 The \"Locked-Foot Spine Twist\" Trap: Keeping your back foot glued flat so all the torque twists your lower back.",
+    "science": "Integrates hip rotation, oblique power, and anti-extension shoulder stability."
   },
   {
     "name": "Band Pull-Apart",
@@ -1142,12 +1142,12 @@
     "weight": 0,
     "reps": 20,
     "muscles": "Rear Delts, Rhomboids & Posture",
-    "topCue": "Set posture and brace core before starting Band Pull-Apart (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Rear Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Pull-Apart, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Pull-Apart.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Pull-Apart.",
-    "science": "Targets Rear Delts, Rhomboids & Posture with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding resistance band at shoulder width straight out in front of chest with arms straight.",
+    "bottomCue": "Sweep straight arms wide until band touches breastbone; pause 2s with shoulders down.",
+    "quickCue": "Remember to keep your shoulders relaxed down away from your ears and sweep your straight arms wide until the band touches your breastbone for a 2-second squeeze.",
+    "cue": "1. Hold a resistance band at shoulder height with straight arms and palms down or up.\n2. Sweep your hands wide apart until the band touches your sternum.\n3. Hold the upper-back squeeze for 2 full seconds, then return slowly.",
+    "trap": "\u2022 The \"Trap Shrug & Rib Flare\" Trap: Shrugging shoulders toward ears or arching your lower back to finish the pull.",
+    "science": "High-rep scapular retraction and rear-delt activation directly reverse rounded desk posture."
   },
   {
     "name": "Band Face Pull",
@@ -1157,12 +1157,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Posterior Delts & External Rotators",
-    "topCue": "Set posture and brace core before starting Band Face Pull (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Posterior Delts & External Rotators at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Face Pull, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Face Pull.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Face Pull.",
-    "science": "Targets Posterior Delts & External Rotators with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Anchor band at eye level; step back holding ends with arms straight and thumbs pointing backward.",
+    "bottomCue": "Pull band toward forehead while rotating thumbs back into a high double-bicep pose for 2s.",
+    "quickCue": "Remember to pull the band toward your forehead while rotating your thumbs backward so you finish in a high \"double-bicep\" pose for 2 seconds \u2014 don't jut your chin forward.",
+    "cue": "1. Anchor band at eye level and grab both sides with thumbs pointing back.\n2. Pull toward your forehead while separating your hands.\n3. Rotate forearms upward into a high double-bicep pose and hold 2 seconds.",
+    "trap": "\u2022 The \"Chin-Jut & Low Pull\" Trap: Poking your chin forward or pulling the band low to your chest.",
+    "science": "Combines horizontal abduction with external rotation to strengthen the infraspinatus and lower traps."
   },
   {
     "name": "Banded Clamshell",
@@ -1172,12 +1172,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glute Medius & Knee/Shin Alignment",
-    "topCue": "Set posture and brace core before starting Banded Clamshell (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Medius & Knee/Shin Alignment at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Banded Clamshell, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Banded Clamshell.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Banded Clamshell.",
-    "science": "Targets Glute Medius & Knee/Shin Alignment with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on side with loop band above knees, knees bent 45\u00b0, and top hip stacked vertically over bottom hip.",
+    "bottomCue": "Keep heels glued together and open top knee upward without letting pelvis roll backward.",
+    "quickCue": "Remember to keep your heels glued together and tilt your top hip bone slightly forward \u2014 open your top knee using only your side-glute without rolling your pelvis backward.",
+    "cue": "1. Loop a band just above both knees and lie on your side with knees bent 45 degrees.\n2. Stack your top hip bone slightly forward so your pelvis cannot roll back.\n3. Keeping heels glued together, lift your top knee upward and hold 2 seconds.",
+    "trap": "\u2022 The \"Pelvic Roll-Back\" Trap: Rolling your whole torso and pelvis backward toward the floor to fake higher knee opening.",
+    "science": "Strengthens gluteus medius external rotation so your knee doesn't collapse inward during running foot-strike."
   },
   {
     "name": "Band Lateral Walk",
@@ -1187,12 +1187,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glute Medius & Hip Abductors",
-    "topCue": "Set posture and brace core before starting Band Lateral Walk (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Medius & Hip Abductors at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Lateral Walk, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Lateral Walk.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Lateral Walk.",
-    "science": "Targets Glute Medius & Hip Abductors with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Loop band around ankles or above knees; sink into an athletic quarter-squat with toes straight ahead.",
+    "bottomCue": "Take controlled 8-inch sideways steps keeping feet parallel and constant tension on band.",
+    "quickCue": "Remember to stay low in an athletic quarter-squat with toes pointed straight ahead (never flared out like a duck) and step sideways without rocking your shoulders.",
+    "cue": "1. Place a loop band around your ankles or above knees and sink into a quarter-squat.\n2. Point toes straight ahead.\n3. Step sideways 8 inches at a time while keeping constant tension on the band.",
+    "trap": "\u2022 The \"Duck-Foot Waddle\" Trap: Flaring toes outward and swaying shoulders side to side.",
+    "science": "Trains frontal-plane glute medius and minimus pelvic stabilization under weight-bearing load."
   },
   {
     "name": "Band Monster Walk",
@@ -1202,12 +1202,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glute Medius & External Rotators",
-    "topCue": "Set posture and brace core before starting Band Monster Walk (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Medius & External Rotators at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Monster Walk, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Monster Walk.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Monster Walk.",
-    "science": "Targets Glute Medius & External Rotators with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Loop band around ankles and forefeet; sink into quarter-squat with feet hip-width apart.",
+    "bottomCue": "Step diagonally forward and outward like a monster while maintaining wide knee alignment.",
+    "quickCue": "Remember to keep your knees pushed outward over your toes and take wide diagonal steps forward and backward\u2014never let your knees cave inward.",
+    "cue": "1. Loop band around ankles and sink into an athletic quarter-squat.\n2. Take wide diagonal steps forward and outward for 10 steps, then reverse diagonally backward.\n3. Keep constant tension on the band throughout.",
+    "trap": "\u2022 The \"Narrow-Step Slack\" Trap: Stepping straight forward on a tightrope so the band loses tension.",
+    "science": "Recruits posterior glute medius and external rotators through multi-planar hip abduction."
   },
   {
     "name": "Band External Rotation",
@@ -1217,12 +1217,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Rotator Cuff & Shoulder Stability",
-    "topCue": "Set posture and brace core before starting Band External Rotation (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Rotator Cuff & Shoulder Stability at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band External Rotation, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band External Rotation.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band External Rotation.",
-    "science": "Targets Rotator Cuff & Shoulder Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand sideways to anchored band with working elbow bent 90\u00b0 and pinned tightly against ribs.",
+    "bottomCue": "Rotate forearm outward away from belly until hand points straight ahead; return over 3s.",
+    "quickCue": "Remember to pin your elbow tightly against your ribs (tuck a towel there if needed) and rotate your forearm outward without twisting your torso.",
+    "cue": "1. Anchor band at elbow height and pin your working elbow against your ribs at 90 degrees.\n2. Rotate your forearm outward away from your stomach until wrist points straight forward.\n3. Pause 1 second, then return slowly over 3 seconds.",
+    "trap": "\u2022 The \"Torso-Twist Cheat\" Trap: Turning your chest away from the anchor instead of rotating at the shoulder joint.",
+    "science": "Provides smooth accommodating resistance to the posterior rotator cuff."
   },
   {
     "name": "Band Overhead Tricep Extension",
@@ -1232,12 +1232,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Triceps Brachii",
-    "topCue": "Set posture and brace core before starting Band Overhead Tricep Extension (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Triceps Brachii at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Overhead Tricep Extension, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Overhead Tricep Extension.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Overhead Tricep Extension.",
-    "science": "Targets Triceps Brachii with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Step on one end of band and hold the other overhead behind neck with elbows pointed at ceiling.",
+    "bottomCue": "Extend forearms straight overhead to full lockout while keeping upper arms next to ears.",
+    "quickCue": "Remember to keep your elbows pointed straight up next to your ears and brace your abs tight so your lower back doesn't arch.",
+    "cue": "1. Anchor band under your back foot and hold the top end behind your head with elbows pointing up.\n2. Extend your forearms smoothly to straight-arm lockout overhead.\n3. Lower back behind head over 3 seconds.",
+    "trap": "\u2022 The \"Flared Elbow\" Trap: Letting elbows bow outward to the sides during lockout.",
+    "science": "Combines overhead triceps long-head stretch with peak band tension at lockout."
   },
   {
     "name": "Band Tricep Pushdown",
@@ -1247,12 +1247,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Lateral & Medial Triceps",
-    "topCue": "Set posture and brace core before starting Band Tricep Pushdown (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Lateral & Medial Triceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Tricep Pushdown, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Tricep Pushdown.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Tricep Pushdown.",
-    "science": "Targets Lateral & Medial Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Anchor band overhead; grip ends with elbows pinned tightly against ribs at 90\u00b0.",
+    "bottomCue": "Press hands down until arms are completely straight beside thighs; squeeze triceps 1s.",
+    "quickCue": "Remember to lock your elbows against your ribs and press all the way down until your arms are straight\u2014don't let your shoulders roll forward.",
+    "cue": "1. Anchor band overhead and pin your elbows snug against your ribs.\n2. Press hands straight down until elbows lock out completely beside your thighs.\n3. Hold 1 second, then return to 90 degrees over 2 seconds.",
+    "trap": "\u2022 The \"Shoulder-Roll Press\" Trap: Hunching your shoulders forward and pushing down with your chest.",
+    "science": "Isolates the lateral and medial triceps heads with peak resistance at full extension."
   },
   {
     "name": "Band Bicep Curl",
@@ -1262,12 +1262,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Biceps Brachii",
-    "topCue": "Set posture and brace core before starting Band Bicep Curl (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Biceps Brachii at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Bicep Curl, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Bicep Curl.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Bicep Curl.",
-    "science": "Targets Biceps Brachii with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand on center of band with feet hip-width apart; hold ends at sides with palms facing forward.",
+    "bottomCue": "Curl hands toward shoulders against rising band tension; lower smoothly over 3 seconds.",
+    "quickCue": "Remember to pin your elbows to your ribs and squeeze hard at the top where band tension peaks\u2014control the snap back down over 3 seconds.",
+    "cue": "1. Stand on the band with feet hip-width apart and elbows pinned to your sides.\n2. Curl your hands toward your shoulders with palms up.\n3. Pause 1 second at peak tension, then resist the band back down over 3 seconds.",
+    "trap": "\u2022 The \"Snap-Back Drop\" Trap: Letting the band yank your hands back down without eccentric control.",
+    "science": "Accommodating resistance matches peak biceps force output in the mid-to-top range."
   },
   {
     "name": "Band Seated Row",
@@ -1277,12 +1277,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Mid-Back & Lats",
-    "topCue": "Set posture and brace core before starting Band Seated Row (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Mid-Back & Lats at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Seated Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Seated Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Seated Row.",
-    "science": "Targets Mid-Back & Lats with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit tall on floor or bench with legs extended and band looped securely around mid-feet.",
+    "bottomCue": "Pull handles past ribs and squeeze shoulder blades together for 2 seconds with chest proud.",
+    "quickCue": "Remember to sit tall on your sit-bones (never slump your lower back) and pull your elbows past your ribs for a 2-second upper-back squeeze.",
+    "cue": "1. Sit tall with knees slightly bent and band wrapped securely around the arches of your feet.\n2. Pull your elbows straight back past your ribs and squeeze shoulder blades together for 2 seconds.\n3. Return slowly without rounding your shoulders forward.",
+    "trap": "\u2022 The \"Slumped Spine\" Trap: Rounding your lower back and leaning backward as you pull.",
+    "science": "Trains mid-back rhomboid and lower-trap endurance with zero axial spine load."
   },
   {
     "name": "Band Lat Pulldown (Kneeling)",
@@ -1292,12 +1292,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Lats & Teres Major",
-    "topCue": "Set posture and brace core before starting Band Lat Pulldown (Kneeling) (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Lats & Teres Major at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Lat Pulldown (Kneeling), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Lat Pulldown (Kneeling).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Lat Pulldown (Kneeling).",
-    "science": "Targets Lats & Teres Major with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Kneel tall facing high-anchored band with arms extended overhead and chest lifted.",
+    "bottomCue": "Drive elbows down toward ribs and back pockets while pulling band to upper chest.",
+    "quickCue": "Remember to depress your shoulder blades down away from your ears first, then drive your elbows down toward your back pockets.",
+    "cue": "1. Anchor band high and kneel tall with arms extended overhead.\n2. Pull your shoulder blades down and drive your elbows toward your ribs until hands reach collarbone level.\n3. Pause 1 second, then extend smoothly back overhead.",
+    "trap": "\u2022 The \"Forward-Shoulder Pull\" Trap: Rounding your shoulders forward at the bottom of the pulldown.",
+    "science": "Replicates vertical latissimus dorsi pulling in a home gym without a cable tower."
   },
   {
     "name": "Band Straight-Arm Pulldown",
@@ -1307,12 +1307,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Lats & Scapular Depression",
-    "topCue": "Set posture and brace core before starting Band Straight-Arm Pulldown (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Lats & Scapular Depression at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Straight-Arm Pulldown, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Straight-Arm Pulldown.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Straight-Arm Pulldown.",
-    "science": "Targets Lats & Scapular Depression with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand facing high-anchored band with slight 15\u00b0 hip hinge and straight arms extended at eye level.",
+    "bottomCue": "Sweep straight arms downward in an arc until hands press into outer thighs; pause 2s.",
+    "quickCue": "Remember to keep your elbows nearly locked straight and sweep your hands down to your thighs using your armpits/lats\u2014don't bend elbows into a tricep pushdown.",
+    "cue": "1. Anchor band high, hinge slightly at the hips, and hold band with straight arms.\n2. Keeping elbows locked with a 10-degree soft bend, sweep hands down to your thighs.\n3. Hold the lat squeeze for 2 seconds, then raise slowly.",
+    "trap": "\u2022 The \"Tricep Pushdown Bend\" Trap: Bending your elbows 90 degrees and pushing down with your triceps.",
+    "science": "Isolates shoulder extension across the lats and teres major without biceps involvement."
   },
   {
     "name": "Band Chest Press",
@@ -1322,12 +1322,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Pectorals & Anterior Delts",
-    "topCue": "Set posture and brace core before starting Band Chest Press (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Pectorals & Anterior Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Chest Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Chest Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Chest Press.",
-    "science": "Targets Pectorals & Anterior Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Loop band behind upper back under armpits; hold ends at chest level with staggered athletic stance.",
+    "bottomCue": "Press hands forward until arms lock out and meet in front of sternum; return over 3s.",
+    "quickCue": "Remember to keep the band tucked under your armpits (so it doesn't ride up your neck) and press forward while squeezing your inner chest.",
+    "cue": "1. Wrap band across your shoulder blades under your armpits and take a staggered stance.\n2. Press both hands forward until arms are straight and hands meet in front of your chest.\n3. Return slowly over 3 seconds.",
+    "trap": "\u2022 The \"High Neck-Slide\" Trap: Letting the band slide up onto your neck and shrugging your traps.",
+    "science": "Provides peak resistance at full horizontal adduction lockout where dumbbells lose tension."
   },
   {
     "name": "Band Chest Fly",
@@ -1337,12 +1337,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Pectorals",
-    "topCue": "Set posture and brace core before starting Band Chest Fly (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Pectorals at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Chest Fly, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Chest Fly.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Chest Fly.",
-    "science": "Targets Pectorals with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Anchor band behind torso at chest height; step forward into staggered stance with arms wide and soft elbows.",
+    "bottomCue": "Sweep arms forward in a wide hugging arc until hands touch in front of sternum; pause 2s.",
+    "quickCue": "Remember to keep a fixed 15\u00b0 elbow bend and hug your hands together in front of your sternum for a 2-second inner-chest squeeze.",
+    "cue": "1. Anchor band behind you at chest height and step forward until arms are open wide with 15-degree elbow bend.\n2. Sweep hands forward in a wide arc until they touch in front of your chest.\n3. Hold 2 seconds, then open slowly over 3 seconds.",
+    "trap": "\u2022 The \"Shoulder-Protraction Slump\" Trap: Letting your shoulders roll forward as your hands come together.",
+    "science": "Delivers maximum pectoral adduction tension at peak contraction."
   },
   {
     "name": "Band Lateral Raise",
@@ -1352,12 +1352,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Medial Deltoids",
-    "topCue": "Set posture and brace core before starting Band Lateral Raise (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Medial Deltoids at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Lateral Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Lateral Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Lateral Raise.",
-    "science": "Targets Medial Deltoids with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand on band with one or both feet; hold ends at thighs angled 30\u00b0 forward.",
+    "bottomCue": "Push hands outward to shoulder height against band tension; lower over 3 seconds.",
+    "quickCue": "Remember to angle your arms 30\u00b0 forward and keep your shoulders pressed down away from your ears as band tension builds at the top.",
+    "cue": "1. Stand on the band with feet hip-width apart and hold ends at your sides.\n2. Raise arms 30 degrees forward in the scapular plane to shoulder height.\n3. Pause 1 second at the top, then lower slowly over 3 seconds.",
+    "trap": "\u2022 The \"Trap Shrug\" Trap: Shrugging your upper traps upward as the band gets tighter near the top.",
+    "science": "Matches peak resistance to the shortened medial deltoid position."
   },
   {
     "name": "Band Good Morning",
@@ -1367,12 +1367,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Hamstrings, Glutes & Lower Back",
-    "topCue": "Set posture and brace core before starting Band Good Morning (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Hamstrings at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Good Morning, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Good Morning.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Good Morning.",
-    "science": "Targets Hamstrings, Glutes & Lower Back with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand on band with feet hip-width and loop top of band behind neck/upper traps; soft 15\u00b0 knee bend.",
+    "bottomCue": "Push hips straight back until torso is nearly parallel to floor; drive hips forward to stand.",
+    "quickCue": "Remember to push your hips straight back with a flat spine (like an RDL) and keep your knees unlocked at 15\u00b0 all set.",
+    "cue": "1. Step on the band with both feet and loop the other end comfortably across your upper traps (not your neck).\n2. Unlock knees 15 degrees and push your hips straight back with a flat spine.\n3. Drive hips forward and squeeze glutes at the top.",
+    "trap": "\u2022 The \"Neck-Pull Round\" Trap: Letting the band pull your head down and rounding your upper back.",
+    "science": "Trains hip-hinge patterning and hamstring/glute lockout speed with zero spinal compression."
   },
   {
     "name": "Band Pull-Through",
@@ -1382,12 +1382,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glutes & Hip Hinge",
-    "topCue": "Set posture and brace core before starting Band Pull-Through (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Glutes & Hip Hinge at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Pull-Through, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Pull-Through.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Pull-Through.",
-    "science": "Targets Glutes & Hip Hinge with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Anchor band low behind you; straddle band facing away and hinge hips back with straight arms.",
+    "bottomCue": "Snap hips forward into a tall plank while squeezing glutes hard for 2 seconds.",
+    "quickCue": "Remember to keep your arms hanging like passive ropes between your legs\u2014let your hips and glutes do 100% of the pulling.",
+    "cue": "1. Anchor band low behind you, straddle it, and walk forward to create tension.\n2. Hinge your hips back with a flat spine while letting your arms reach back between your legs.\n3. Drive your hips forward to stand tall and squeeze glutes for 2 seconds.",
+    "trap": "\u2022 The \"Arm-Pull Squat\" Trap: Squatting straight down and pulling the band forward with your shoulders.",
+    "science": "Teaches explosive hip-hinge extension with posterior band resistance."
   },
   {
     "name": "Banded Glute Bridge",
@@ -1397,12 +1397,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glute Max & Glute Medius",
-    "topCue": "Set posture and brace core before starting Banded Glute Bridge (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Max & Glute Medius at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Banded Glute Bridge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Banded Glute Bridge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Banded Glute Bridge.",
-    "science": "Targets Glute Max & Glute Medius with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on floor with loop band above knees, heels 6 inches from glutes, and knees pressed outward.",
+    "bottomCue": "Drive through heels to lift hips while actively pushing knees outward against band for 2s hold.",
+    "quickCue": "Remember to push your knees outward against the band the entire set while tucking your tailbone and squeezing your glutes at the top.",
+    "cue": "1. Place a loop band just above both knees and lie on your back with heels 6 inches from glutes.\n2. Push your knees outward to create band tension, then drive through heels to lift hips.\n3. Hold 2 seconds at the top with glutes and outer hips firing.",
+    "trap": "\u2022 The \"Knee Cave\" Trap: Letting the band pull your knees inward toward each other as you lift.",
+    "science": "Simultaneously recruits gluteus maximus (hip extension) and gluteus medius (hip abduction)."
   },
   {
     "name": "Band Pallof Press",
@@ -1412,12 +1412,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Anti-Rotation Core",
-    "topCue": "Set posture and brace core before starting Band Pallof Press (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Anti-Rotation Core at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Pallof Press, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Pallof Press.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Pallof Press.",
-    "science": "Targets Anti-Rotation Core with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand sideways to chest-height anchored band; hold handle against center of sternum in quarter-squat.",
+    "bottomCue": "Press hands straight forward to full arm extension without letting torso twist toward anchor.",
+    "quickCue": "Remember to press your hands straight out from the center of your breastbone\u2014resist the band's sideways pull like a statue.",
+    "cue": "1. Anchor band at chest height, stand sideways in an athletic quarter-squat, and hold band at sternum.\n2. Press hands straight forward until arms are completely straight.\n3. Hold 2 full seconds resisting rotation, then pull back to chest.",
+    "trap": "\u2022 The \"Sideways Drift\" Trap: Letting the band pull your hands off-center toward the anchor point.",
+    "science": "Builds true anti-rotation core stiffness across the obliques and transverse abdominis."
   },
   {
     "name": "Band Woodchop",
@@ -1427,12 +1427,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Obliques & Rotational Power",
-    "topCue": "Set posture and brace core before starting Band Woodchop (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Obliques & Rotational Power at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Woodchop, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Woodchop.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Woodchop.",
-    "science": "Targets Obliques & Rotational Power with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand sideways to high- or low-anchored band with athletic stance and hands gripping band with straight arms.",
+    "bottomCue": "Pivot back foot and rotate torso diagonally across body; control the return over 2 seconds.",
+    "quickCue": "Remember to pivot your back foot and drive the diagonal chop from your hips and obliques while keeping your arms extended.",
+    "cue": "1. Anchor band high (or low) and stand sideways with arms extended toward the anchor.\n2. Pivot your trail foot and rotate your ribcage diagonally across your body.\n3. Control the band back to the start over 2 seconds without letting it snap.",
+    "trap": "\u2022 The \"Arm-Only Pull\" Trap: Bending your elbows and pulling with your arms while your hips stay frozen.",
+    "science": "Trains integrated rotational core power across the oblique slings."
   },
   {
     "name": "Band Ankle Dorsiflexion",
@@ -1442,12 +1442,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Tibialis Anterior & Ankle Mobility",
-    "topCue": "Set posture and brace core before starting Band Ankle Dorsiflexion (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Tibialis Anterior & Ankle Mobility at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Ankle Dorsiflexion, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Ankle Dorsiflexion.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Ankle Dorsiflexion.",
-    "science": "Targets Tibialis Anterior & Ankle Mobility with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit with leg extended and band anchored in front around top of forefoot; pull toes toward shin.",
+    "bottomCue": "Dorsiflex ankle to maximum range against band for a 2-second tibialis squeeze; return slowly.",
+    "quickCue": "Remember to keep your knee straight and pull the top of your foot as far back toward your shin as possible for a 2-second hold.",
+    "cue": "1. Anchor band low in front of you and loop it across the top of your forefoot while seated.\n2. Pull your toes and forefoot straight back toward your shin against the band.\n3. Hold 2 seconds at peak shin contraction, then return slowly.",
+    "trap": "\u2022 The \"Toe-Curl Cheat\" Trap: Curling your toes downward instead of lifting the entire forefoot at the ankle.",
+    "science": "Directly strengthens the anterior tibialis tendon to prevent shin splints."
   },
   {
     "name": "Band Ankle Inversion / Eversion",
@@ -1457,12 +1457,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Peroneals, Tibialis Posterior & Foot Arch",
-    "topCue": "Set posture and brace core before starting Band Ankle Inversion / Eversion (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Peroneals at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Ankle Inversion / Eversion, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Ankle Inversion / Eversion.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Ankle Inversion / Eversion.",
-    "science": "Targets Peroneals, Tibialis Posterior & Foot Arch with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit with leg supported and loop band around forefoot; isolate movement strictly at the ankle joint.",
+    "bottomCue": "Turn sole of foot inward (inversion) or outward (eversion) against band without rotating knee.",
+    "quickCue": "Remember to hold your shin and knee completely still with your hands so only your ankle turns inward or outward.",
+    "cue": "1. Sit on the bench, hold your shin still with your hands, and loop a band around your forefoot.\n2. Turn the sole of your foot slowly inward for 15 reps, then switch tension to turn outward for 15 reps.\n3. Pause 1 second at end range on every rep.",
+    "trap": "\u2022 The \"Whole-Leg Roll\" Trap: Rotating your entire thigh and knee inward/outward instead of moving at the ankle.",
+    "science": "Fortifies the peroneals and tibialis posterior to stabilize lateral ankle sprains and arch collapse."
   },
   {
     "name": "Band Hip Flexor March",
@@ -1472,12 +1472,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Psoas & Hip Stability",
-    "topCue": "Set posture and brace core before starting Band Hip Flexor March (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Psoas & Hip Stability at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Hip Flexor March, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Hip Flexor March.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Hip Flexor March.",
-    "science": "Targets Psoas & Hip Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Loop mini-band around forefeet; stand tall with hands on post or hips and core braced.",
+    "bottomCue": "Drive one knee up to 90\u00b0 hip height while keeping standing leg locked and torso upright.",
+    "quickCue": "Remember to stand tall on your support leg without leaning backward and pull your knee above hip height for a 1-second hold.",
+    "cue": "1. Place a mini-band around the balls of both feet and stand tall.\n2. Drive your right knee up until your thigh is parallel to the floor while keeping your left leg straight.\n3. Pause 1 second at the top, lower slowly, and alternate legs.",
+    "trap": "\u2022 The \"Backward Lean\" Trap: Leaning your torso backward and rounding your lower back to lift the knee.",
+    "science": "Strengthens the iliopsoas and deep hip flexors to improve running knee-drive mechanics."
   },
   {
     "name": "Band Dislocate (Pass-Through)",
@@ -1487,12 +1487,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Shoulder Capsule & Thoracic Extension",
-    "topCue": "Set posture and brace core before starting Band Dislocate (Pass-Through) (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Shoulder Capsule & Thoracic Extension at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Dislocate (Pass-Through), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Dislocate (Pass-Through).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Dislocate (Pass-Through).",
-    "science": "Targets Shoulder Capsule & Thoracic Extension with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding band wide in front of thighs with straight arms and ribs tucked down.",
+    "bottomCue": "Arc straight arms overhead and behind back to lower hips; reverse smoothly to front.",
+    "quickCue": "Remember to grip the band wide enough that your elbows stay completely straight and your ribs never flare forward as your arms pass overhead.",
+    "cue": "1. Hold a resistance band with a wide overhand grip in front of your thighs.\n2. Keeping elbows locked straight and ribs down, raise the band overhead and behind your back.\n3. Reverse smoothly back to the front over 3 seconds.",
+    "trap": "\u2022 The \"Bent-Elbow Hitch\" Trap: Gripping too narrow so one elbow bends and hikes up to clear the head.",
+    "science": "Mobilizes the glenohumeral capsule, pectoralis minor, and thoracic spine."
   },
   {
     "name": "Band Squat-to-Row",
@@ -1502,12 +1502,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Full-Body Pull & Posture",
-    "topCue": "Set posture and brace core before starting Band Squat-to-Row (Band).",
-    "bottomCue": "Control the full range of motion and squeeze Full-Body Pull & Posture at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Band Squat-to-Row, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Band Squat-to-Row.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Band Squat-to-Row.",
-    "science": "Targets Full-Body Pull & Posture with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand facing waist-height anchored band holding handles with arms extended; sink into goblet-style squat.",
+    "bottomCue": "Stand up crisply from squat and immediately row handles into ribs with shoulder blades pinched.",
+    "quickCue": "Remember to sit deep into your squat while arms are extended, then drive through your heels and finish with a crisp 1-second upper-back row.",
+    "cue": "1. Face a waist-height anchored band with arms extended and sit back into a full squat.\n2. Drive through your heels to stand tall while simultaneously rowing your elbows past your ribs.\n3. Squeeze shoulder blades 1 second, then extend arms as you squat again.",
+    "trap": "\u2022 The \"Early Arm Pull\" Trap: Pulling the band while still stuck at the bottom of the squat.",
+    "science": "Combines lower-body squat volume with posterior-chain upper-back pulling for high metabolic density."
   },
   {
     "name": "Push-Up",
@@ -1517,12 +1517,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Chest, Anterior Delts & Triceps",
-    "topCue": "Set posture and brace core before starting Push-Up (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Chest at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Push-Up, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Push-Up.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Push-Up.",
-    "science": "Targets Chest, Anterior Delts & Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set hands slightly wider than shoulders in a rigid head-to-heel plank with glutes and abs squeezed.",
+    "bottomCue": "Lower chest to 1 inch above floor with 45\u00b0 arrow elbow tuck; press back to full lockout.",
+    "quickCue": "Remember to lock your body like a steel plank (zero hip sag) and tuck your elbows at a 45\u00b0 arrow angle as your chest lowers to 1 inch above the mat.",
+    "cue": "1. Place hands slightly outside shoulder width and lock into a rigid plank.\n2. Tuck elbows at a 45-degree angle as you lower your chest to 1 inch above the floor.\n3. Press through your palms to full lockout while pushing upper back slightly apart at the top.",
+    "trap": "\u2022 The \"Snake-Hip Sag\" Trap: Letting your hips sag toward the floor or flaring elbows 90\u00b0 wide.",
+    "science": "Trains horizontal pressing alongside serratus anterior scapular stability and anterior core bracing."
   },
   {
     "name": "Incline Push-Up",
@@ -1532,12 +1532,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Lower Chest & Shoulder-Friendly Push",
-    "topCue": "Set posture and brace core before starting Incline Push-Up (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Lower Chest & Shoulder-Friendly Push at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Incline Push-Up, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Incline Push-Up.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Incline Push-Up.",
-    "science": "Targets Lower Chest & Shoulder-Friendly Push with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Place hands on bench pad shoulder-width apart; lock body into a straight diagonal plank.",
+    "bottomCue": "Lower sternum to bench edge with 45\u00b0 elbow tuck; press smoothly back to straight arms.",
+    "quickCue": "Remember to bring your chest all the way down to touch the bench pad with a 45\u00b0 elbow tuck while keeping your glutes and abs tight.",
+    "cue": "1. Place hands shoulder-width apart on your weight bench and walk feet back into a straight plank.\n2. Lower your chest until your sternum lightly touches the bench pad with elbows tucked 45 degrees.\n3. Press smoothly back to lockout.",
+    "trap": "\u2022 The \"Chin-Poke\" Trap: Reaching your chin/forehead toward the bench while your hips stay high.",
+    "science": "Reduces bodyweight load by ~35% for high-rep chest/tricep volume or shoulder-friendly warm-ups."
   },
   {
     "name": "Decline Push-Up",
@@ -1547,12 +1547,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Upper Chest & Front Delts",
-    "topCue": "Set posture and brace core before starting Decline Push-Up (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Upper Chest & Front Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Decline Push-Up, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Decline Push-Up.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Decline Push-Up.",
-    "science": "Targets Upper Chest & Front Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Place toes on bench and hands on floor slightly outside shoulders; brace core so lower back stays flat.",
+    "bottomCue": "Lower upper chest toward floor with 45\u00b0 elbow tuck; press back to full lockout.",
+    "quickCue": "Remember to squeeze your glutes and brace your abs so your lower back doesn't dip as your feet are elevated on the bench.",
+    "cue": "1. Elevate your feet on the bench and place hands on the floor shoulder-width apart.\n2. Brace core tightly and lower your upper chest toward the mat with a 45-degree elbow tuck.\n3. Press back to full lockout.",
+    "trap": "\u2022 The \"Lumbar Hammock\" Trap: Letting your lower back sag downward into hyperextension.",
+    "science": "Shifts bodyweight angle onto the clavicular upper chest and anterior deltoids."
   },
   {
     "name": "Diamond Push-Up",
@@ -1562,12 +1562,12 @@
     "weight": 0,
     "reps": 10,
     "muscles": "Triceps & Inner Chest",
-    "topCue": "Set posture and brace core before starting Diamond Push-Up (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Triceps & Inner Chest at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Diamond Push-Up, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Diamond Push-Up.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Diamond Push-Up.",
-    "science": "Targets Triceps & Inner Chest with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Place hands directly under sternum with thumbs and index fingers forming a triangle/diamond.",
+    "bottomCue": "Lower chest to hands keeping elbows tucked close to ribs; press to full triceps lockout.",
+    "quickCue": "Remember to lower your breastbone right onto your hands while keeping your elbows gliding close to your sides.",
+    "cue": "1. Set hands under your chest with thumbs and index fingers touching in a diamond shape.\n2. Keep elbows tucked close to your ribs as you lower your chest to your hands.\n3. Press powerfully to full elbow lockout.",
+    "trap": "\u2022 The \"Face-Over-Hands\" Trap: Placing hands too high near your face instead of under your mid-chest.",
+    "science": "Maximizes triceps brachii and inner sternal pectoral recruitment using bodyweight."
   },
   {
     "name": "Pike Push-Up",
@@ -1577,12 +1577,12 @@
     "weight": 0,
     "reps": 10,
     "muscles": "Anterior Delts & Triceps",
-    "topCue": "Set posture and brace core before starting Pike Push-Up (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Anterior Delts & Triceps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Pike Push-Up, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Pike Push-Up.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Pike Push-Up.",
-    "science": "Targets Anterior Delts & Triceps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set up in an inverted-V downward-dog pike with hips high and hands shoulder-width apart.",
+    "bottomCue": "Bend elbows to lower crown of head forward in front of hands (forming a tripod); press back up.",
+    "quickCue": "Remember to lower the top of your head forward in front of your fingertips (forming a triangle) rather than straight down between your wrists.",
+    "cue": "1. Hike your hips high into an inverted-V pike position.\n2. Bend your elbows and glide the crown of your head forward in front of your hands.\n3. Press back up through your shoulders into the pike.",
+    "trap": "\u2022 The \"Elbows-Out Dive\" Trap: Flaring elbows straight out to the sides instead of tucking them slightly back.",
+    "science": "Mimics vertical overhead pressing mechanics to overload the anterior and medial deltoids."
   },
   {
     "name": "Bench Dip",
@@ -1592,12 +1592,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Triceps & Anterior Delts",
-    "topCue": "Set posture and brace core before starting Bench Dip (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Triceps & Anterior Delts at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bench Dip, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bench Dip.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bench Dip.",
-    "science": "Targets Triceps & Anterior Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Grip bench edge with hands beside hips, shoulders rolled back and down, and feet extended forward.",
+    "bottomCue": "Lower hips straight down until upper arms are parallel to floor; press back to lockout.",
+    "quickCue": "Remember to keep your lower back grazing close to the bench edge and stop when your upper arms reach parallel to the floor so your front shoulders never roll forward.",
+    "cue": "1. Place hands on the bench edge beside your hips and roll your shoulders back and down.\n2. Keep your back close to the bench as you lower your hips until upper arms are parallel to the floor.\n3. Press through your palms back to full lockout.",
+    "trap": "\u2022 The \"Forward-Shoulder Dip\" Trap: Dropping way too deep so the front of your shoulder rolls forward into impingement.",
+    "science": "Overloads the triceps brachii with bodyweight; stopping at 90\u00b0 protects the anterior shoulder capsule."
   },
   {
     "name": "Bodyweight Squat",
@@ -1607,12 +1607,12 @@
     "weight": 0,
     "reps": 20,
     "muscles": "Quads, Glutes & Knee Mobility",
-    "topCue": "Set posture and brace core before starting Bodyweight Squat (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Quads at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bodyweight Squat, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bodyweight Squat.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bodyweight Squat.",
-    "science": "Targets Quads, Glutes & Knee Mobility with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand shoulder-width apart with toes turned out 15\u00b0 and arms extended forward for counterbalance.",
+    "bottomCue": "Sit hips down between heels below parallel with chest proud and knees tracking over toes.",
+    "quickCue": "Remember to push your knees out over your toes, keep your heels planted flat, and reach your arms forward to keep your chest tall.",
+    "cue": "1. Stand shoulder-width apart with toes flared 15 degrees.\n2. Reach arms forward and sit your hips straight down between your heels.\n3. Drive through your whole foot to stand tall and squeeze glutes.",
+    "trap": "\u2022 The \"Heel-Peel Tip\" Trap: Letting your heels lift off the mat and pitching onto your toes.",
+    "science": "Grooves full-depth hip, knee, and ankle mobility with zero axial load."
   },
   {
     "name": "Bodyweight Reverse Lunge",
@@ -1622,12 +1622,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Quads & Glutes",
-    "topCue": "Set posture and brace core before starting Bodyweight Reverse Lunge (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Quads & Glutes at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bodyweight Reverse Lunge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bodyweight Reverse Lunge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bodyweight Reverse Lunge.",
-    "science": "Targets Quads & Glutes with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with hands on hips or clasped at chest; anchor weight over stationary front leg.",
+    "bottomCue": "Step one foot back and lower rear knee gently to 1 inch above mat; pull back up through front heel.",
+    "quickCue": "Remember to keep your front shin vertical and drive upward strictly through your front heel.",
+    "cue": "1. Stand tall with feet hip-width apart.\n2. Step one foot straight back and lower your rear knee toward the floor.\n3. Drive through your front heel to stand back up cleanly.",
+    "trap": "\u2022 The \"Tightrope Cross\" Trap: Stepping directly behind your front foot so you lose lateral balance.",
+    "science": "Knee-friendly unilateral lower-body conditioning and hip-flexor mobility."
   },
   {
     "name": "Bodyweight Split Squat",
@@ -1637,12 +1637,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Unilateral Quads & Hip Flexor Stretch",
-    "topCue": "Set posture and brace core before starting Bodyweight Split Squat (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Unilateral Quads & Hip Flexor Stretch at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bodyweight Split Squat, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bodyweight Split Squat.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bodyweight Split Squat.",
-    "science": "Targets Unilateral Quads & Hip Flexor Stretch with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Take a staggered hip-width lunge stance with front foot flat and back heel lifted high.",
+    "bottomCue": "Drop hips straight down like an elevator until rear knee hovers 1 inch above floor; press up.",
+    "quickCue": "Remember to move straight up and down like an elevator (not forward and backward) with 80% of your weight on your front foot.",
+    "cue": "1. Set a staggered hip-width stance and keep feet planted in place for the entire set.\n2. Lower straight down over 3 seconds until your back knee hovers above the floor.\n3. Drive through your front midfoot to return to the top.",
+    "trap": "\u2022 The \"Forward-Rock\" Trap: Rocking your front knee way past your toes while lifting your front heel.",
+    "science": "Builds unilateral quad endurance and lengthens the trailing rectus femoris."
   },
   {
     "name": "Bodyweight Glute Bridge",
@@ -1652,12 +1652,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glutes & Posterior Pelvic Tilt",
-    "topCue": "Set posture and brace core before starting Bodyweight Glute Bridge (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Glutes & Posterior Pelvic Tilt at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bodyweight Glute Bridge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bodyweight Glute Bridge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bodyweight Glute Bridge.",
-    "science": "Targets Glutes & Posterior Pelvic Tilt with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with knees bent, heels 6 inches from glutes, and lower back pressed flat into mat.",
+    "bottomCue": "Drive through heels to lift hips into a straight line; hold a 2-second glute squeeze at top.",
+    "quickCue": "Remember to tuck your tailbone (\"belt buckle toward chin\"), drive through your heels, and hold a 2-second glute squeeze at the top without arching your lower back.",
+    "cue": "1. Lie on your back with knees bent and heels 6 inches from your hips.\n2. Tuck your tailbone slightly so your lower back flattens.\n3. Drive through your heels to lift hips into a straight diagonal line and squeeze glutes for 2 seconds.",
+    "trap": "\u2022 The \"Belly Flare\" Trap: Pushing your stomach and ribs up by hyperextending your lower back.",
+    "science": "Activates glute max and unloads hip flexors with zero lumbar or ankle impact."
   },
   {
     "name": "Single-Leg Glute Bridge",
@@ -1667,12 +1667,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Unilateral Glute Max & Hamstrings",
-    "topCue": "Set posture and brace core before starting Single-Leg Glute Bridge (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Unilateral Glute Max & Hamstrings at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Single-Leg Glute Bridge, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Single-Leg Glute Bridge.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Single-Leg Glute Bridge.",
-    "science": "Targets Unilateral Glute Max & Hamstrings with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with one heel planted 6 inches from glute and opposite knee hugged toward chest.",
+    "bottomCue": "Drive through single planted heel to lift hips level without letting non-working hip drop.",
+    "quickCue": "Remember to hug your non-working knee toward your chest (this locks your lower back flat) and drive through your planted heel keeping both hip bones level.",
+    "cue": "1. Lie on your back, plant your right heel 6 inches from your glute, and hug your left knee toward your chest.\n2. Drive through your right heel to lift your hips until torso and thigh form a straight line.\n3. Hold 2 seconds at the top keeping pelvis level, then lower slowly.",
+    "trap": "\u2022 The \"Pelvic Drop\" Trap: Letting the unsupported side of your pelvis sag downward at the top.",
+    "science": "Doubles unilateral glute max and hamstring demand while preventing lumbar hyperextension."
   },
   {
     "name": "Bodyweight Calf Raise",
@@ -1682,12 +1682,12 @@
     "weight": 0,
     "reps": 20,
     "muscles": "Gastrocnemius & Achilles",
-    "topCue": "Set posture and brace core before starting Bodyweight Calf Raise (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Gastrocnemius & Achilles at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bodyweight Calf Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bodyweight Calf Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bodyweight Calf Raise.",
-    "science": "Targets Gastrocnemius & Achilles with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand on edge of a step or plate with balls of feet supported and light fingertip balance on post.",
+    "bottomCue": "Sink heels into a 2-second deep stretch below step; rise high onto big-toe knuckles.",
+    "quickCue": "Remember to pause 2 full seconds in the bottom stretch and drive straight up onto your big-toe knuckles without rolling ankles outward.",
+    "cue": "1. Stand with balls of feet on a raised edge and knees straight.\n2. Lower heels into a deep 2-second stretch below the step.\n3. Press straight up onto your big-toe knuckles for a 1-second hold.",
+    "trap": "\u2022 The \"Ankle Roll-Out\" Trap: Rolling onto your outer pinky toes at peak height.",
+    "science": "Builds gastrocnemius and Achilles tendon elasticity through full ankle excursion."
   },
   {
     "name": "Wall Tibialis Raise",
@@ -1697,12 +1697,12 @@
     "weight": 0,
     "reps": 20,
     "muscles": "Tibialis Anterior (Shin-Splint Armor)",
-    "topCue": "Set posture and brace core before starting Wall Tibialis Raise (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Tibialis Anterior (Shin-Splint Armor) at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Wall Tibialis Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Wall Tibialis Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Wall Tibialis Raise.",
-    "science": "Targets Tibialis Anterior (Shin-Splint Armor) with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lean butt and shoulders flat against wall with heels walked 14\u201318 inches out in front.",
+    "bottomCue": "Keep knees locked straight and pull toes as high up toward shins as possible for a 2s hold.",
+    "quickCue": "Remember to keep your knees locked straight, pull your toes as high up toward your shins as possible, and hold for 2 full seconds at the top shin burn.",
+    "cue": "1. Lean your back and butt flat against a wall and walk heels 14\u201318 inches forward.\n2. Keep knees completely straight and pull toes/forefeet as high toward your shins as possible.\n3. Hold 2 seconds at the top squeeze, then lower slowly.",
+    "trap": "\u2022 The \"Knee-Bend Cheat\" Trap: Bending your knees and sliding down the wall instead of dorsiflexing ankles.",
+    "science": "Strengthens the anterior tibialis muscle that decelerates foot-strike impact during running."
   },
   {
     "name": "Step-Up (Bodyweight)",
@@ -1712,12 +1712,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Quads, Glutes & Balance",
-    "topCue": "Set posture and brace core before starting Step-Up (Bodyweight) (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Quads at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Step-Up (Bodyweight), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Step-Up (Bodyweight).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Step-Up (Bodyweight).",
-    "science": "Targets Quads, Glutes & Balance with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Place entire working foot flat on bench/step with torso leaned slightly forward over top midfoot.",
+    "bottomCue": "Stand tall on bench driving strictly through top heel; lower back down over 3 seconds.",
+    "quickCue": "Remember to pull your floor-foot toes upward so you lift 100% with your elevated leg and never push off the ground.",
+    "cue": "1. Plant one whole foot on the bench and lean torso slightly forward.\n2. Drive through your elevated heel to stand tall on top of the bench.\n3. Lower back down to the floor over a controlled 3-second count.",
+    "trap": "\u2022 The \"Bottom-Toe Bounce\" Trap: Pushing off the ground with your trailing foot.",
+    "science": "Low-impact unilateral knee and hip conditioning."
   },
   {
     "name": "Wall Sit",
@@ -1727,12 +1727,12 @@
     "weight": 0,
     "reps": 45,
     "muscles": "Isometric Quads & Patellar Tendon",
-    "topCue": "Set posture and brace core before starting Wall Sit (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Isometric Quads & Patellar Tendon at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Wall Sit, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Wall Sit.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Wall Sit.",
-    "science": "Targets Isometric Quads & Patellar Tendon with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Slide back down wall until thighs are parallel to floor (90\u00b0 knees) and ankles sit directly under knees.",
+    "bottomCue": "Press lower back flat into wall and hold isometric quad tension without resting hands on thighs.",
+    "quickCue": "Remember to keep your hands off your thighs, press your lower back flat against the wall, and breathe steadily through the quad burn.",
+    "cue": "1. Lean against a wall and slide down until knees and hips are both at 90-degree angles.\n2. Keep ankles directly beneath knees and hands at your sides (not on thighs).\n3. Hold steady with smooth nasal breathing.",
+    "trap": "\u2022 The \"Hands-On-Knees Prop\" Trap: Pushing down on your thighs with your hands to take weight off your quads.",
+    "science": "Isometric 90-degree knee flexion builds patellar tendon stiffness and quadriceps endurance."
   },
   {
     "name": "Side-Lying Hip Abduction",
@@ -1742,12 +1742,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glute Medius",
-    "topCue": "Set posture and brace core before starting Side-Lying Hip Abduction (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Medius at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Side-Lying Hip Abduction, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Side-Lying Hip Abduction.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Side-Lying Hip Abduction.",
-    "science": "Targets Glute Medius with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on side with top leg straight, angled 5\u201310\u00b0 behind body line, and big toe tilted slightly down.",
+    "bottomCue": "Lift top heel 35\u00b0 toward ceiling without rolling pelvis backward; hold 2s at top.",
+    "quickCue": "Remember to keep your top leg 5\u00b0 behind your torso and lead upward with your heel (big toe tilted slightly down toward the floor) so your side-glute does 100% of the work.",
+    "cue": "1. Lie on your side with bottom leg bent and top leg straight, 5\u201310 degrees behind your torso.\n2. Tilt your big toe slightly downward toward the floor so your heel leads.\n3. Lift your top heel 35 degrees toward the ceiling and hold 2 seconds.",
+    "trap": "\u2022 The \"Front-Pocket Kick\" Trap: Drifting your leg forward with toes pointing up, shifting work to hip flexors.",
+    "science": "Isolates posterior gluteus medius fibers to prevent pelvic drop and shin-splint torsion."
   },
   {
     "name": "Donkey Kick",
@@ -1757,12 +1757,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glute Maximus",
-    "topCue": "Set posture and brace core before starting Donkey Kick (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Maximus at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Donkey Kick, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Donkey Kick.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Donkey Kick.",
-    "science": "Targets Glute Maximus with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set up in all-fours tabletop with hands under shoulders, knees under hips, and lower back flat.",
+    "bottomCue": "Drive one bent heel straight toward ceiling until thigh is parallel to floor without arching spine.",
+    "quickCue": "Remember to keep your ribs tucked and stop lifting when your thigh is parallel to the floor\u2014going higher just arches your lower back.",
+    "cue": "1. Start on hands and knees with abs braced and spine neutral.\n2. Keeping knee bent 90 degrees, drive one heel straight up toward the ceiling until thigh aligns with torso.\n3. Squeeze glute for 2 seconds without arching your lower back.",
+    "trap": "\u2022 The \"Scorpion Back-Arch\" Trap: Kicking your foot way too high and collapsing your lower back.",
+    "science": "Isolates gluteus maximus hip extension in a quadruped position."
   },
   {
     "name": "Fire Hydrant",
@@ -1772,12 +1772,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Glute Medius & Hip External Rotators",
-    "topCue": "Set posture and brace core before starting Fire Hydrant (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Glute Medius & Hip External Rotators at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Fire Hydrant, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Fire Hydrant.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Fire Hydrant.",
-    "science": "Targets Glute Medius & Hip External Rotators with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set up in quadruped tabletop with abs braced and weight evenly distributed across both hands.",
+    "bottomCue": "Lift bent knee straight out to the side to hip height without leaning torso toward opposite side.",
+    "quickCue": "Remember to press your working-side hand firmly into the floor so your torso doesn't lean sideways as your knee opens.",
+    "cue": "1. Start on hands and knees with a flat back and braced core.\n2. Keeping knee bent 90 degrees, lift your right knee out to the side toward hip height.\n3. Pause 1 second at the top without leaning onto your left hand, then lower slowly.",
+    "trap": "\u2022 The \"Sideways Lean\" Trap: Shifting all your body weight onto your opposite hand to hike the hip higher.",
+    "science": "Trains hip abduction and external rotation alongside anti-rotation trunk control."
   },
   {
     "name": "Dead Bug",
@@ -1787,12 +1787,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Deep Transverse Abdominis & Lumbar Brace",
-    "topCue": "Set posture and brace core before starting Dead Bug (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Deep Transverse Abdominis & Lumbar Brace at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Dead Bug, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Dead Bug.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Dead Bug.",
-    "science": "Targets Deep Transverse Abdominis & Lumbar Brace with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with knees at 90\u00b0 tabletop, arms reaching to ceiling, and lower back crushed flat into mat.",
+    "bottomCue": "Extend opposite arm and heel toward floor while keeping lower back glued flat to mat.",
+    "quickCue": "Remember to exhale hard and crush your lower back flat into the mat the entire set \u2014 never let a hollow tunnel form under your spine as your leg reaches out.",
+    "cue": "1. Lie on your back with arms pointing to the ceiling and knees at 90-degree tabletop.\n2. Exhale hard and press your lower back flat into the floor.\n3. Slowly reach opposite arm behind head and heel toward floor, then return and switch sides.",
+    "trap": "\u2022 The \"Lumbar Tunnel\" Trap: Letting your lower back arch off the mat as your leg reaches out.",
+    "science": "Builds deep transverse abdominis stiffness and pelvic control with zero spinal flexion."
   },
   {
     "name": "Forearm Plank",
@@ -1802,12 +1802,12 @@
     "weight": 0,
     "reps": 45,
     "muscles": "Anterior Core & Scapular Stability",
-    "topCue": "Set posture and brace core before starting Forearm Plank (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Anterior Core & Scapular Stability at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Forearm Plank, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Forearm Plank.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Forearm Plank.",
-    "science": "Targets Anterior Core & Scapular Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Prop on forearms with elbows directly under shoulders, fists unclenched, and legs locked straight.",
+    "bottomCue": "Squeeze glutes hard, tuck tailbone under, and pull elbows toward toes without letting hips sag.",
+    "quickCue": "Remember to squeeze your glutes and posteriorly tuck your tailbone (\"belt buckle to chin\") while pulling your elbows toward your toes.",
+    "cue": "1. Place elbows directly beneath shoulders and extend legs into a straight line.\n2. Squeeze glutes hard, tuck your tailbone under, and brace your abs.\n3. Hold steady with deep breaths and zero hip sag.",
+    "trap": "\u2022 The \"Hipped-Up Pike or Sag\" Trap: Hiking your butt high in the air or letting your lower back sag.",
+    "science": "Trains isometric anti-extension core endurance and scapular serratus stability."
   },
   {
     "name": "Side Plank",
@@ -1817,12 +1817,12 @@
     "weight": 0,
     "reps": 30,
     "muscles": "Obliques & Glute Medius",
-    "topCue": "Set posture and brace core before starting Side Plank (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Obliques & Glute Medius at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Side Plank, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Side Plank.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Side Plank.",
-    "science": "Targets Obliques & Glute Medius with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Prop on bottom forearm with elbow directly under shoulder and feet stacked (or staggered) in a straight line.",
+    "bottomCue": "Lift hips high so ears, shoulders, hips, and ankles form a straight diagonal plank.",
+    "quickCue": "Remember to push the floor away through your bottom forearm and keep your top hip and shoulder stacked vertically\u2014don't let your chest roll toward the floor.",
+    "cue": "1. Lie on your side with bottom elbow directly under your shoulder.\n2. Lift your hips off the mat until your body forms a straight line from head to heels.\n3. Hold steady with glutes squeezed and pelvis stacked vertically.",
+    "trap": "\u2022 The \"Chest-Roll Collapse\" Trap: Letting your top shoulder and hip roll forward toward the mat.",
+    "science": "Strengthens the quadratus lumborum (QL), obliques, and gluteus medius in the frontal plane."
   },
   {
     "name": "Bird Dog",
@@ -1832,12 +1832,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Multifidus, Glutes & Cross-Body Stability",
-    "topCue": "Set posture and brace core before starting Bird Dog (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Multifidus at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bird Dog, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bird Dog.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bird Dog.",
-    "science": "Targets Multifidus, Glutes & Cross-Body Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set up in quadruped tabletop with hands under shoulders, knees under hips, and core braced.",
+    "bottomCue": "Reach right arm forward and kick left heel straight back parallel to floor for a 2-second hold.",
+    "quickCue": "Remember to push your back heel straight toward the wall behind you (never higher than hip height) while keeping your belt buckle parallel to the floor.",
+    "cue": "1. Start on hands and knees with a neutral spine.\n2. Reach your right arm forward and push your left heel straight back until both are parallel to the floor.\n3. Pause 2 full seconds without twisting your hips, then switch sides.",
+    "trap": "\u2022 The \"High-Kick Back Arch\" Trap: Kicking your back foot toward the ceiling and overarching your lower back.",
+    "science": "Builds multifidus and contralateral posterior-chain coordination without lumbar shear."
   },
   {
     "name": "Hollow Body Hold",
@@ -1847,12 +1847,12 @@
     "weight": 0,
     "reps": 30,
     "muscles": "Anterior Core & Ribcage Control",
-    "topCue": "Set posture and brace core before starting Hollow Body Hold (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Anterior Core & Ribcage Control at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Hollow Body Hold, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Hollow Body Hold.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Hollow Body Hold.",
-    "science": "Targets Anterior Core & Ribcage Control with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with lower spine crushed into mat, knees tucked, and shoulder blades curled off floor.",
+    "bottomCue": "Extend legs and arms outward only as far as your lower back stays 100% glued to the floor.",
+    "quickCue": "Remember to glue your lower back flat to the mat\u2014if your spine begins to peel off the floor, bend your knees slightly higher.",
+    "cue": "1. Lie on your back and press your lower spine firmly into the mat.\n2. Curl your head and shoulder blades off the floor and extend legs to 30\u201345 degrees.\n3. Hold steady while breathing shallowly behind a braced core.",
+    "trap": "\u2022 The \"Arch-Back Strain\" Trap: Lowering legs too close to the floor so your lower back arches off the mat.",
+    "science": "Maximizes anterior core tension across the rectus abdominis and transverse abdominis."
   },
   {
     "name": "Mountain Climber",
@@ -1862,12 +1862,12 @@
     "weight": 0,
     "reps": 20,
     "muscles": "Core, Hip Flexors & Conditioning",
-    "topCue": "Set posture and brace core before starting Mountain Climber (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Core at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Mountain Climber, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Mountain Climber.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Mountain Climber.",
-    "science": "Targets Core, Hip Flexors & Conditioning with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set up in a rigid high push-up plank with hands directly beneath shoulders and hips level.",
+    "bottomCue": "Drive one knee toward chest at a time with controlled core brace and zero butt bounce.",
+    "quickCue": "Remember to keep your shoulders stacked over your wrists and your hips low\u2014drive your knees smoothly toward your chest without bouncing your butt up.",
+    "cue": "1. Hold a strong high plank with shoulders stacked directly over wrists.\n2. Drive your right knee toward your chest without letting your hips hike upward.\n3. Return right foot back and alternate legs at a crisp, controlled pace.",
+    "trap": "\u2022 The \"Piking Butt-Bounce\" Trap: Bouncing your hips high in the air on every stride.",
+    "science": "Combines dynamic hip-flexor drive with anti-extension shoulder and core stability."
   },
   {
     "name": "Bicycle Crunch",
@@ -1877,12 +1877,12 @@
     "weight": 0,
     "reps": 20,
     "muscles": "Obliques & Rectus Abdominis",
-    "topCue": "Set posture and brace core before starting Bicycle Crunch (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Obliques & Rectus Abdominis at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Bicycle Crunch, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Bicycle Crunch.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Bicycle Crunch.",
-    "science": "Targets Obliques & Rectus Abdominis with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with fingertips lightly behind ears, lower back pressed down, and knees in tabletop.",
+    "bottomCue": "Rotate opposite shoulder toward bent knee while extending other leg straight at 45\u00b0; pause 1s.",
+    "quickCue": "Remember to rotate your shoulder (not just your elbow) across toward the opposite knee with a slow 2-second tempo\u2014never yank on your neck.",
+    "cue": "1. Lie on your back with fingertips lightly behind your ears and knees in tabletop.\n2. Lift shoulder blades off the mat and rotate your right shoulder toward your left knee while extending your right leg.\n3. Pause 1 second, then switch sides slowly.",
+    "trap": "\u2022 The \"Neck-Yank Speed\" Trap: Pulling on your head and flailing legs rapidly with zero oblique control.",
+    "science": "Activates both internal and external obliques alongside the rectus abdominis."
   },
   {
     "name": "Reverse Crunch",
@@ -1892,12 +1892,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Lower Abs & Posterior Pelvic Tilt",
-    "topCue": "Set posture and brace core before starting Reverse Crunch (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Lower Abs & Posterior Pelvic Tilt at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Reverse Crunch, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Reverse Crunch.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Reverse Crunch.",
-    "science": "Targets Lower Abs & Posterior Pelvic Tilt with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with hands pressing into floor at sides and knees bent at 90\u00b0 over hips.",
+    "bottomCue": "Curl tailbone and lower pelvis smoothly off mat toward ribs; lower hips back down over 3s.",
+    "quickCue": "Remember to curl your tailbone and hips upward off the mat using your lower abs\u2014don't swing your legs or push off with your neck.",
+    "cue": "1. Lie on your back with knees bent 90 degrees and arms pressing lightly into the floor.\n2. Exhale and curl your pelvis and tailbone smoothly upward off the mat toward your ribs.\n3. Lower your hips back down slowly over 3 seconds.",
+    "trap": "\u2022 The \"Leg-Kick Momentum\" Trap: Kicking your feet toward the ceiling instead of curling your pelvis.",
+    "science": "Targets posterior pelvic tilt and the lower fibers of the rectus abdominis."
   },
   {
     "name": "Leg Raise (Lying)",
@@ -1907,12 +1907,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Lower Abs & Hip Flexors",
-    "topCue": "Set posture and brace core before starting Leg Raise (Lying) (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Lower Abs & Hip Flexors at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Leg Raise (Lying), keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Leg Raise (Lying).\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Leg Raise (Lying).",
-    "science": "Targets Lower Abs & Hip Flexors with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie flat on back with lower spine pressed into mat (hands under glutes if needed) and legs straight.",
+    "bottomCue": "Lower straight legs toward floor over 3s, stopping 2 inches above mat before lower back arches.",
+    "quickCue": "Remember to stop lowering your legs the exact inch before your lower back starts to peel off the mat, then lift smoothly back up.",
+    "cue": "1. Lie on your back with legs straight toward the ceiling and lower back pressed into the mat.\n2. Slowly lower both legs over 3 seconds until heels hover just above the floor.\n3. Raise legs smoothly back to vertical without arching your lumbar spine.",
+    "trap": "\u2022 The \"Lumbar Arch\" Trap: Dropping heels all the way to the floor while your lower back arches up.",
+    "science": "Challenges lower-abdominal anti-extension torque against long-lever leg weight."
   },
   {
     "name": "Flutter Kicks",
@@ -1922,12 +1922,12 @@
     "weight": 0,
     "reps": 20,
     "muscles": "Lower Abs & Hip Flexor Endurance",
-    "topCue": "Set posture and brace core before starting Flutter Kicks (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Lower Abs & Hip Flexor Endurance at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Flutter Kicks, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Flutter Kicks.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Flutter Kicks.",
-    "science": "Targets Lower Abs & Hip Flexor Endurance with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie on back with shoulder blades slightly lifted, lower back glued to mat, and legs extended.",
+    "bottomCue": "Perform small, crisp scissor kicks 6\u201312 inches off floor while keeping lower spine flat.",
+    "quickCue": "Remember to keep your lower back glued flat into the mat\u2014raise your legs slightly higher if you feel any lower-back tension.",
+    "cue": "1. Lie on your back with lower spine pressed flat into the floor and legs extended.\n2. Perform small, controlled alternating kicks 6\u201312 inches above the mat.\n3. Breathe steadily and keep your ribcage tucked down.",
+    "trap": "\u2022 The \"Hollow-Back Strain\" Trap: Kicking too low to the floor so your lower back arches.",
+    "science": "Sustains continuous isometric anterior-core and hip-flexor endurance."
   },
   {
     "name": "Superman Back Extension",
@@ -1937,12 +1937,12 @@
     "weight": 0,
     "reps": 15,
     "muscles": "Erector Spinae, Glutes & Rear Delts",
-    "topCue": "Set posture and brace core before starting Superman Back Extension (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Erector Spinae at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Superman Back Extension, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Superman Back Extension.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Superman Back Extension.",
-    "science": "Targets Erector Spinae, Glutes & Rear Delts with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie face-down on mat with arms extended overhead, thumbs pointing up, and forehead neutral.",
+    "bottomCue": "Squeeze glutes and mid-back to lift chest and thighs 2\u20133 inches off mat for a 2-second hold.",
+    "quickCue": "Remember to look straight down at the mat (keep neck neutral) and squeeze your glutes and upper back for a 2-second pause without over-arching.",
+    "cue": "1. Lie prone on the mat with arms overhead, thumbs up, and eyes looking down at the floor.\n2. Squeeze your glutes and upper back to lift your chest and legs 2\u20133 inches off the mat.\n3. Hold 2 full seconds at the top, then lower slowly.",
+    "trap": "\u2022 The \"Neck-Crane\" Trap: Looking forward at the wall and jamming your cervical spine.",
+    "science": "Strengthens the spinal erectors, multifidus, and glutes across the posterior chain."
   },
   {
     "name": "Prone Cobra / Y-Raise",
@@ -1952,12 +1952,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Thoracic Extensors & Lower Traps",
-    "topCue": "Set posture and brace core before starting Prone Cobra / Y-Raise (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Thoracic Extensors & Lower Traps at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Prone Cobra / Y-Raise, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Prone Cobra / Y-Raise.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Prone Cobra / Y-Raise.",
-    "science": "Targets Thoracic Extensors & Lower Traps with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Lie face-down on mat with forehead hovering 1 inch off floor and arms angled out in a Y or W.",
+    "bottomCue": "Pinch shoulder blades down and together while lifting thumbs toward ceiling for a 2s hold.",
+    "quickCue": "Remember to keep your toes on the floor and focus on pinching your shoulder blades down into your back pockets as you lift your thumbs.",
+    "cue": "1. Lie face-down on the mat with feet grounded and arms angled out in a Y/W with thumbs up.\n2. Pinch your shoulder blades down and back to lift your chest slightly and raise thumbs toward the ceiling.\n3. Hold 2 seconds, then lower slowly.",
+    "trap": "\u2022 The \"Upper-Trap Shrug\" Trap: Shrugging shoulders toward ears instead of depressing scapulae.",
+    "science": "Activates the lower trapezius, rhomboids, and thoracic extensors to improve posture."
   },
   {
     "name": "Scapular Wall Slide",
@@ -1967,12 +1967,12 @@
     "weight": 0,
     "reps": 12,
     "muscles": "Serratus Anterior & Overhead Mobility",
-    "topCue": "Set posture and brace core before starting Scapular Wall Slide (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Serratus Anterior & Overhead Mobility at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Scapular Wall Slide, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Scapular Wall Slide.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Scapular Wall Slide.",
-    "science": "Targets Serratus Anterior & Overhead Mobility with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand with heels, glutes, upper back, and backs of wrists/elbows pressed flat against a wall.",
+    "bottomCue": "Slide forearms overhead into a tall Y while keeping lower back and wrists glued to wall.",
+    "quickCue": "Remember to keep your lower back, elbows, and wrists touching the wall\u2014stop sliding upward the moment your ribs flare or wrists peel off.",
+    "cue": "1. Stand with glutes, upper back, elbows, and wrists pressed against a wall.\n2. Tuck ribs down so your lower back stays near the wall.\n3. Slowly slide your arms upward into a 'Y' as high as possible without wrists peeling off.",
+    "trap": "\u2022 The \"Rib-Flare Cheat\" Trap: Arching your lower back away from the wall to get your hands higher.",
+    "science": "Trains upward scapular rotation and serratus anterior control for healthy overhead pressing."
   },
   {
     "name": "Cat-Cow Thoracic Flow",
@@ -1982,12 +1982,12 @@
     "weight": 0,
     "reps": 10,
     "muscles": "Thoracic & Lumbar Mobility",
-    "topCue": "Set posture and brace core before starting Cat-Cow Thoracic Flow (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Thoracic & Lumbar Mobility at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Cat-Cow Thoracic Flow, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Cat-Cow Thoracic Flow.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Cat-Cow Thoracic Flow.",
-    "science": "Targets Thoracic & Lumbar Mobility with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Set up in all-fours tabletop with hands directly beneath shoulders and knees beneath hips.",
+    "bottomCue": "Alternate rounding mid-back toward ceiling (exhale) and gliding breastbone forward (inhale).",
+    "quickCue": "Remember to move segment-by-segment through your mid-back and upper spine with slow breathing\u2014avoid jamming your neck or lower back.",
+    "cue": "1. Start on hands and knees with a neutral spine.\n2. Exhale as you press palms into the floor and round your upper/mid-back toward the ceiling.\n3. Inhale as you pull your breastbone forward between your arms and lift tailbone gently.",
+    "trap": "\u2022 The \"Lower-Back Hinge\" Trap: Dishing only your lower back while your stiff upper back stays completely flat.",
+    "science": "Lubricates intervertebral discs and restores thoracic flexion/extension mobility."
   },
   {
     "name": "World's Greatest Stretch",
@@ -1997,12 +1997,12 @@
     "weight": 0,
     "reps": 8,
     "muscles": "Hip Flexors, Thoracic Spine & Hamstrings",
-    "topCue": "Set posture and brace core before starting World's Greatest Stretch (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Hip Flexors at peak contraction.",
-    "quickCue": "Control the eccentric tempo on World's Greatest Stretch, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for World's Greatest Stretch.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on World's Greatest Stretch.",
-    "science": "Targets Hip Flexors, Thoracic Spine & Hamstrings with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Step right foot outside right hand in a deep runner's lunge with back knee lifted and straight.",
+    "bottomCue": "Drop right elbow toward inner ankle, then rotate right arm straight toward ceiling.",
+    "quickCue": "Remember to keep your back leg straight and strong as you drop your inside elbow toward your instep, then rotate your chest open toward your front knee.",
+    "cue": "1. Step your right foot outside your right hand into a deep lunge with back knee lifted.\n2. Lower your right elbow toward the inside of your right ankle for a 2-second hip stretch.\n3. Rotate your right arm straight up toward the ceiling, following your hand with your eyes.",
+    "trap": "\u2022 The \"Sagging Back Knee\" Trap: Letting your back knee droop toward the floor during the thoracic twist.",
+    "science": "Simultaneously opens the hip flexors, adductors, hamstrings, and thoracic spine in one drill."
   },
   {
     "name": "Half-Kneeling Hip Flexor Stretch",
@@ -2012,12 +2012,12 @@
     "weight": 0,
     "reps": 30,
     "muscles": "Psoas & Rectus Femoris",
-    "topCue": "Set posture and brace core before starting Half-Kneeling Hip Flexor Stretch (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Psoas & Rectus Femoris at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Half-Kneeling Hip Flexor Stretch, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Half-Kneeling Hip Flexor Stretch.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Half-Kneeling Hip Flexor Stretch.",
-    "science": "Targets Psoas & Rectus Femoris with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Kneel on one knee on pad with front foot planted at 90\u00b0 and torso stacked tall over pelvis.",
+    "bottomCue": "Tuck tailbone under (\"squeeze back glute hard\") and glide hips forward just 2 inches.",
+    "quickCue": "Remember to squeeze your rear-leg glute FIRST and tuck your tailbone under (\"belt buckle to chin\") \u2014 only glide forward 2 inches without arching your lower back.",
+    "cue": "1. Kneel on one knee on a mat with your front foot planted at 90 degrees.\n2. Tuck your tailbone underneath you and squeeze the glute of your kneeling leg hard.\n3. Maintaining that glute squeeze, glide hips forward 2 inches until you feel a front-hip stretch.",
+    "trap": "\u2022 The \"Lower-Back Arch\" Trap: Lunging way forward while overarching your lower back, missing the psoas completely.",
+    "science": "Reciprocal inhibition from squeezing the glute releases tight iliopsoas muscles from desk sitting."
   },
   {
     "name": "Standing Hip Circles",
@@ -2027,12 +2027,12 @@
     "weight": 0,
     "reps": 10,
     "muscles": "Hip Capsule & Joint Lubrication",
-    "topCue": "Set posture and brace core before starting Standing Hip Circles (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Hip Capsule & Joint Lubrication at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Standing Hip Circles, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Standing Hip Circles.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Standing Hip Circles.",
-    "science": "Targets Hip Capsule & Joint Lubrication with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall holding a post with one hand; lift working knee to 90\u00b0 in front of hip.",
+    "bottomCue": "Trace slow, wide controlled circles with knee (forward \u2192 out to side \u2192 back) keeping torso still.",
+    "quickCue": "Remember to keep your belt buckle pointing straight ahead and move strictly inside your hip socket without twisting your lower back.",
+    "cue": "1. Stand tall holding a post for balance and lift one knee to 90 degrees.\n2. Open your knee out to the side, rotate your heel up, and sweep your leg smoothly behind you.\n3. Reverse the circle slowly for 6\u20138 controlled rotations per side.",
+    "trap": "\u2022 The \"Torso-Twist\" Trap: Twisting your shoulders and lower back to fake a bigger hip circle.",
+    "science": "Controlled articular rotations (CARs) bathe the hip labrum and capsule in synovial fluid."
   },
   {
     "name": "Standing Toe Touch / Hamstring Flow",
@@ -2042,12 +2042,12 @@
     "weight": 0,
     "reps": 10,
     "muscles": "Hamstrings & Posterior Chain",
-    "topCue": "Set posture and brace core before starting Standing Toe Touch / Hamstring Flow (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Hamstrings & Posterior Chain at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Standing Toe Touch / Hamstring Flow, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Standing Toe Touch / Hamstring Flow.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Standing Toe Touch / Hamstring Flow.",
-    "science": "Targets Hamstrings & Posterior Chain with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand hip-width with soft 10\u00b0 knee bend; hinge hips back as hands slide down shins toward toes.",
+    "bottomCue": "Pause 2 seconds in comfortable hamstring stretch; drive hips forward to stand tall.",
+    "quickCue": "Remember to push your hips backward as you reach down rather than rounding aggressively from your lower spine.",
+    "cue": "1. Stand hip-width apart with knees softly unlocked.\n2. Hinge hips back and slide hands down your thighs and shins toward your ankles.\n3. Pause 2 seconds at a comfortable stretch, then drive hips forward to stand.",
+    "trap": "\u2022 The \"Locked-Knee Bounce\" Trap: Bouncing aggressively with hyperextended knees.",
+    "science": "Dynamically lengthens the hamstrings and posterior fascial chain prior to lifting or running."
   },
   {
     "name": "90/90 Hip Switch",
@@ -2057,12 +2057,12 @@
     "weight": 0,
     "reps": 10,
     "muscles": "Hip Internal & External Rotation",
-    "topCue": "Set posture and brace core before starting 90/90 Hip Switch (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Hip Internal & External Rotation at peak contraction.",
-    "quickCue": "Control the eccentric tempo on 90/90 Hip Switch, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for 90/90 Hip Switch.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on 90/90 Hip Switch.",
-    "science": "Targets Hip Internal & External Rotation with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Sit tall on floor with front knee bent 90\u00b0 in front and back knee bent 90\u00b0 to the side.",
+    "bottomCue": "Keep heels planted on mat and rotate both knees smoothly across to the opposite 90/90 side.",
+    "quickCue": "Remember to keep your chest lifted tall and pivot smoothly on both heels as your knees windshield-wiper from one side to the other.",
+    "cue": "1. Sit on the mat with front leg bent 90 degrees in front and back leg bent 90 degrees behind.\n2. Keeping heels planted, lift your knees and rotate smoothly across to the opposite 90/90 position.\n3. Pause 2 seconds on each side with an upright torso.",
+    "trap": "\u2022 The \"Slumped Collapse\" Trap: Rounding your spine backward and dragging your heels across the floor.",
+    "science": "Restores both internal and external hip rotation symmetry."
   },
   {
     "name": "Calf & Plantar Wall Stretch",
@@ -2072,12 +2072,12 @@
     "weight": 0,
     "reps": 30,
     "muscles": "Gastrocnemius, Soleus & Plantar Fascia",
-    "topCue": "Set posture and brace core before starting Calf & Plantar Wall Stretch (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Gastrocnemius at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Calf & Plantar Wall Stretch, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Calf & Plantar Wall Stretch.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Calf & Plantar Wall Stretch.",
-    "science": "Targets Gastrocnemius, Soleus & Plantar Fascia with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Place hands on wall with one foot forward and back leg extended straight behind you, heel pressed down.",
+    "bottomCue": "Lean hips toward wall for straight-knee gastrocnemius stretch, then bend back knee slightly for soleus.",
+    "quickCue": "Remember to keep your back foot pointing straight ahead (not turned outward) and press your heel flat into the floor.",
+    "cue": "1. Place hands on a wall, step your back foot straight behind you, and press the heel flat down.\n2. Hold 20 seconds with back knee straight (gastrocnemius), then bend back knee slightly for 20 seconds (soleus).\n3. Switch sides.",
+    "trap": "\u2022 The \"Turned-Out Back Foot\" Trap: Letting your back toes flare outward, which collapses the arch.",
+    "science": "Stretches both the gastrocnemius and deep soleus while unloading the plantar fascia."
   },
   {
     "name": "Inchworm Walkout",
@@ -2087,12 +2087,12 @@
     "weight": 0,
     "reps": 8,
     "muscles": "Hamstrings, Core & Shoulder Stability",
-    "topCue": "Set posture and brace core before starting Inchworm Walkout (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Hamstrings at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Inchworm Walkout, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Inchworm Walkout.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Inchworm Walkout.",
-    "science": "Targets Hamstrings, Core & Shoulder Stability with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand hip-width apart; hinge at hips with straight legs to place palms flat on floor in front of toes.",
+    "bottomCue": "Walk hands forward into a rigid push-up plank with glutes squeezed; walk hands back to feet.",
+    "quickCue": "Remember to keep your legs as straight as possible as you walk your hands out, and pause for 1 second in a solid plank without letting hips sag.",
+    "cue": "1. Stand hip-width apart, hinge at hips, and place hands on the floor in front of your feet.\n2. Walk your hands forward until you reach a strong push-up plank with abs braced.\n3. Pause 1 second, then walk hands back toward your feet and stand tall.",
+    "trap": "\u2022 The \"Hip-Sag Plop\" Trap: Dropping your hips toward the floor when you reach the plank position.",
+    "science": "Combines dynamic hamstring lengthening with scapular and anterior-core warm-up."
   },
   {
     "name": "Jumping Jack / Low-Impact March",
@@ -2102,12 +2102,12 @@
     "weight": 0,
     "reps": 25,
     "muscles": "Warm-Up Circulation & Coordination",
-    "topCue": "Set posture and brace core before starting Jumping Jack / Low-Impact March (Bodyweight).",
-    "bottomCue": "Control the full range of motion and squeeze Warm-Up Circulation & Coordination at peak contraction.",
-    "quickCue": "Control the eccentric tempo on Jumping Jack / Low-Impact March, keep joints stacked, and breathe steadily through each rep.",
-    "cue": "1. Set up with balanced stance and braced core for Jumping Jack / Low-Impact March.\n2. Initiate with controlled 2\u20133s lowering phase.\n3. Pause briefly at peak tension, then drive smoothly back to start.",
-    "trap": "\u2022 Momentum Trap: Rushing reps or losing posture when fatigued on Jumping Jack / Low-Impact March.",
-    "science": "Targets Warm-Up Circulation & Coordination with controlled mechanical tension suited for home-gym progression."
+    "topCue": "Stand tall with soft knees, braced core, and arms relaxed at sides.",
+    "bottomCue": "Step or hop feet wide while sweeping arms overhead in a smooth, rhythmic cardio cadence.",
+    "quickCue": "Remember to land softly on the balls of your feet (or use brisk low-impact side steps if ankles/shins are sensitive) while keeping core braced.",
+    "cue": "1. Stand tall with knees softly unlocked.\n2. Perform rhythmic jumping jacks\u2014or low-impact alternating side-step jacks\u2014sweeping arms overhead.\n3. Maintain steady breathing for 45\u201360 seconds to elevate heart rate.",
+    "trap": "\u2022 The \"Flat-Foot Stomp\" Trap: Landing heavily on your heels with locked knees.",
+    "science": "Elevates core body temperature and synovial joint lubrication before resistance work."
   }
 ];
 

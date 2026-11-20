@@ -1606,7 +1606,14 @@ Return ONLY a valid JSON object with:
                 }
                 const idx = merged.findIndex(m => m.name === item.name);
                 if (idx >= 0) {
-                  merged[idx] = { ...merged[idx], ...item };
+                  const cleanItem = { ...item };
+                  if ((cleanItem.topCue || '').startsWith('Set posture and brace core before starting')) delete cleanItem.topCue;
+                  if ((cleanItem.bottomCue || '').startsWith('Control the full range of motion and squeeze')) delete cleanItem.bottomCue;
+                  if ((cleanItem.quickCue || '').startsWith('Control the eccentric tempo on')) delete cleanItem.quickCue;
+                  if ((cleanItem.cue || '').startsWith('1. Set up with balanced stance and braced core for')) delete cleanItem.cue;
+                  if ((cleanItem.trap || '').includes('Momentum Trap: Rushing reps or losing posture when fatigued on')) delete cleanItem.trap;
+                  if ((cleanItem.science || '').includes('with controlled mechanical tension suited for home-gym progression.')) delete cleanItem.science;
+                  merged[idx] = { ...merged[idx], ...cleanItem };
                 } else {
                   merged.unshift({ ...item, isCustom: true });
                 }
