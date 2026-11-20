@@ -42,15 +42,25 @@
           </div>
           <h1 class="text-base font-black tracking-tight text-white mt-0.5">AI Pro Trainer &amp; Performance Lab</h1>
         </div>
-        <button @click="syncAllAnalyticsData(true)" class="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500/50 text-right transition">
-          <span class="text-[9px] font-bold uppercase tracking-wider text-sky-400 block">&#8635; Live Sync</span>
-          <span class="text-xs font-mono font-black text-emerald-400">{{ coachCtx.readinessScore }}% Ready</span>
-        </button>
+        <div class="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-left min-w-[116px]">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Body Readiness</span>
+            <span class="text-[10px] font-mono font-black text-emerald-400">{{ coachCtx.readinessScore }}/92</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden flex mt-1 border border-slate-700/80">
+            <div class="h-full bg-emerald-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, ((coachCtx.readinessScore || 0) / 92) * 100)) + '%' }"></div>
+            <div v-if="(coachCtx.readinessScore || 0) < 92" class="h-full bg-rose-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, ((92 - (coachCtx.readinessScore || 0)) / 92) * 100)) + '%' }"></div>
+          </div>
+          <div class="flex items-center justify-between text-[8px] font-mono mt-0.5">
+            <span class="text-emerald-400">{{ coachCtx.readinessScore }} pts</span>
+            <span v-if="(coachCtx.readinessScore || 0) < 92" class="text-rose-400">-{{ 92 - (coachCtx.readinessScore || 0) }} pts</span>
+          </div>
+        </div>
       </div>
 
       <!-- Athlete Baseline & Shared Telemetry Strip -->
       <div class="flex items-center justify-between gap-1 text-[10px] font-mono bg-slate-900/90 border border-slate-800/90 rounded-xl px-2.5 py-1.5">
-        <span class="text-emerald-300 font-bold">{{ coachCtx.athleteProfile.ageYears }}y &bull; {{ coachCtx.athleteProfile.heightFeet }}'{{ coachCtx.athleteProfile.heightInches }}" &bull; {{ coachCtx.athleteProfile.weightLbs }}lb</span>
+        <span class="text-emerald-300 font-bold">{{ [coachCtx.athleteProfile?.ageYears ? coachCtx.athleteProfile.ageYears + 'y' : '', coachCtx.athleteProfile?.heightFeet ? coachCtx.athleteProfile.heightFeet + "'" + (coachCtx.athleteProfile.heightInches ?? 0) + '"' : '', coachCtx.athleteProfile?.weightLbs ? coachCtx.athleteProfile.weightLbs + 'lb' : ''].filter(Boolean).join(' • ') || 'Profile' }}</span>
         <span class="text-slate-600">|</span>
         <span class="text-indigo-300 truncate"><strong>1&deg;:</strong> {{ coachCtx.activeGoal.shortTag }} (Wk {{ coachCtx.activeGoal.currentWeek || 2 }}/{{ coachCtx.activeGoal.durationWeeks || 10 }})</span>
         <span class="text-slate-600">|</span>
@@ -1070,20 +1080,47 @@
           if (!clean) return;
           stopCurrentAudioPlayback();
           activeTtsSourceId.value = sourceId;
+          let apiAudioPlayed = false;
+          let fastTimer = null;
+
+          const startFastSpeech = () => {
+            if (apiAudioPlayed || !('speechSynthesis' in window)) return;
+            try {
+              window.speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(clean);
+              u.rate = 1.12;
+              u.onend = () => { if (activeTtsSourceId.value === sourceId) activeTtsSourceId.value = null; };
+              u.onerror = () => { if (activeTtsSourceId.value === sourceId) activeTtsSourceId.value = null; };
+              window.speechSynthesis.speak(u);
+            } catch (e) {}
+          };
+
           try {
             const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            if (!apiKey) {
+              startFastSpeech();
+              return;
+            }
+            fastTimer = setTimeout(startFastSpeech, 650);
+            const controller = new AbortController();
+            const abortId = setTimeout(() => controller.abort(), 3000);
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
               method: 'POST',
+              signal: controller.signal,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                contents: [{ parts: [{ text: `Speak naturally like an encouraging personal trainer: ${clean}` }] }],
+                contents: [{ parts: [{ text: `Speak briskly and naturally like a gym coach: ${clean}` }] }],
                 generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } } }
               })
             });
+            clearTimeout(abortId);
             if (res.ok) {
               const data = await res.json();
               const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
               if (b64) {
+                apiAudioPlayed = true;
+                clearTimeout(fastTimer);
+                if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
                 const bin = atob(b64);
                 const buf = new ArrayBuffer(44 + bin.length);
                 const view = new DataView(buf);
@@ -1095,18 +1132,21 @@
                 for (let i = 0; i < bin.length; i++) view.setUint8(44 + i, bin.charCodeAt(i));
                 currentAudioObj = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
                 currentAudioObj.onended = () => { activeTtsSourceId.value = null; };
+                currentAudioObj.onerror = () => { activeTtsSourceId.value = null; };
                 await currentAudioObj.play();
                 return;
               }
             }
-          } catch (e) {}
-          if ('speechSynthesis' in window) {
-            const u = new SpeechSynthesisUtterance(clean);
-            u.rate = 1.03;
-            u.onend = () => { activeTtsSourceId.value = null; };
-            window.speechSynthesis.speak(u);
-          } else {
-            activeTtsSourceId.value = null;
+          } catch (e) {
+            clearTimeout(fastTimer);
+          }
+
+          if (!apiAudioPlayed) {
+            if ('speechSynthesis' in window) {
+              startFastSpeech();
+            } else {
+              activeTtsSourceId.value = null;
+            }
           }
         };
 
@@ -2158,10 +2198,16 @@ Reply in 2-3 concise, spoken-friendly sentences citing his actual numbers.`;
 
         const runAiCorrelationSynthesis = async () => {
           aiCorrelationLoading.value = true;
+          const fallbackText = `Across your last 7 days (${sevenDayStats.value.sets} sets, ${sevenDayStats.value.runMiles} mi run, ${sevenDayStats.value.rowMins}m row, and ${saunaLogs.value.length} sauna logs), spacing higher-impact days from heavy lower-body sets keeps effort steady.`;
+          const evidence = `7d sets=${sevenDayStats.value.sets} • run=${sevenDayStats.value.runMiles}mi • row=${sevenDayStats.value.rowMins}m`;
           try {
-            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            if (!apiKey) {
+              aiCorrelationSummary.value = fallbackText;
+              return;
+            }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-            const prompt = `Analyze this 46yo, 5'11", 215 lb home-gym athlete's data: 7-day sets=${sevenDayStats.value.sets}, 7-day run=${sevenDayStats.value.runMiles}mi, 7-day row=${sevenDayStats.value.rowMins}m, sauna sessions=${saunaLogs.value.length}, Primary Goal="${coachCtx.value.activeGoal.shortTag}". Write 2 concise sentences of pro-trainer correlation advice.`;
+            const prompt = `Analyze this home-gym athlete's data: 7-day sets=${sevenDayStats.value.sets}, 7-day run=${sevenDayStats.value.runMiles}mi, 7-day row=${sevenDayStats.value.rowMins}m, sauna sessions=${saunaLogs.value.length}, Primary Goal="${coachCtx.value.activeGoal.shortTag}". Write 2 concise sentences of pro-trainer correlation advice.`;
             const res = await fetch(apiUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -2169,23 +2215,19 @@ Reply in 2-3 concise, spoken-friendly sentences citing his actual numbers.`;
             });
             const data = await res.json();
             const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-            const finalAns = replyText || localFallback.text;
+            const finalAns = replyText || fallbackText;
+            aiCorrelationSummary.value = finalAns;
             trainerChatHistory.value.push({
               role: 'trainer',
               time: 'Just now',
               text: finalAns,
-              dataEvidence: localFallback.dataEvidence
+              dataEvidence: evidence
             });
             if (autoSpeakTrainer.value) speakTextOutLoud(finalAns, 'trainer-qa');
           } catch (e) {
-            trainerChatHistory.value.push({
-              role: 'trainer',
-              time: 'Just now',
-              text: localFallback.text,
-              dataEvidence: localFallback.dataEvidence
-            });
-            if (autoSpeakTrainer.value) speakTextOutLoud(localFallback.text, 'trainer-qa');
+            aiCorrelationSummary.value = fallbackText;
           } finally {
+            aiCorrelationLoading.value = false;
             trainerChatLoading.value = false;
           }
         };
