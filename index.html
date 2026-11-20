@@ -1,232 +1,179 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Basement Lab · Master Training Suite</title>
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Basement Lab · Master Suite</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="basement-db.js"></script>
   <style>
-    :root { color-scheme: dark; }
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
       background-color: #020617;
       color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overscroll-behavior-y: none;
     }
-    [v-cloak] { display: none; }
+    /* Hide scrollbars cleanly while keeping touch scroll fluid */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="selection:bg-emerald-500 selection:text-slate-950">
-  <div id="app" v-cloak class="h-screen w-full max-w-md mx-auto flex flex-col bg-slate-950 border-x border-slate-900 shadow-2xl relative overflow-hidden">
-
-    <!-- TOAST NOTIFICATION -->
-    <div v-if="toast" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm px-3.5 py-2 rounded-2xl bg-slate-900/95 border border-emerald-500/60 shadow-2xl flex items-center justify-between gap-2 text-xs backdrop-blur-md">
+<body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+  <div id="app" class="min-h-[100dvh] flex flex-col max-w-md mx-auto relative bg-slate-950 border-x border-slate-900 shadow-2xl">
+    
+    <!-- Top Compact Master Suite Header -->
+    <header class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800/90 px-3 py-2.5 flex items-center justify-between gap-2 pt-[max(0.625rem,env(safe-area-inset-top))]">
       <div class="flex items-center gap-2 min-w-0">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-        <span class="text-slate-100 font-medium truncate">{{ toast }}</span>
-      </div>
-      <button @click="toast = null" class="text-slate-400 hover:text-white font-bold text-sm px-1">&times;</button>
-    </div>
-
-    <!-- GOOGLE SIGN-IN GATE (SHOWN WHEN NOT AUTHENTICATED & NOT IN LOCAL MODE) -->
-    <div v-if="!authReady" class="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
-      <div class="w-8 h-8 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin"></div>
-      <p class="text-xs font-mono text-slate-400">Connecting to Basement Lab...</p>
-    </div>
-
-    <div v-else-if="!session && !localOnlyMode" class="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-5 bg-slate-950">
-      <div class="space-y-2">
-        <span class="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-[10px] font-mono font-black text-emerald-300 uppercase tracking-wider">
-          Basement Lab
+        <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+          BASEMENT LAB
         </span>
-        <h1 class="text-xl font-black text-white">Sign in to Your Training Profile</h1>
-        <p class="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-          Keep your workouts, injuries, sauna logs, and AI coaching synced across your phone and laptop—isolated per person.
-        </p>
+        <h1 class="text-xs font-bold text-slate-100 truncate">
+          {{ activeModule.headerTitle }}
+        </h1>
       </div>
 
-      <div class="w-full max-w-xs space-y-2.5">
+      <div class="flex items-center gap-1.5 shrink-0">
+        <!-- Active User Pill (Josh / Heather) -->
         <button
-          @click="handleGoogleSignIn"
-          :disabled="authBusy"
-          class="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-black text-xs flex items-center justify-center gap-2.5 shadow-lg transition disabled:opacity-60"
+          @click="toggleUser"
+          title="Switch Active Athlete Profile"
+          class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition flex items-center gap-1.5"
+          :class="activeUser === 'Josh'
+            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+            : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40'"
         >
-          <svg class="w-4 h-4" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-8.97z"/>
-            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
-            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
-            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
-          </svg>
-          <span>{{ authBusy ? 'Redirecting to Google...' : 'Continue with Google' }}</span>
+          <span class="w-1.5 h-1.5 rounded-full" :class="activeUser === 'Josh' ? 'bg-emerald-400' : 'bg-indigo-400'"></span>
+          <span>{{ activeUser }}</span>
         </button>
 
+        <!-- Quick Sync / Refresh Active Module -->
         <button
-          @click="localOnlyMode = true"
-          class="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 font-bold text-[11px] transition"
+          @click="syncAllModules"
+          title="Sync Context Across Modules"
+          class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-300 text-xs transition active:scale-95"
         >
-          Use Local Browser Storage Only
+          ↻
+        </button>
+
+        <!-- Master JSON Data Backup / Inspect Modal Trigger -->
+        <button
+          @click="openDataModal"
+          title="Backup, Restore or Inspect Shared JSON Data"
+          class="h-7 px-2 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/70 border border-indigo-500/40 flex items-center justify-center text-indigo-300 text-xs font-semibold transition active:scale-95"
+        >
+          💾
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- MAIN APP SHELL -->
-    <template v-else>
-      <!-- COMPACT MASTER TOP UTILITY BAR -->
-      <header class="px-3 py-2 border-b border-slate-800/90 bg-slate-950/95 flex items-center justify-between gap-2 shrink-0 z-30">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-mono font-black text-emerald-300 uppercase shrink-0">
-            Basement Lab
-          </span>
-          <span class="text-xs font-black text-white truncate">{{ currentModuleObj.title }}</span>
-        </div>
+    <!-- Main Dynamic Viewport Container (Module Iframe with Bottom Dock Clearance) -->
+    <main class="flex-1 flex flex-col relative w-full pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+      <iframe
+        ref="moduleFrame"
+        :key="frameKey"
+        :src="activeModule.file"
+        @load="onFrameLoad"
+        class="w-full flex-1 border-0 bg-slate-950 block"
+        style="min-height: calc(100dvh - 7.75rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));"
+        allow="microphone; autoplay"
+        title="Basement Lab Active Module"
+      ></iframe>
+    </main>
 
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button
-            v-if="session"
-            @click="handleSignOut"
-            :title="'Signed in as ' + (session.user?.email || 'User') + ' — Tap to switch account'"
-            class="px-2 py-1 rounded-lg bg-slate-900 border border-emerald-500/40 hover:border-rose-400 text-[10px] font-mono text-emerald-300 hover:text-rose-200 transition flex items-center gap-1"
-          >
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span class="max-w-[68px] truncate">{{ userDisplayName }}</span>
-          </button>
-          <button
-            v-else
-            @click="localOnlyMode = false"
-            class="px-2 py-1 rounded-lg bg-slate-900 border border-amber-500/40 text-[10px] font-mono text-amber-300 transition"
-          >
-            Sign In
-          </button>
-
-          <a
-            :href="currentModuleObj.file"
-            target="_blank"
-            rel="noopener"
-            title="Open active module in full standalone tab"
-            class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-[10px] font-mono text-slate-300 hover:text-white transition"
-          >
-            ↗
-          </a>
-          <button
-            @click="openDataModal"
-            class="px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 hover:border-indigo-400 text-[10px] font-mono font-bold text-indigo-200 transition flex items-center gap-1"
-          >
-            <span>💾</span>
-            <span v-if="hasSavedApiKey" class="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Gemini API Key Saved"></span>
-          </button>
-        </div>
-      </header>
-
-      <!-- MODULE VIEWPORT -->
-      <main class="flex-1 w-full relative bg-slate-950 overflow-hidden">
-        <iframe
+    <!-- Fixed Mobile-First 4-Tab Bottom Navigation Dock -->
+    <nav
+      aria-label="Basement Lab Modules"
+      class="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-slate-950/95 backdrop-blur-md border-t border-slate-800/90 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(2,6,23,0.85)]"
+    >
+      <div class="grid grid-cols-4 gap-1.5">
+        <button
           v-for="mod in modules"
           :key="mod.id"
-          v-show="activeModuleId === mod.id"
-          :ref="el => setIframeRef(mod.id, el)"
-          :src="mod.file"
-          class="w-full h-full border-0 bg-slate-950"
-          allow="microphone *; autoplay *; clipboard-write *"
-        ></iframe>
-      </main>
+          @click="selectModule(mod.id)"
+          class="py-2 px-1.5 rounded-xl text-[11px] font-bold tracking-tight flex items-center justify-center gap-1 transition-all duration-150 select-none active:scale-95 border"
+          :class="activeTab === mod.id
+            ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md shadow-emerald-500/20'
+            : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'"
+        >
+          <span class="text-xs leading-none">{{ mod.icon }}</span>
+          <span class="truncate">{{ mod.label }}</span>
+        </button>
+      </div>
+    </nav>
 
-      <!-- PERSISTENT 4-MODULE BOTTOM NAVIGATION DOCK -->
-      <nav class="bg-slate-950/95 border-t border-slate-800 px-2.5 py-2 shrink-0 z-30 backdrop-blur-md">
-        <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold">
+    <!-- Shared Data Bus Backup / Restore / JSON Modal -->
+    <div
+      v-if="showDataModal"
+      class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-3"
+      @click.self="showDataModal = false"
+    >
+      <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85dvh]">
+        <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Shared LocalStorage Bus</span>
+            <h2 class="text-sm font-bold text-white">Master Data Backup & Sync ({{ activeUser }})</h2>
+          </div>
           <button
-            v-for="mod in modules"
-            :key="mod.id"
-            @click="switchModule(mod.id)"
-            class="py-2 px-1 rounded-xl flex flex-col items-center justify-center transition"
-            :class="activeModuleId === mod.id ? mod.activeClass : 'text-slate-400 hover:text-white bg-slate-900/60 border border-slate-900'"
+            @click="showDataModal = false"
+            class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold"
           >
-            <span class="truncate">{{ mod.navLabel }}</span>
+            ×
           </button>
         </div>
-      </nav>
-    </template>
 
-    <!-- =================================================================== -->
-    <!-- MASTER DATA BACKUP/RESTORE & LOCAL GEMINI API KEY MODAL             -->
-    <!-- =================================================================== -->
-    <div v-if="showDataModal" @click.self="showDataModal = false" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-indigo-500/50 rounded-2xl w-full max-w-md p-4 space-y-3.5 shadow-2xl max-h-[90vh] flex flex-col">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Shared Across All 4 Modules</span>
-            <h3 class="text-sm font-black text-white">Gemini API Key &amp; Master JSON Backup</h3>
-          </div>
-          <button @click="showDataModal = false" class="text-slate-400 hover:text-white font-bold text-lg">&times;</button>
-        </div>
-
-        <!-- 1. Local-Only Gemini API Key -->
-        <div class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2 text-xs">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">🔑 Gemini API Key (Voice TTS &amp; AI Coach)</span>
-            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded" :class="hasSavedApiKey ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-400'">
-              {{ hasSavedApiKey ? '✓ Saved in Browser' : 'Not Set' }}
-            </span>
-          </div>
-          <p class="text-[10px] text-slate-400 leading-snug">
-            Saved strictly inside your phone's <code class="text-emerald-300">localStorage["basement_gemini_api_key"]</code> so all 4 standalone modules get live AI coaching &amp; natural <strong>Zephyr</strong> voice replies without ever exposing your key in GitHub.
+        <div class="p-4 space-y-3 overflow-y-auto text-xs">
+          <p class="text-slate-300 leading-relaxed">
+            Export or restore all 6 shared Basement Lab keys (<code class="text-emerald-400">basement_logs</code>, <code class="text-emerald-400">basement_cardio_logs</code>, <code class="text-emerald-400">basement_sauna_logs</code>, <code class="text-emerald-400">basement_coach_context</code>, <code class="text-emerald-400">basement_custom_catalog</code>, <code class="text-emerald-400">basement_trainer_directives</code>).
           </p>
-          <div class="flex gap-1.5">
-            <input
-              v-model="apiKeyInput"
-              type="password"
-              placeholder="Paste AIzaSy... Gemini API key"
-              class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
-            />
-            <button @click="saveApiKey" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] shrink-0">
-              Save Key
+
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              @click="downloadBackupJson"
+              class="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition"
+            >
+              ⬇ Download JSON Backup
+            </button>
+            <button
+              @click="copyBackupJson"
+              class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-semibold text-xs transition"
+            >
+              {{ copied ? '✓ Copied!' : '📋 Copy JSON' }}
             </button>
           </div>
-        </div>
 
-        <!-- 2. Full Cross-Module JSON Backup & Restore -->
-        <div class="space-y-1.5 text-xs flex-1 flex flex-col min-h-0">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-bold uppercase text-slate-400">Master localStorage Snapshot (All 4 Modules)</span>
-            <button @click="refreshBackupJson" class="text-[10px] font-mono text-indigo-300 underline">↻ Refresh</button>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">
+              Inspect or Paste JSON Snapshot to Restore:
+            </label>
+            <textarea
+              v-model="jsonPayload"
+              rows="8"
+              class="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 font-mono text-[11px] text-emerald-300 focus:outline-none focus:border-emerald-500"
+            ></textarea>
           </div>
-          <textarea
-            v-model="backupJsonText"
-            rows="6"
-            class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-300 focus:outline-none"
-          ></textarea>
+
+          <div v-if="statusMsg" class="p-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium">
+            {{ statusMsg }}
+          </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <button @click="copyBackupJson" class="py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs">
-            📋 Copy Master JSON
-          </button>
-          <button @click="restoreBackupJson" class="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs">
-            📥 Restore &amp; Sync
-          </button>
-        </div>
-
-        <div class="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
-          <span class="text-[10px] text-slate-400">Want a clean slate for this account?</span>
+        <div class="px-4 py-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-2">
           <button
-            v-if="!confirmResetProfile"
-            @click="confirmResetProfile = true"
-            class="px-2.5 py-1 rounded-lg bg-slate-950 border border-rose-500/40 text-[10px] font-bold text-rose-300 hover:bg-rose-500/20"
+            @click="restoreBackupJson"
+            class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition"
           >
-            🗑️ Reset Account Data
+            ↻ Restore From JSON
           </button>
           <button
-            v-else
-            @click="handleResetAccountData"
-            class="px-2.5 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black"
+            @click="showDataModal = false"
+            class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
           >
-            Confirm Wipe &amp; Reload
+            Close
           </button>
         </div>
       </div>
@@ -235,16 +182,13 @@
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted } = Vue;
+    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
-    const STORAGE_KEYS = [
-      'basement_coach_context',
-      'basement_active_goal',
-      'basement_temp_injuries',
-      'basement_limits',
+    const SHARED_KEYS = [
       'basement_logs',
       'basement_cardio_logs',
       'basement_sauna_logs',
+      'basement_coach_context',
       'basement_custom_catalog',
       'basement_trainer_directives',
       'basement_trainer_notes'
@@ -255,252 +199,184 @@
         const modules = [
           {
             id: 'hub',
-            navLabel: '🏋️ 1. Hub',
-            title: 'Module 1 · Daily Hub & Circuit Coach',
-            file: 'basement-hub-circuit.html',
-            activeClass: 'bg-emerald-500 text-slate-950 font-black shadow'
+            icon: '🏋️',
+            label: '1. Hub',
+            headerTitle: 'Module 1 · Daily Hub & Circuit Coach',
+            file: 'basement-hub-circuit.html'
           },
           {
             id: 'profile',
-            navLabel: '🎯 2. Profile',
-            title: 'Module 2 · Coach Context & Goals',
-            file: 'basement-coach-profile.html',
-            activeClass: 'bg-indigo-500 text-white font-black shadow'
+            icon: '🎯',
+            label: '2. Profile',
+            headerTitle: 'Module 2 · Coach Context & Goals',
+            file: 'basement-coach-profile.html'
           },
           {
             id: 'catalog',
-            navLabel: '📚 3. Catalog',
-            title: 'Module 3 · Smart Catalog & Form Coach',
-            file: 'basement-catalog.html',
-            activeClass: 'bg-amber-500 text-slate-950 font-black shadow'
+            icon: '📚',
+            label: '3. Catalog',
+            headerTitle: 'Module 3 · Smart Catalog & Form',
+            file: 'basement-catalog.html'
           },
           {
-            id: 'analytics',
-            navLabel: '📈 4. Trainer',
-            title: 'Module 4 · AI Pro Trainer & Analytics',
-            file: 'basement-analytics.html',
-            activeClass: 'bg-sky-500 text-slate-950 font-black shadow'
+            id: 'trainer',
+            icon: '📈',
+            label: '4. Trainer',
+            headerTitle: 'Module 4 · AI Pro Trainer & Lab',
+            file: 'basement-analytics.html'
           }
         ];
 
-        const activeModuleId = ref('hub');
-        const toast = ref(null);
+        const activeTab = ref(localStorage.getItem('basement_active_tab') || 'hub');
+        const activeUser = ref(localStorage.getItem('basement_active_user') || 'Josh');
+        const frameKey = ref(0);
+        const moduleFrame = ref(null);
         const showDataModal = ref(false);
-        const apiKeyInput = ref('');
-        const backupJsonText = ref('');
-        const iframeRefs = {};
+        const jsonPayload = ref('');
+        const copied = ref(false);
+        const statusMsg = ref('');
 
-        const authReady = ref(false);
-        const authBusy = ref(false);
-        const session = ref(null);
-        const localOnlyMode = ref(false);
-        const confirmResetProfile = ref(false);
-
-        const setIframeRef = (id, el) => {
-          if (el) iframeRefs[id] = el;
-        };
-
-        const currentModuleObj = computed(() =>
-          modules.find(m => m.id === activeModuleId.value) || modules[0]
-        );
-
-        const userDisplayName = computed(() => {
-          const user = session.value?.user;
-          if (!user) return 'Account';
-          const full = user.user_metadata?.full_name || user.user_metadata?.name;
-          if (full) return full.split(' ')[0];
-          return (user.email || 'Account').split('@')[0];
+        const activeModule = computed(() => {
+          return modules.find(m => m.id === activeTab.value) || modules[0];
         });
 
-        const hasSavedApiKey = computed(() => Boolean(apiKeyInput.value && apiKeyInput.value.trim()));
+        function selectModule(id) {
+          activeTab.value = id;
+          localStorage.setItem('basement_active_tab', id);
+        }
 
-        const showToast = (msg) => {
-          toast.value = msg;
-          setTimeout(() => { if (toast.value === msg) toast.value = null; }, 3200);
-        };
+        function toggleUser() {
+          activeUser.value = activeUser.value === 'Josh' ? 'Heather' : 'Josh';
+          localStorage.setItem('basement_active_user', activeUser.value);
+          syncAllModules();
+        }
 
-        const reloadAllIframes = () => {
-          Object.values(iframeRefs).forEach(frame => {
-            if (frame && frame.contentWindow) {
-              try { frame.contentWindow.location.reload(); } catch (e) {}
+        function syncAllModules() {
+          // Broadcast storage/focus update to active iframe and reload cleanly
+          try {
+            if (moduleFrame.value && moduleFrame.value.contentWindow) {
+              moduleFrame.value.contentWindow.dispatchEvent(new Event('storage'));
+              moduleFrame.value.contentWindow.dispatchEvent(new Event('focus'));
+            }
+          } catch (e) {}
+          frameKey.value += 1;
+        }
+
+        function onFrameLoad() {
+          // Ensure iframe inner body also expands smoothly on mobile viewports
+          try {
+            const doc = moduleFrame.value?.contentDocument;
+            if (doc && doc.body) {
+              const resizeObserver = new ResizeObserver(() => {
+                const h = doc.documentElement.scrollHeight;
+                if (h > 400 && moduleFrame.value) {
+                  moduleFrame.value.style.minHeight = h + 'px';
+                }
+              });
+              resizeObserver.observe(doc.body);
+            }
+          } catch (e) {}
+        }
+
+        function buildSnapshot() {
+          const bundle = {
+            exportedAt: new Date().toISOString(),
+            activeUser: activeUser.value,
+            data: {}
+          };
+          SHARED_KEYS.forEach(k => {
+            const raw = localStorage.getItem(k);
+            if (raw !== null) {
+              try { bundle.data[k] = JSON.parse(raw); }
+              catch { bundle.data[k] = raw; }
             }
           });
-        };
+          return JSON.stringify(bundle, null, 2);
+        }
 
-        const switchModule = (id) => {
-          activeModuleId.value = id;
-          const targetFrame = iframeRefs[id];
-          if (targetFrame && targetFrame.contentWindow) {
-            try {
-              targetFrame.contentWindow.dispatchEvent(new Event('focus'));
-              targetFrame.contentWindow.dispatchEvent(new StorageEvent('storage', { key: 'basement_coach_context' }));
-            } catch (e) {}
-          }
-        };
-
-        const refreshBackupJson = () => {
-          const payload = { exportedAt: new Date().toISOString() };
-          STORAGE_KEYS.forEach(k => {
-            try {
-              const raw = localStorage.getItem(k);
-              if (raw) payload[k] = JSON.parse(raw);
-            } catch (e) {}
-          });
-          backupJsonText.value = JSON.stringify(payload, null, 2);
-        };
-
-        const openDataModal = () => {
-          try {
-            apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
-          } catch (e) {
-            apiKeyInput.value = '';
-          }
-          refreshBackupJson();
-          confirmResetProfile.value = false;
+        function openDataModal() {
+          statusMsg.value = '';
+          copied.value = false;
+          jsonPayload.value = buildSnapshot();
           showDataModal.value = true;
-        };
+        }
 
-        const saveApiKey = () => {
-          const clean = (apiKeyInput.value || '').trim();
+        function downloadBackupJson() {
+          const blob = new Blob([jsonPayload.value], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const dateStr = new Date().toISOString().slice(0, 10);
+          a.href = url;
+          a.download = `basement-lab-backup-${activeUser.value.toLowerCase()}-${dateStr}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          statusMsg.value = 'Backup JSON downloaded.';
+        }
+
+        async function copyBackupJson() {
           try {
-            if (clean) {
-              localStorage.setItem('basement_gemini_api_key', clean);
-              showToast('🔑 Saved Gemini API key to browser storage!');
-            } else {
-              localStorage.removeItem('basement_gemini_api_key');
-              showToast('Cleared local Gemini API key.');
-            }
+            await navigator.clipboard.writeText(jsonPayload.value);
+            copied.value = true;
+            setTimeout(() => { copied.value = false; }, 2000);
           } catch (e) {
-            showToast('⚠️ Browser storage blocked saving API key.');
+            statusMsg.value = 'Select the text box and copy manually.';
           }
-        };
+        }
 
-        const copyBackupJson = () => {
+        function restoreBackupJson() {
           try {
-            const ta = document.createElement('textarea');
-            ta.value = backupJsonText.value;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            showToast('📋 Copied master JSON backup to clipboard!');
-          } catch (e) {
-            showToast('Select and copy the JSON text above.');
-          }
-        };
-
-        const restoreBackupJson = async () => {
-          try {
-            const parsed = JSON.parse(backupJsonText.value || '{}');
-            STORAGE_KEYS.forEach(k => {
-              if (parsed[k] !== undefined) {
-                try {
-                  localStorage.setItem(k, JSON.stringify(parsed[k]));
-                } catch (e) {}
+            const parsed = JSON.parse(jsonPayload.value);
+            const source = parsed.data ? parsed.data : parsed;
+            Object.keys(source).forEach(k => {
+              if (SHARED_KEYS.includes(k)) {
+                const val = typeof source[k] === 'string' ? source[k] : JSON.stringify(source[k]);
+                localStorage.setItem(k, val);
               }
             });
-            if (session.value?.user?.id && window.BasementDB) {
-              await window.BasementDB.pushAllToCloud(session.value.user.id);
+            if (parsed.activeUser) {
+              activeUser.value = parsed.activeUser;
+              localStorage.setItem('basement_active_user', parsed.activeUser);
             }
-            reloadAllIframes();
-            showDataModal.value = false;
-            showToast('📥 Restored master JSON & synced all 4 modules!');
-          } catch (e) {
-            showToast('⚠️ Invalid JSON — please check the backup text.');
+            statusMsg.value = 'Restored shared keys! Syncing active module...';
+            syncAllModules();
+          } catch (err) {
+            statusMsg.value = 'Invalid JSON format — please check syntax and try again.';
           }
-        };
+        }
 
-        const handleGoogleSignIn = async () => {
-          authBusy.value = true;
-          try {
-            await window.BasementDB.signInWithGoogle();
-          } catch (e) {
-            authBusy.value = false;
-            showToast('⚠️ Google sign-in failed: ' + (e.message || 'Check Supabase config'));
+        function handleStorageSync(e) {
+          if (e.key === 'basement_active_user' && e.newValue) {
+            activeUser.value = e.newValue;
           }
-        };
+        }
 
-        const handleSignOut = async () => {
-          await window.BasementDB.signOut();
-          session.value = null;
-          showToast('Signed out.');
-        };
+        onMounted(() => {
+          window.addEventListener('storage', handleStorageSync);
+        });
 
-        const handleResetAccountData = async () => {
-          if (window.BasementDB) {
-            await window.BasementDB.resetUserCloudAndLocal(session.value?.user?.id || null);
-            if (session.value?.user?.id) {
-              window.BasementDB.startAutoSync(session.value.user.id);
-            }
-          }
-          confirmResetProfile.value = false;
-          showDataModal.value = false;
-          reloadAllIframes();
-          showToast('🧹 Cleared account profile & logs—starting fresh!');
-        };
-
-        const hydrateUserSession = async (newSession) => {
-          session.value = newSession;
-          if (newSession?.user?.id && window.BasementDB) {
-            try {
-              const res = await window.BasementDB.pullFromCloud(newSession.user.id);
-              window.BasementDB.startAutoSync(newSession.user.id);
-              reloadAllIframes();
-              if (res?.seededFromLocal) {
-                showToast('☁️ Uploaded your existing local logs to your cloud profile!');
-              }
-            } catch (e) {
-              showToast('⚠️ Cloud sync error — using local cache.');
-            }
-          }
-        };
-
-        onMounted(async () => {
-          try {
-            apiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
-          } catch (e) {
-            apiKeyInput.value = '';
-          }
-
-          if (window.BasementDB) {
-            const initial = await window.BasementDB.getSession();
-            await hydrateUserSession(initial);
-            window.BasementDB.onAuthStateChange(async (updatedSession) => {
-              if (updatedSession?.user?.id !== session.value?.user?.id) {
-                await hydrateUserSession(updatedSession);
-              } else {
-                session.value = updatedSession;
-              }
-            });
-          }
-          authReady.value = true;
+        onUnmounted(() => {
+          window.removeEventListener('storage', handleStorageSync);
         });
 
         return {
           modules,
-          activeModuleId,
-          currentModuleObj,
-          toast,
+          activeTab,
+          activeUser,
+          activeModule,
+          frameKey,
+          moduleFrame,
           showDataModal,
-          apiKeyInput,
-          hasSavedApiKey,
-          backupJsonText,
-          authReady,
-          authBusy,
-          session,
-          localOnlyMode,
-          userDisplayName,
-          setIframeRef,
-          switchModule,
+          jsonPayload,
+          copied,
+          statusMsg,
+          selectModule,
+          toggleUser,
+          syncAllModules,
+          onFrameLoad,
           openDataModal,
-          saveApiKey,
-          refreshBackupJson,
+          downloadBackupJson,
           copyBackupJson,
-          restoreBackupJson,
-          confirmResetProfile,
-          handleResetAccountData,
-          handleGoogleSignIn,
-          handleSignOut
+          restoreBackupJson
         };
       }
     }).mount('#app');
