@@ -7,8 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="basement-exercises.js"></script>
-  <script src="basement-exercises.js"></script>
-  <script src="basement-exercises.js"></script>
   <style>
     :root { color-scheme: dark; }
     body {
@@ -359,6 +357,12 @@
                 </button>
               </div>
 
+              <!-- Consecutive Run Guardrail Warning Banner -->
+              <div v-if="activeTodayModality === 'run' && ranYesterday" class="p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/60 text-xs text-rose-100 leading-snug">
+                <strong class="text-rose-300 block text-[10px] uppercase">🛑 Shin-Splint Guardrail Violation (Ran Yesterday)</strong>
+                You already ran yesterday ({{ yesterdayIso }}). Running back-to-back at 215 lb (~538 lb impact force) spikes tibial/Achilles stress—consider switching to 30m Rowing or a lift day.
+              </div>
+
               <!-- Pre-Cardio Guided Step 0 Warm-Up Box (Auto-Hides When Completed or Skipped) -->
               <div v-if="!cardioWarmupCompletedToday" class="p-3 rounded-xl bg-teal-950/35 border border-teal-500/50 space-y-2">
                 <div class="flex items-center justify-between gap-2">
@@ -464,7 +468,7 @@
                     &#10003; LOG {{ todayRunDuration }}m RUN ({{ todayRunMiles }} MI &bull; {{ todayRunIncline }}% INCLINE)
                   </span>
                   <span class="text-[10px] font-mono font-bold opacity-85 mt-0.5">
-                    Logged at RPE {{ todayCardioRpe }} &bull; Opens optional Post-Workout Sauna logger
+                    Logged at RPE {{ todayCardioRpe }} &bull; Saves to Calendar &amp; locks session
                   </span>
                 </button>
 
@@ -653,9 +657,16 @@
                       <span class="text-xs font-black text-white underline decoration-dotted leading-snug">{{ st.name }}</span>
                       <span v-if="st.goalBadge" class="px-1.5 py-0.2 rounded bg-indigo-500/20 border border-indigo-500/40 text-[8px] font-mono font-bold text-indigo-300">{{ st.goalBadge }}</span>
                     </div>
-                    <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-emerald-400 shrink-0">
-                      {{ st.equipment === 'Band' ? st.bandLevelLabel.split(' ')[0] + ' Band' : (st.plannedWeight > 0 ? st.plannedWeight + ' lb' : 'Bodyweight') }} &times; {{ st.plannedReps }}
-                    </span>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-emerald-400">
+                        {{ st.equipment === 'Band' ? st.bandLevelLabel.split(' ')[0] + ' Band' : (st.plannedWeight > 0 ? st.plannedWeight + ' lb' : 'Bodyweight') }} &times; {{ st.plannedReps }}
+                      </span>
+                      <button
+                        @click="removeCircuitStation(idx)"
+                        title="Remove station from today's circuit"
+                        class="w-6 h-6 rounded-lg bg-slate-900 hover:bg-rose-500/20 border border-slate-800 hover:border-rose-500/50 text-slate-400 hover:text-rose-300 font-bold text-xs flex items-center justify-center transition"
+                      >&times;</button>
+                    </div>
                   </div>
 
                   <div class="flex items-center gap-2 flex-wrap text-[10px] font-mono">
@@ -1128,7 +1139,7 @@
                   <span class="text-[10px] font-mono text-emerald-400 block">
                     <template v-if="l.bandLevel">{{ l.bandLevel }} &bull; {{ l.reps }} reps</template>
                     <template v-else>{{ l.weight }} lb &times; {{ l.reps }} reps</template>
-                    &bull; RPE {{ l.rpe }}
+                    &bull; RPE {{ l.rpe }}<span v-if="l.durationSec"> &bull; {{ l.durationSec }}s<template v-if="l.secPerRep"> ({{ l.secPerRep }}s/rep)</template></span>
                   </span>
                 </div>
               </div>
@@ -1486,11 +1497,14 @@
 
           <!-- ACTIVE REST COUNTDOWN + POST-SET RPE & COMPLETED REPS ENTRY -->
           <div v-else class="p-3.5 rounded-2xl bg-slate-950 border-2 border-indigo-500/60 space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-2">
               <div>
                 <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 block">Set Logged! Rate Effort &amp; Rest</span>
                 <span class="text-xs font-bold text-white">Next Set in <strong class="font-mono text-emerald-400 text-sm">{{ formatSeconds(restRemainingSeconds) }}</strong></span>
               </div>
+              <span v-if="lastSetTutBadge" class="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/40 text-[10px] font-mono font-black text-amber-300">
+                {{ lastSetTutBadge }}
+              </span>
               <button @click="advanceToNextStationAfterRest" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs shadow">
                 Next Station &rarr;
               </button>
@@ -1498,10 +1512,17 @@
 
             <!-- Adjust Completed Reps -->
             <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-              <span class="font-bold text-slate-300">Completed Reps:</span>
+              <span class="font-bold text-slate-300">Actual Reps Completed:</span>
               <div class="flex items-center gap-2">
                 <button @click="adjustLastLoggedReps(-1)" class="w-7 h-7 rounded-lg bg-slate-800 text-white font-black">-</button>
-                <span class="font-mono font-black text-sm text-emerald-400 w-8 text-center">{{ lastCompletedReps }}</span>
+                <input
+                  v-model.number="lastCompletedReps"
+                  @change="setLastLoggedReps(lastCompletedReps)"
+                  type="number"
+                  min="1"
+                  max="50"
+                  class="w-12 px-1.5 py-1 rounded-lg bg-slate-950 border border-slate-700 font-mono font-black text-sm text-emerald-400 text-center focus:border-emerald-400 focus:outline-none"
+                />
                 <button @click="adjustLastLoggedReps(1)" class="w-7 h-7 rounded-lg bg-slate-800 text-white font-black">+</button>
               </div>
             </div>
@@ -1958,8 +1979,6 @@
         trap: '• The "Lumbar Tunnel" Trap: Letting your lower back arch off the mat so someone could slide their hand underneath your spine as your leg extends.',
         science: 'Builds true core stiffness and pelvic control without repetitive spinal flexion.'
       },
-
-      // --- AI DISCOVERY & BLIND-SPOT EXERCISES ---
       'Side-Lying Hip Abduction (Straight-Leg Raise)': {
         slug: 'Side_Leg_Raises', category: 'Calves & Hips', equipment: 'Band', weight: 0, reps: 15,
         muscles: 'Gluteus Medius (Posterior Fibers) & Hip Abductors',
@@ -2010,8 +2029,6 @@
         trap: '• The "Teapot Lean" Trap: Tilting your torso sideways away from the dumbbell or letting the weighted shoulder sag down toward your hip.',
         science: 'Unilateral 50 lb load forces the opposite-side Quadratus Lumborum (QL) and glute medius to fire isometrically with every step.'
       },
-
-      // --- STEP 0 MOBILITY PRIMER CATALOG ITEMS ---
       'Wall Tibialis & Calf Primer': {
         slug: 'Standing_Gastrocnemius_Calf_Stretch', category: 'Mobility', equipment: 'Bodyweight', weight: 0, reps: 15,
         muscles: 'Anterior Tibialis, Soleus & Ankle Capsule',
@@ -2174,16 +2191,9 @@
         const postWorkoutSaunaLogged = ref(false);
 
         const getLiftMeta = (name) => LIFT_DB[name] || LIFT_DB['Goblet Squat'];
-        
-    if (window.BasementExercises) { Object.assign(LIFT_DB, window.BasementExercises.mergeIntoLiftDb(LIFT_DB)); }
+        if (window.BasementExercises) { Object.assign(LIFT_DB, window.BasementExercises.mergeIntoLiftDb(LIFT_DB)); }
 
-    
-    if (window.BasementExercises) { Object.assign(LIFT_DB, window.BasementExercises.mergeIntoLiftDb(LIFT_DB)); }
-
-    
-    if (window.BasementExercises) { Object.assign(LIFT_DB, window.BasementExercises.mergeIntoLiftDb(LIFT_DB)); }
-
-    const getExercisePhoto = (name, stage = 'top') => {
+        const getExercisePhoto = (name, stage = 'top') => {
           const _v = customCatalogVersion.value;
           const meta = getLiftMeta(name);
           if (stage === 'bottom' && meta.customPhotoBottom) return meta.customPhotoBottom;
@@ -2193,6 +2203,16 @@
         const getQuickHitReminder = (name) => {
           const meta = getLiftMeta(name);
           return meta.quickCue || meta.topCue;
+        };
+
+        const activeTempInjuries = computed(() => {
+          return (coachCtx.value.activeTemporaryInjuries || []).filter(
+            inj => inj && inj.active !== false && (!inj.expiresAt || inj.expiresAt >= todayIso.value)
+          );
+        });
+
+        const hasActiveInjuryRegion = (region) => {
+          return activeTempInjuries.value.some(inj => inj.region === region);
         };
 
         const todayStrengthLogsList = computed(() => workoutLogs.value.filter(l => l.date === todayIso.value));
@@ -2329,7 +2349,7 @@
 
         const saunaTodayAdvisory = computed(() => {
           const sleep = Number(coachCtx.value.dailyBiometrics?.sleepHours ?? 7.5);
-          const recentAcuteInjury = (coachCtx.value.activeTemporaryInjuries || []).find(i => i.createdAt >= getLocalIsoDate(-3));
+          const recentAcuteInjury = activeTempInjuries.value.find(i => i.createdAt >= getLocalIsoDate(-3));
           if (recentAcuteInjury) {
             return {
               shouldWarn: true,
@@ -2349,9 +2369,7 @@
           return { shouldWarn: false, level: 'ok', headline: '', reason: '' };
         });
 
-        // =====================================================================
-        // CENTRALIZED ZERO-BLOAT AI VOICE INTERACTION & GEMINI TTS ENGINE
-        // =====================================================================
+        // Centralized Voice & Gemini TTS Engine
         const activeTtsSourceId = ref(null);
         const autoSpeakExerciseAi = ref(true);
         let currentAudioObj = null;
@@ -2498,9 +2516,7 @@
           return fallbackText;
         };
 
-        // =====================================================================
-        // PRE-WORKOUT CHECK-IN GATE & POST-WORKOUT DEBRIEF ENGINE
-        // =====================================================================
+        // Pre-Workout Check-In Gate & Post-Workout Debrief Engine
         const trainerNotesLogs = ref([]);
         const hasProvidedTodayUpdate = ref(false);
         const showPreWorkoutUpdateBox = ref(false);
@@ -2656,9 +2672,7 @@
           }
         };
 
-        // =====================================================================
-        // IN-CARD VOICE AI EXERCISE COACH (INSIDE EVERY EXERCISE FORM MODAL)
-        // =====================================================================
+        // In-Card Voice AI Exercise Coach
         const exerciseChatHistoryMap = ref({});
         const exerciseModalQuestionInput = ref('');
         const isListeningExerciseModal = ref(false);
@@ -2712,7 +2726,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           }
         };
 
-        // Effort & RPE Coaching Engine (Synced with 7-Day Pro Trainer RPE Audit)
+        // Effort & RPE Coaching Engine
         const sessionEffortGameplan = computed(() => {
           const phase = coachCtx.value.mesocyclePhase || DEFAULT_COACH_CONTEXT.mesocyclePhase;
           const sleep = Number(coachCtx.value.dailyBiometrics?.sleepHours ?? 7.5);
@@ -2781,7 +2795,6 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           });
         });
 
-        // Dedicated Pre-Run / Pre-Row Guided Step 0 Warm-Up Drills (with 2-Stage Photos & Step-by-Step Cues)
         const cardioStepZeroDrills = computed(() => {
           if (activeTodayModality.value === 'row') {
             return [
@@ -2842,16 +2855,25 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           if (banned.includes(liftName)) {
             warnings.push(`Marked as Banned (⊘) in your Module 2 preferences.`);
           }
-          const hasAnkleGuard = (coachCtx.value.chronicGuardrails || []).some(g => g.region === 'ankle' || g.id === 'plantar' || g.id === 'shin_splints') ||
-            (coachCtx.value.activeTemporaryInjuries || []).some(i => i.region === 'ankle');
+          const hasAnkleGuard = hasActiveInjuryRegion('ankle') ||
+            (coachCtx.value.chronicGuardrails || []).some(g => g.region === 'ankle' || g.id === 'plantar' || g.id === 'shin_splints');
           if (liftName === 'Standing Dumbbell Calf Raise' && hasAnkleGuard) {
             warnings.push(`Active Ankle/Plantar Guardrail: Seated Calf Raise or Banded Clamshell is safer today.`);
           }
-          const hasLumbarLoad = recent72hCardioMiles.value >= 3.0 ||
+          const hasKneeGuard = hasActiveInjuryRegion('knee');
+          if (liftName === 'Dumbbell Bulgarian Split Squat' && hasKneeGuard) {
+            warnings.push(`Active Knee Setback Guardrail: Bodyweight Glute Bridge or Dumbbell Sumo Squat is safer today.`);
+          }
+          const hasShoulderGuard = hasActiveInjuryRegion('shoulder');
+          if ((liftName === 'Dumbbell Lateral Raise' || liftName === 'Flat Dumbbell Bench Press') && hasShoulderGuard) {
+            warnings.push(`Active Shoulder Setback Guardrail: Dumbbell Floor Press or Band Face Pull is safer today.`);
+          }
+          const hasLumbarLoad = hasActiveInjuryRegion('lower_back') ||
+            recent72hCardioMiles.value >= 3.0 ||
             (coachCtx.value.externalLifeLoads || []).includes('yard_work') ||
             (coachCtx.value.chronicGuardrails || []).some(g => g.region === 'lower_back');
           if (liftName === 'Dumbbell Romanian Deadlift (RDL)' && hasLumbarLoad) {
-            warnings.push(`Cumulative Lower-Back Load (${recent72hCardioMiles.value.toFixed(1)}mi recent run): Bodyweight Glute Bridge unloads spinal shear.`);
+            warnings.push(`Cumulative Lower-Back Load (${recent72hCardioMiles.value.toFixed(1)}mi recent run / injury guard): Bodyweight Glute Bridge unloads spinal shear.`);
           }
           return warnings;
         };
@@ -2859,7 +2881,9 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const getSafeAlternativeFor = (liftName) => {
           const map = {
             'Goblet Squat': 'Dumbbell Sumo Squat',
-            'Flat Dumbbell Bench Press': 'Incline Dumbbell Bench Press',
+            'Dumbbell Bulgarian Split Squat': 'Bodyweight Glute Bridge',
+            'Flat Dumbbell Bench Press': 'Dumbbell Floor Press',
+            'Incline Dumbbell Bench Press': 'Dumbbell Floor Press',
             'Dumbbell Romanian Deadlift (RDL)': 'Bodyweight Glute Bridge',
             'Single-Arm Dumbbell Row': 'Chest-Supported Incline Row',
             'Dumbbell Lateral Raise': 'Dumbbell Rear Delt Reverse Fly',
@@ -2893,16 +2917,21 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const synthesizeCoachedCircuit = (notify = false) => {
           const ySet = new Set(yesterdayLiftNames.value);
           const audit = liveTrainerAuditSummary.value;
+          const ankleInjured = hasActiveInjuryRegion('ankle');
+          const kneeInjured = hasActiveInjuryRegion('knee');
+          const backInjured = hasActiveInjuryRegion('lower_back');
+          const shoulderInjured = hasActiveInjuryRegion('shoulder');
 
-          // Station 6 & Stabilizer Slot: Driven by the exact same Shin-Splint / Calf-to-Hip-to-Tibialis audit as Module 4's AI Pro Trainer
           let station6;
-          if (ySet.has('Seated Calf Raise')) {
-            if (audit.needsHipArmor) {
+          if (ySet.has('Seated Calf Raise') || ankleInjured) {
+            if (audit.needsHipArmor || ankleInjured) {
               station6 = makeStationObj(
                 ySet.has('Banded Clamshell') ? 'Side-Lying Hip Abduction (Straight-Leg Raise)' : 'Banded Clamshell',
-                `Pro Trainer Auto-Fix (${audit.calfSets} Calf vs ${audit.hipSets} Hip sets): Rotates from yesterday's Calf Raise to Glute-Medius Hip Alignment so shin splints don't flare.`,
+                ankleInjured
+                  ? `Active Temp Ankle Injury Guard: Routes lower-leg/hip focus to Banded Clamshell with zero standing ankle load.`
+                  : `Pro Trainer Auto-Fix (${audit.calfSets} Calf vs ${audit.hipSets} Hip sets): Rotates from yesterday's Calf Raise to Glute-Medius Hip Alignment so shin splints don't flare.`,
                 true,
-                'TRAINER AUTO-FIX'
+                ankleInjured ? 'INJURY GUARD' : 'TRAINER AUTO-FIX'
               );
             } else {
               station6 = makeStationObj(
@@ -2922,25 +2951,44 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           }
 
           const stations = [
-            ySet.has('Goblet Squat')
-              ? makeStationObj('Dumbbell Sumo Squat', 'Anti-Overload Rotation: Replaces yesterday’s Goblet Squat to target adductors & glutes.', false, '')
+            (ySet.has('Goblet Squat') || kneeInjured)
+              ? makeStationObj(
+                  'Dumbbell Sumo Squat',
+                  kneeInjured
+                    ? 'Active Temp Knee Injury Guard: Wide-stance Sumo Squat reduces forward knee shear.'
+                    : 'Anti-Overload Rotation: Replaces yesterday’s Goblet Squat to target adductors & glutes.',
+                  false,
+                  kneeInjured ? 'INJURY GUARD' : ''
+                )
               : makeStationObj('Goblet Squat', 'Primary Lower Squat station (Quads fresh).', false, ''),
-            ySet.has('Flat Dumbbell Bench Press')
-              ? makeStationObj('Incline Dumbbell Bench Press', 'Anti-Overload Rotation: Replaces yesterday’s Flat Bench with 30° clavicular press.', false, '')
+            (ySet.has('Flat Dumbbell Bench Press') || shoulderInjured)
+              ? makeStationObj(
+                  shoulderInjured ? 'Dumbbell Floor Press' : 'Incline Dumbbell Bench Press',
+                  shoulderInjured
+                    ? 'Active Temp Shoulder Injury Guard: Floor Press stops elbows at floor level to protect shoulder capsule.'
+                    : 'Anti-Overload Rotation: Replaces yesterday’s Flat Bench with 30° clavicular press.',
+                  false,
+                  shoulderInjured ? 'INJURY GUARD' : ''
+                )
               : makeStationObj('Flat Dumbbell Bench Press', 'Primary Upper Horizontal Push.', false, ''),
-            recent72hCardioMiles.value >= 3.0
-              ? makeStationObj('Bodyweight Glute Bridge', `Holistic Spine Guard (${recent72hCardioMiles.value.toFixed(1)}mi recent run): Zero-shear Glute Bridge replaces RDL.`, false, '')
+            (recent72hCardioMiles.value >= 3.0 || backInjured)
+              ? makeStationObj(
+                  'Bodyweight Glute Bridge',
+                  backInjured
+                    ? 'Active Temp Lower-Back Guard: Zero-shear Glute Bridge replaces RDL.'
+                    : `Holistic Spine Guard (${recent72hCardioMiles.value.toFixed(1)}mi recent run): Zero-shear Glute Bridge replaces RDL.`,
+                  false,
+                  backInjured ? 'INJURY GUARD' : ''
+                )
               : makeStationObj('Dumbbell Romanian Deadlift (RDL)', 'Lengthened hamstring hinge.', false, ''),
             makeStationObj('Dumbbell Pullover', '2° Goal (V-Taper Lats): Lengthened lat stretch with zero lower-back shear.', true, '2° GOAL'),
-            ySet.has('Dumbbell Lateral Raise')
-              ? makeStationObj('Dumbbell Rear Delt Reverse Fly', 'Posterior deltoid & posture balance.', false, '')
+            (ySet.has('Dumbbell Lateral Raise') || shoulderInjured)
+              ? makeStationObj('Dumbbell Rear Delt Reverse Fly', 'Posterior deltoid & posture balance.', false, shoulderInjured ? 'INJURY GUARD' : '')
               : makeStationObj('Dumbbell Lateral Raise', '30° scapular-plane medial deltoid builder.', false, ''),
             station6
           ];
 
-          // IfSeated Calf Raise took Station 6 today AND the Pro Trainer audit flagged a severe Front-Shin Tibialis or Hip-Abductor deficit,
-          // automatically weave the missing stabilizer into the Step 0 / Finisher pairing so the user never has to add it manually
-          if (station6.name === 'Seated Calf Raise' && audit.needsTibialis && !ySet.has('Weighted Wall Tibialis Raise')) {
+          if (station6.name === 'Seated Calf Raise' && audit.needsTibialis && !ySet.has('Weighted Wall Tibialis Raise') && !ankleInjured) {
             stations.push(
               makeStationObj(
                 'Weighted Wall Tibialis Raise',
@@ -2952,7 +3000,17 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           }
 
           activeCircuitStations.value = stations;
-          if (notify) showToast('Reset to AI-synthesized circuit (synced with Pro Trainer audit)!');
+          if (notify) showToast('Reset to AI-synthesized circuit (synced with Pro Trainer audit & injuries)!');
+        };
+
+        const removeCircuitStation = (idx) => {
+          if (activeCircuitStations.value.length <= 1) {
+            showToast('Keep at least 1 station in today\'s circuit.');
+            return;
+          }
+          const removed = activeCircuitStations.value[idx];
+          activeCircuitStations.value.splice(idx, 1);
+          if (removed) showToast(`Removed "${removed.name}" from today's circuit.`);
         };
 
         const allCatalogLiftNames = computed(() => Object.keys(LIFT_DB).filter(k => LIFT_DB[k].category !== 'Mobility'));
@@ -3098,7 +3156,6 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const openFormCardByName = (name, customReason = '') => {
           const meta = getLiftMeta(name);
           activeFormModalLift.value = { name, customReason, ...meta };
-
           showModalPhotoFixer.value = false;
           customTopUrlInput.value = meta.customPhotoTop || '';
           customBottomUrlInput.value = meta.customPhotoBottom || '';
@@ -3226,7 +3283,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           if (!ex || aiPhotoGenerating.value) return;
           aiPhotoGenerating.value = true;
           try {
-            const apiKey = "";
+            const apiKey = getActiveApiKey();
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
             const buildStagePrompt = (stageLabel, cueText) =>
               `Photorealistic fitness instructional photo of an athletic adult in a dark home gym performing "${ex.name}" (${ex.equipment}). Show ${stageLabel}: ${cueText}. Clear full-body anatomical angle, no text.`;
@@ -3283,6 +3340,8 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const lastCompletedReps = ref(10);
         const postSetRpe = ref(8.0);
         const lastLoggedEntryId = ref(null);
+        const lastSetDurationSec = ref(0);
+        const lastSetSecPerRep = ref(null);
         let timerInterval = null;
 
         const currentPrimerObj = computed(() => activeWarmupDrillsList.value[currentPrimerIndex.value] || activeWarmupDrillsList.value[0]);
@@ -3290,6 +3349,22 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const currentStationEffort = computed(() => getStationEffortProfile(currentStation.value));
         const targetSessionRpe = computed(() => currentStationEffort.value.targetRpe);
         const targetRirLabel = computed(() => sessionEffortGameplan.value.shortRir);
+
+        const lastSetTutBadge = computed(() => {
+          const sec = Number(lastSetDurationSec.value) || 0;
+          if (sec <= 0) return '';
+          if (lastSetSecPerRep.value) {
+            return `⏱ ${sec}s · ${lastSetSecPerRep.value}s/rep`;
+          }
+          return `⏱ ${sec}s TUT`;
+        });
+
+        const computeSecPerRep = (durationSec, reps) => {
+          const d = Number(durationSec) || 0;
+          const r = Number(reps) || 0;
+          if (d <= 0 || d > 120 || r <= 0) return null;
+          return Number((d / r).toFixed(1));
+        };
 
         const stopTimer = () => {
           if (timerInterval) {
@@ -3339,6 +3414,8 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           guidedState.value = 'ready';
           showGuidedFormDetails.value = false;
           setDurationSeconds.value = 0;
+          lastSetDurationSec.value = 0;
+          lastSetSecPerRep.value = null;
         };
 
         const startGuidedCardioWarmup = () => {
@@ -3393,8 +3470,14 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const completeSetAndEnterRestRpe = () => {
           const st = currentStation.value;
           if (!st) return;
+          const elapsedSec = Math.max(0, Number(setDurationSeconds.value) || 0);
+          stopTimer();
           const effort = getStationEffortProfile(st);
-          lastCompletedReps.value = st.plannedReps || 10;
+          const initialReps = Math.max(1, Number(st.plannedReps) || 10);
+          const secPerRep = computeSecPerRep(elapsedSec, initialReps);
+          lastSetDurationSec.value = elapsedSec;
+          lastSetSecPerRep.value = secPerRep;
+          lastCompletedReps.value = initialReps;
           postSetRpe.value = Number(effort.targetRpe) || 8.0;
           const entryId = 'log-' + Date.now();
           lastLoggedEntryId.value = entryId;
@@ -3406,19 +3489,34 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             weight: st.equipment === 'Band' ? 0 : st.plannedWeight,
             bandLevel: st.equipment === 'Band' ? selectedBandLevel.value.label : null,
             reps: lastCompletedReps.value,
-            rpe: postSetRpe.value
+            rpe: postSetRpe.value,
+            durationSec: elapsedSec,
+            secPerRep
           });
           saveLogsToStorage();
           startRestCountdown();
         };
 
-        const adjustLastLoggedReps = (delta) => {
-          lastCompletedReps.value = Math.max(1, lastCompletedReps.value + delta);
+        const syncLastLoggedRepsInStorage = () => {
+          const cleanReps = Math.max(1, Math.min(60, Number(lastCompletedReps.value) || 1));
+          lastCompletedReps.value = cleanReps;
+          lastSetSecPerRep.value = computeSecPerRep(lastSetDurationSec.value, cleanReps);
           const target = workoutLogs.value.find(l => l.id === lastLoggedEntryId.value);
           if (target) {
-            target.reps = lastCompletedReps.value;
+            target.reps = cleanReps;
+            target.secPerRep = lastSetSecPerRep.value;
             saveLogsToStorage();
           }
+        };
+
+        const adjustLastLoggedReps = (delta) => {
+          lastCompletedReps.value = Math.max(1, (Number(lastCompletedReps.value) || 1) + delta);
+          syncLastLoggedRepsInStorage();
+        };
+
+        const setLastLoggedReps = (val) => {
+          lastCompletedReps.value = Math.max(1, Number(val) || 1);
+          syncLastLoggedRepsInStorage();
         };
 
         const updateLastLoggedRpe = (rpeVal) => {
@@ -3685,7 +3783,6 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           loadAllSharedLogs();
           reloadCoachContext(false);
 
-          // Automatic background cross-module sync whenever Module 2 or Module 3 updates photos, custom lifts, or guardrails
           window.addEventListener('storage', (e) => {
             if (!e.key || e.key.startsWith('basement_')) {
               loadAllSharedLogs();
@@ -3718,7 +3815,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           isListeningExerciseModal, exerciseAiLoading, toggleExerciseModalVoiceMic, askAiAboutActiveExercise,
           coachCtx, reloadCoachContext, yesterdayLiftNames, liftedYesterday, liftedTwoDaysAgo, consecutivePriorLiftDays, liftedToday,
           allowAdditionalWorkoutToday, hasCompletedSessionToday, todayStrengthLogsList, todayStrengthUniqueExercises, todayCardioLogsList, todaySaunaLogsList,
-          liveTrainerAuditSummary,
+          liveTrainerAuditSummary, activeTempInjuries, hasActiveInjuryRegion,
           ranYesterday, rowedYesterday, selectedTodayModality, recommendedDailyModality,
           activeTodayModality, estimatedCircuitMinutes, activeCardioPrescription, completePrescribedCardioSession,
           todayRowDuration, todayRowResistance, todayRowMeters, todayRunDuration, todayRunMiles, todayRunIncline, todayCardioRpe,
@@ -3726,7 +3823,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           saunaLogs, saunaDuration, saunaType, saunaTiming, postWorkoutSaunaLogged,
           latestRecentSauna, recentSaunaMinutes36h, saunaTodayAdvisory, submitPostWorkoutSauna, logSaunaEntry, deleteSaunaLog,
           stepZeroPrimerList, cardioStepZeroDrills, activeWarmupDrillsList, isCardioWarmupMode, cardioWarmupCompletedToday, startGuidedCardioWarmup,
-          activeCircuitStations, synthesizeCoachedCircuit,
+          activeCircuitStations, synthesizeCoachedCircuit, removeCircuitStation,
           customCircuitList, openManualBuildPage, toggleCustomBuilderExercise, addSafeAlternativeToCustom, moveCustomStation, launchCustomBuiltCircuit,
           allCatalogLiftNames, filteredBuilderLifts,
           evaluateExerciseConflicts, getSafeAlternativeFor, swapStationWithSafeAlternative,
@@ -3740,9 +3837,9 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           sessionEffortGameplan, getStationEffortProfile, currentStationEffort, targetSessionRpe, targetRirLabel,
           guidedStage, currentPrimerIndex, currentPrimerObj, currentRound, currentStationIndex, currentStation,
           guidedState, isSetTimerRunning, showGuidedFormDetails, setDurationSeconds, restRemainingSeconds,
-          lastCompletedReps, postSetRpe,
+          lastCompletedReps, postSetRpe, lastSetTutBadge,
           startGuidedWorkout, startTimer, resetActiveTimer, completeCurrentPrimerDrill, skipStepZeroToMainCircuit,
-          adjustPlannedWeight, completeSetAndEnterRestRpe, adjustLastLoggedReps, updateLastLoggedRpe, advanceToNextStationAfterRest,
+          adjustPlannedWeight, completeSetAndEnterRestRpe, adjustLastLoggedReps, setLastLoggedReps, updateLastLoggedRpe, advanceToNextStationAfterRest,
           formatSeconds, workoutLogs,
           calendarMonthLabel, calendarCells, monthlyWorkoutDaysCount, selectedCalendarDate, changeCalendarMonth,
           showQuickStrengthForm, showQuickCardioForm, showQuickSaunaForm, manualLiftName, manualWeight, manualReps, manualRpe,
