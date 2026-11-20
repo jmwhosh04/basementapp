@@ -1243,15 +1243,23 @@
           let reply = `Signs your weight is too heavy on ${ex.name}: ${ex.trap.replace(/^•\s*/, '')} Stick to "${ex.quickCue}" so the tension stays in your ${ex.muscles}.`;
           try {
             const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: `You are a gym coach standing next to a 46yo client (215 lb, 50 lb DB cap) looking at "${ex.name}" (Muscles: ${ex.muscles}, Quick Cue: "${ex.quickCue}", Breakdown Trap: "${ex.trap}"). Answer his question in 2-3 spoken-friendly sentences: "${question}"` }] }]
-              })
-            });
-            const data = await res.json();
-            reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || reply;
+            if (apiKey) {
+              const controller = new AbortController();
+              const tId = setTimeout(() => controller.abort(), 1800);
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: `Gym coach in 1-2 short spoken sentences for "${ex.name}" (Quick cue: ${ex.quickCue}; Trap: ${ex.trap}): "${question}"` }] }]
+                })
+              });
+              clearTimeout(tId);
+              if (res.ok) {
+                const data = await res.json();
+                reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || reply;
+              }
+            }
           } catch (e) {}
 
           exerciseChatHistoryMap.value[ex.name].push({ role: 'coach', text: reply });
