@@ -413,16 +413,83 @@
         </div>
       </div>
 
-      <!-- Chronic Guardrails -->
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
-        <h2 class="text-sm font-black text-white">Chronic Guardrails &amp; Joint Rules</h2>
-        <textarea
-          v-model="notesDraft"
-          @change="saveContext()"
-          rows="3"
-          placeholder="One guardrail per line (e.g., Protect left plantar fascia on consecutive run days)..."
-          class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
-        ></textarea>
+      <!-- Chronic Guardrails & Joint Rules (Individual Toggleable Rules) -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-black text-white">Chronic Guardrails &amp; Joint Rules</h2>
+            <span class="text-[10px] text-slate-400">Toggle individual rules ON/OFF as needed over time</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+            {{ activeGuardrailCount }}/{{ normalizedGuardrails.length }} ACTIVE
+          </span>
+        </div>
+
+        <!-- Add New Individual Guardrail -->
+        <div class="flex gap-1.5">
+          <input
+            v-model="newGuardrailText"
+            @keyup.enter="addGuardrailRule"
+            type="text"
+            placeholder="Add rule (e.g., Prone to shin splints — 48h run spacing)..."
+            class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+          />
+          <button
+            type="button"
+            @click="addGuardrailRule"
+            :disabled="!newGuardrailText.trim()"
+            class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black disabled:opacity-40 shrink-0"
+          >
+            + Add
+          </button>
+        </div>
+
+        <div v-if="normalizedGuardrails.length === 0" class="text-xs text-slate-400 text-center py-2.5">
+          No chronic guardrails added yet. Add one above or via the AI Profile Interview.
+        </div>
+
+        <!-- Individual Toggleable Rule Cards -->
+        <div class="space-y-1.5">
+          <div
+            v-for="(rule, idx) in normalizedGuardrails"
+            :key="rule.id || idx"
+            class="p-2.5 rounded-xl border flex items-start justify-between gap-2 transition"
+            :class="rule.active ? 'bg-slate-950 border-emerald-500/40' : 'bg-slate-950/60 border-slate-800 opacity-60'"
+          >
+            <div class="min-w-0 flex-1">
+              <div v-if="editingGuardrailIdx === idx" class="flex gap-1.5">
+                <input
+                  v-model="editingGuardrailDraft"
+                  @keyup.enter="saveEditGuardrail(idx)"
+                  type="text"
+                  class="flex-1 px-2 py-1 rounded bg-slate-900 border border-indigo-400 text-xs text-white"
+                />
+                <button type="button" @click="saveEditGuardrail(idx)" class="px-2 py-1 rounded bg-emerald-500 text-slate-950 text-[10px] font-black">Save</button>
+              </div>
+              <p v-else @click="startEditGuardrail(idx, rule.label)" class="text-xs leading-snug cursor-pointer" :class="rule.active ? 'text-slate-100 font-medium' : 'text-slate-400 line-through'">
+                {{ rule.label }}
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                @click="toggleGuardrailActive(idx)"
+                class="px-2 py-1 rounded-lg text-[10px] font-mono font-black border transition"
+                :class="rule.active ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400'"
+              >
+                {{ rule.active ? 'ACTIVE' : 'OFF' }}
+              </button>
+              <button
+                type="button"
+                @click="removeGuardrailRule(idx)"
+                title="Delete rule"
+                class="w-6 h-6 rounded-lg bg-slate-900 hover:bg-rose-950/60 text-rose-400 font-bold text-xs flex items-center justify-center"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Weekly Modality Cadence & Session Window -->
@@ -505,7 +572,9 @@
         const newInjuryName = ref('');
         const newInjuryRegion = ref('ankle');
         const newInjuryDays = ref(14);
-        const notesDraft = ref('');
+        const newGuardrailText = ref('');
+        const editingGuardrailIdx = ref(-1);
+        const editingGuardrailDraft = ref('');
         const customGoalPrompt = ref('');
         const interviewInput = ref('');
         const isListeningInterview = ref(false);
@@ -670,6 +739,76 @@
           };
         });
 
+        function normalizeGuardrailList(rawList) {
+          if (!Array.isArray(rawList)) return [];
+          return rawList
+            .map((item, idx) => {
+              if (typeof item === 'string') {
+                const clean = item.trim();
+                return clean ? { id: `guard-${idx}-${clean.slice(0, 12)}`, label: clean, active: true } : null;
+              }
+              if (item && typeof item === 'object') {
+                const label = String(item.label || item.rule || item.name || '').trim();
+                if (!label) return null;
+                return {
+                  id: item.id || `guard-${idx}`,
+                  label,
+                  region: item.region || 'general',
+                  active: item.active !== false
+                };
+              }
+              return null;
+            })
+            .filter(Boolean);
+        }
+
+        const normalizedGuardrails = computed(() => normalizeGuardrailList(context.value.chronicGuardrails));
+        const activeGuardrailCount = computed(() => normalizedGuardrails.value.filter((g) => g.active).length);
+
+        function addGuardrailRule() {
+          const label = newGuardrailText.value.trim();
+          if (!label) return;
+          const list = normalizeGuardrailList(context.value.chronicGuardrails);
+          if (!list.some((g) => g.label.toLowerCase() === label.toLowerCase())) {
+            list.push({ id: `guard-${Date.now()}`, label, active: true });
+          }
+          context.value.chronicGuardrails = list;
+          newGuardrailText.value = '';
+          saveContext(true);
+        }
+
+        function toggleGuardrailActive(idx) {
+          const list = normalizeGuardrailList(context.value.chronicGuardrails);
+          if (!list[idx]) return;
+          list[idx].active = !list[idx].active;
+          context.value.chronicGuardrails = list;
+          saveContext(true);
+        }
+
+        function removeGuardrailRule(idx) {
+          const list = normalizeGuardrailList(context.value.chronicGuardrails);
+          list.splice(idx, 1);
+          context.value.chronicGuardrails = list;
+          if (editingGuardrailIdx.value === idx) editingGuardrailIdx.value = -1;
+          saveContext(true);
+        }
+
+        function startEditGuardrail(idx, currentLabel) {
+          editingGuardrailIdx.value = idx;
+          editingGuardrailDraft.value = currentLabel;
+        }
+
+        function saveEditGuardrail(idx) {
+          const updated = editingGuardrailDraft.value.trim();
+          const list = normalizeGuardrailList(context.value.chronicGuardrails);
+          if (updated && list[idx]) {
+            list[idx].label = updated;
+            context.value.chronicGuardrails = list;
+            saveContext(true);
+          }
+          editingGuardrailIdx.value = -1;
+        }
+
         function loadState() {
           if (!window.BasementDB) return;
           const loaded = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, defaultCtx);
@@ -677,22 +816,17 @@
             ...defaultCtx(),
             ...loaded,
             primaryGoal: { ...defaultCtx().primaryGoal, ...(loaded.primaryGoal || {}) },
-            modalityPreferences: { ...defaultCtx().modalityPreferences, ...(loaded.modalityPreferences || {}) }
+            modalityPreferences: { ...defaultCtx().modalityPreferences, ...(loaded.modalityPreferences || {}) },
+            chronicGuardrails: normalizeGuardrailList(loaded.chronicGuardrails)
           };
           context.value = merged;
-          notesDraft.value = Array.isArray(merged.chronicGuardrails)
-            ? merged.chronicGuardrails.map((g) => (typeof g === 'string' ? g : g.label || '')).filter(Boolean).join('\n')
-            : '';
           const rawLogs = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.LOGS, []);
           logs.value = Array.isArray(rawLogs) ? rawLogs : [];
         }
 
         function saveContext(notify = false) {
           if (!window.BasementDB) return;
-          context.value.chronicGuardrails = notesDraft.value
-            .split('\n')
-            .map((s) => s.trim())
-            .filter(Boolean);
+          context.value.chronicGuardrails = normalizeGuardrailList(context.value.chronicGuardrails);
           context.value.readinessScore = readinessScore.value;
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, context.value);
           window.BasementDB.syncCoachContextToCloud(context.value);
@@ -788,13 +922,10 @@
         function appendChronicGuardrailLine(ruleText) {
           const clean = String(ruleText || '').trim();
           if (!clean) return false;
-          const existingLines = notesDraft.value
-            .split('\n')
-            .map((s) => s.trim())
-            .filter(Boolean);
-          if (!existingLines.some((line) => line.toLowerCase() === clean.toLowerCase())) {
-            existingLines.push(clean);
-            notesDraft.value = existingLines.join('\n');
+          const list = normalizeGuardrailList(context.value.chronicGuardrails);
+          if (!list.some((item) => item.label.toLowerCase() === clean.toLowerCase())) {
+            list.push({ id: `guard-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, label: clean, active: true });
+            context.value.chronicGuardrails = list;
             return true;
           }
           return false;
@@ -1070,7 +1201,9 @@
           quickPreferenceLifts, favCount, banCount, isPrefFav, isPrefBan, togglePrefFavorite, togglePrefBanned,
           newInjuryName, newInjuryRegion, newInjuryDays, normalizedInjuries, activeInjuryCount, addInjury, removeInjury,
           domsZones, cycleSoreness, resetSoreness, sorenessClass,
-          lifeLoadPresets, toggleLifeLoad, notesDraft,
+          lifeLoadPresets, toggleLifeLoad, normalizedGuardrails, activeGuardrailCount,
+          newGuardrailText, addGuardrailRule, toggleGuardrailActive, removeGuardrailRule,
+          editingGuardrailIdx, editingGuardrailDraft, startEditGuardrail, saveEditGuardrail,
           simScenarios, activeSimScenario, currentSimDetail,
           interviewInput, interviewLoading, interviewStatusMsg, isListeningInterview, applyAiProfileInterview, removeCustomVariable, toggleInterviewMic, athleteAge,
           readinessScore, savedBanner, saveContext
