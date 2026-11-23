@@ -77,6 +77,7 @@
           Apply
         </button>
       </div>
+      <p v-if="interviewStatusMsg" class="text-[11px] text-emerald-300 font-bold">{{ interviewStatusMsg }}</p>
       <div v-if="context.customCoachingVariables && context.customCoachingVariables.length > 0" class="flex flex-wrap gap-1.5 pt-1">
         <span
           v-for="(v, idx) in context.customCoachingVariables"
@@ -128,7 +129,9 @@
         </div>
 
         <!-- Dynamic AI Pro Trainer Notice (Zero Static 6-Lift List) -->
-        
+        <div class="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-emerald-200 leading-snug">
+          🤖 <strong>Dynamic AI Pro Trainer Lift Selection Active:</strong> Exercises rotate dynamically each session across the catalog based on recovery, DOMS, recent RPE, and your goal—never locked to a static lift list.
+        </div>
 
         <!-- Collapsible Goal Presets & Custom AI Builder -->
         <div v-if="showGoalEditor" class="pt-2.5 border-t border-slate-800 space-y-2.5">
@@ -383,7 +386,7 @@
           </label>
         </div>
         <div v-else class="text-xs text-slate-300 font-mono">
-          {{ context.weightLbs ? `${context.weightLbs} lbs` : 'Weight unset' }} •
+          {{ athleteAge ? `${athleteAge} yrs • ` : '' }}{{ context.weightLbs ? `${context.weightLbs} lbs` : 'Weight unset' }} •
           {{ context.heightFeet ? `${context.heightFeet}'${context.heightInches || 0}"` : 'Height unset' }} •
           {{ context.birthDate ? `DOB ${context.birthDate}` : 'DOB unset' }}
         </div>
@@ -573,6 +576,16 @@
         ];
 
         const todayIso = computed(() => new Date().toISOString().slice(0, 10));
+        const athleteAge = computed(() => {
+          if (!context.value.birthDate) return null;
+          const dob = new Date(context.value.birthDate);
+          if (Number.isNaN(dob.getTime())) return null;
+          const now = new Date();
+          let age = now.getFullYear() - dob.getFullYear();
+          const m = now.getMonth() - dob.getMonth();
+          if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+          return age > 0 ? age : null;
+        });
 
         const completedSetsThisWeek = computed(() => {
           const cutoff = new Date();
@@ -786,30 +799,182 @@
           saveContext();
         }
 
-        function applyAiProfileInterview() {
-          const text = interviewInput.value.trim();
-          if (!text) return;
+        const interviewLoading = ref(false);
+        const interviewStatusMsg = ref('');
+
+        function parseProfileLocally(text) {
           const lower = text.toLowerCase();
-          const dayMatch = lower.match(/(\d)\s*days?/);
-          if (dayMatch) context.value.modalityPreferences.targetDaysPerWeek = Number(dayMatch[1]);
-          const minMatch = lower.match(/(\d{2})\s*min/);
-          if (minMatch) {
-            const m = Number(minMatch[1]);
+          const updates = [];
+
+          // 1. Birthdate (YYYY-MM-DD, MM/DD/YYYY, Month DD, YYYY)
+          const isoDate = text.match(/\b(19\d{2}|20\d{2})-(0?[1-9]|1[0-2])-(0?[1-9]|[12]\d|3[01])\b/);
+          const usDate = text.match(/\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(19\d{2}|20\d{2})\b/);
+          const monthMap = { jan: '01', january: '01', feb: '02', february: '02', mar: '03', march: '03', apr: '04', april: '04', may: '05', jun: '06', june: '06', jul: '07', july: '07', aug: '08', august: '08', sep: '09', sept: '09', september: '09', oct: '10', october: '10', nov: '11', november: '11', dec: '12', december: '12' };
+          const textDate = lower.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(19\d{2}|20\d{2})\b/);
+
+          if (isoDate) {
+            context.value.birthDate = `${isoDate[1]}-${isoDate[2].padStart(2, '0')}-${isoDate[3].padStart(2, '0')}`;
+            updates.push(`DOB (${context.value.birthDate})`);
+          } else if (usDate) {
+            context.value.birthDate = `${usDate[3]}-${usDate[1].padStart(2, '0')}-${usDate[2].padStart(2, '0')}`;
+            updates.push(`DOB (${context.value.birthDate})`);
+          } else if (textDate && monthMap[textDate[1]]) {
+            context.value.birthDate = `${textDate[3]}-${monthMap[textDate[1]]}-${textDate[2].padStart(2, '0')}`;
+            updates.push(`DOB (${context.value.birthDate})`);
+          }
+
+          // 2. Weight (lbs / pounds)
+          const weightMatch = lower.match(/(?:weigh|weight\s*(?:is|:)?|at)\s*(\d{2,3}(?:\.\d)?)\s*(?:lbs?|pounds?)?\b/) ||
+                              lower.match(/\b(\d{2,3}(?:\.\d)?)\s*(?:lbs?|pounds?)\b/);
+          if (weightMatch) {
+            const w = Number(weightMatch[1]);
+            if (w >= 70 && w <= 450) {
+              context.value.weightLbs = w;
+              updates.push(`Weight (${w} lbs)`);
+            }
+          }
+
+          // 3. Height (e.g., 5'11", 5 ft 11 in, 6 foot 1, 71 inches)
+          const ftInMatch = lower.match(/\b([4-7])\s*(?:'|ft|feet|foot)\s*(?:(\d{1,2})\s*(?:"|in|inch|inches)?)?\b/);
+          const onlyInMatch = lower.match(/\b(5[0-9]|6[0-9]|7[0-9]|8[0-4])\s*(?:in|inch|inches)\b/);
+          if (ftInMatch) {
+            const ft = Number(ftInMatch[1]);
+            const inches = ftInMatch[2] !== undefined ? Number(ftInMatch[2]) : 0;
+            context.value.heightFeet = ft;
+            context.value.heightInches = Math.min(11, inches);
+            updates.push(`Height (${ft}'${context.value.heightInches}")`);
+          } else if (onlyInMatch) {
+            const totalIn = Number(onlyInMatch[1]);
+            context.value.heightFeet = Math.floor(totalIn / 12);
+            context.value.heightInches = totalIn % 12;
+            updates.push(`Height (${context.value.heightFeet}'${context.value.heightInches}")`);
+          }
+
+          // 4. Days per week & Session Window
+          const dayMatch = lower.match(/(\d)\s*(?:days?|workouts?)\s*(?:a|per)?\s*week/);
+          if (dayMatch) {
+            context.value.modalityPreferences.targetDaysPerWeek = Number(dayMatch[1]);
+            updates.push(`${dayMatch[1]} days/wk`);
+          }
+          const winRange = lower.match(/(\d{2})\s*(?:-|to)\s*(\d{2})\s*min/);
+          const singleMin = lower.match(/(\d{2})\s*min/);
+          if (winRange) {
+            context.value.targetDurationMin = Number(winRange[1]);
+            context.value.targetDurationMax = Number(winRange[2]);
+            updates.push(`${winRange[1]}–${winRange[2]}m window`);
+          } else if (singleMin) {
+            const m = Number(singleMin[1]);
             context.value.targetDurationMin = Math.max(15, m - 5);
             context.value.targetDurationMax = m + 10;
+            updates.push(`~${m}m window`);
           }
-          if (lower.includes('no back-to-back run') || lower.includes('never run 2')) {
+
+          // 5. Running cadence rule
+          if (lower.includes('no back-to-back run') || lower.includes('never run 2') || lower.includes('not run two days')) {
             context.value.modalityPreferences.preventBackToBackRuns = true;
+            updates.push('No back-to-back runs');
           }
-          if (!Array.isArray(context.value.customCoachingVariables)) context.value.customCoachingVariables = [];
-          context.value.customCoachingVariables.push({
-            key: `custom_${Date.now()}`,
-            type: 'constraint',
-            label: 'Coach Rule',
-            value: text,
-            rule: text
-          });
+
+          // 6. Primary Goal
+          const goalMatch = text.match(/(?:primary\s+goal\s*(?:is|:)?|my\s+goal\s*(?:is|:)?|focus\s+on)\s+([^.,;]+)/i);
+          if (goalMatch && goalMatch[1].trim().length > 3) {
+            context.value.primaryGoal.title = goalMatch[1].trim();
+            context.value.primaryGoal.focusArea = 'dynamic_strength';
+            context.value.primaryGoal.primaryLifts = [];
+            context.value.primaryGoal.secondaryLifts = [];
+            updates.push(`1° Goal (${context.value.primaryGoal.title})`);
+          }
+
+          // 7. DOMS / Soreness zones
+          const zoneKeywords = [
+            { kw: ['quad'], zone: 'Quads' },
+            { kw: ['hamstring', 'glute'], zone: 'Hamstrings & Glutes' },
+            { kw: ['calf', 'calves', 'shin'], zone: 'Calves & Shins' },
+            { kw: ['chest', 'pec'], zone: 'Chest & Front Delts' },
+            { kw: ['lat', 'upper back'], zone: 'Lats & Upper Back' },
+            { kw: ['shoulder', 'delt', 'arm', 'bicep', 'tricep'], zone: 'Side Delts & Arms' }
+          ];
+          if (lower.includes('sore') || lower.includes('tight')) {
+            if (!context.value.sorenessMap) context.value.sorenessMap = {};
+            const level = lower.includes('very sore') || lower.includes('sore') ? 'Sore ⊘' : 'Tight';
+            zoneKeywords.forEach(({ kw, zone }) => {
+              if (kw.some((k) => lower.includes(k))) {
+                context.value.sorenessMap[zone] = level;
+                updates.push(`${zone}: ${level}`);
+              }
+            });
+          }
+
+          return updates;
+        }
+
+        async function applyAiProfileInterview() {
+          const text = interviewInput.value.trim();
+          if (!text || interviewLoading.value) return;
+          interviewLoading.value = true;
+          interviewStatusMsg.value = '';
+
+          const updatedFields = parseProfileLocally(text);
+
+          // Also try Gemini structured extraction if API key is present
+          try {
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            if (apiKey) {
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: `Extract profile updates from: "${text}". Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number), heightFeet (number), heightInches (number), primaryGoalTitle (string), secondaryGoalTitle (string), targetDaysPerWeek (number), targetDurationMin (number), targetDurationMax (number), preventBackToBackRuns (boolean), customVariables (array of {label, value, rule} ONLY for novel preferences/constraints not covered by the standard fields above).` }] }],
+                  generationConfig: { responseMimeType: 'application/json' }
+                })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+                if (parsed.birthDate) { context.value.birthDate = parsed.birthDate; if (!updatedFields.some((u) => u.startsWith('DOB'))) updatedFields.push(`DOB (${parsed.birthDate})`); }
+                if (parsed.weightLbs) { context.value.weightLbs = Number(parsed.weightLbs); if (!updatedFields.some((u) => u.startsWith('Weight'))) updatedFields.push(`Weight (${parsed.weightLbs} lbs)`); }
+                if (parsed.heightFeet) { context.value.heightFeet = Number(parsed.heightFeet); context.value.heightInches = Number(parsed.heightInches || 0); if (!updatedFields.some((u) => u.startsWith('Height'))) updatedFields.push(`Height (${parsed.heightFeet}'${parsed.heightInches || 0}")`); }
+                if (parsed.primaryGoalTitle) { context.value.primaryGoal.title = parsed.primaryGoalTitle; if (!updatedFields.some((u) => u.startsWith('1° Goal'))) updatedFields.push(`1° Goal (${parsed.primaryGoalTitle})`); }
+                if (parsed.secondaryGoalTitle) { context.value.secondaryGoal = { title: parsed.secondaryGoalTitle, allocation: 30 }; updatedFields.push(`2° Goal (${parsed.secondaryGoalTitle})`); }
+                if (parsed.targetDaysPerWeek) context.value.modalityPreferences.targetDaysPerWeek = Number(parsed.targetDaysPerWeek);
+                if (parsed.targetDurationMin) context.value.targetDurationMin = Number(parsed.targetDurationMin);
+                if (parsed.targetDurationMax) context.value.targetDurationMax = Number(parsed.targetDurationMax);
+                if (typeof parsed.preventBackToBackRuns === 'boolean') context.value.modalityPreferences.preventBackToBackRuns = parsed.preventBackToBackRuns;
+                if (Array.isArray(parsed.customVariables) && parsed.customVariables.length > 0) {
+                  if (!Array.isArray(context.value.customCoachingVariables)) context.value.customCoachingVariables = [];
+                  parsed.customVariables.forEach((cv) => {
+                    if (cv && cv.value) {
+                      context.value.customCoachingVariables.push({
+                        key: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                        type: 'preference',
+                        label: cv.label || 'Coach Rule',
+                        value: cv.value,
+                        rule: cv.rule || cv.value
+                      });
+                      updatedFields.push(`${cv.label || 'Rule'}: ${cv.value}`);
+                    }
+                  });
+                }
+              }
+            }
+          } catch (_e) {}
+
+          // Only save raw text as a custom coaching variable if NO structured profile fields were matched
+          if (updatedFields.length === 0) {
+            if (!Array.isArray(context.value.customCoachingVariables)) context.value.customCoachingVariables = [];
+            context.value.customCoachingVariables.push({
+              key: `custom_${Date.now()}`,
+              type: 'constraint',
+              label: 'Coach Rule',
+              value: text,
+              rule: text
+            });
+            updatedFields.push('Custom Coaching Rule');
+          }
+
+          interviewStatusMsg.value = `✓ Updated Profile: ${updatedFields.join(' • ')}`;
           interviewInput.value = '';
+          interviewLoading.value = false;
           saveContext(true);
         }
 
@@ -852,7 +1017,7 @@
           domsZones, cycleSoreness, resetSoreness, sorenessClass,
           lifeLoadPresets, toggleLifeLoad, notesDraft,
           simScenarios, activeSimScenario, currentSimDetail,
-          interviewInput, isListeningInterview, applyAiProfileInterview, removeCustomVariable, toggleInterviewMic,
+          interviewInput, interviewLoading, interviewStatusMsg, isListeningInterview, applyAiProfileInterview, removeCustomVariable, toggleInterviewMic, athleteAge,
           readinessScore, savedBanner, saveContext
         };
       }
