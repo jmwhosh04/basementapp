@@ -1,535 +1,257 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#020617" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Basement Lab · Master Suite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Basement Lab</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="basement-db.js"></script>
+  <script>
+    window.BASEMENT_SUPABASE_CONFIG = {
+      url: window.BASEMENT_SUPABASE_URL || 'https://flroxptovfxuzwpoyisf.supabase.co',
+      anonKey: window.BASEMENT_SUPABASE_ANON_KEY || 'sb_publishable_tsAgCyDK0xMchdMW4lH8BA_rys4KouJ'
+    };
+  </script>
+  <script src="./basement-db.js"></script>
   <style>
-    html, body {
+    html, body, #app {
+      min-height: 100dvh;
       margin: 0;
-      padding: 0;
-      background-color: #020617;
+      background-color: #090d16;
       color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      overscroll-behavior-y: none;
     }
-    [v-cloak] { display: none; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .module-frame {
+      width: 100%;
+      height: calc(100dvh - 3.25rem - env(safe-area-inset-top));
+      border: 0;
+      display: block;
+      background: #090d16;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
-  <div id="app" v-cloak class="min-h-[100dvh] flex flex-col max-w-md mx-auto relative bg-slate-950 border-x border-slate-900 shadow-2xl">
+<body>
+  <div id="app" class="max-w-md mx-auto min-h-[100dvh] flex flex-col bg-slate-950 text-slate-100 relative">
+    <!-- Loading State While Resolving Auth Session -->
+    <div v-if="!authReady" class="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center">
+      <div class="w-10 h-10 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin mb-3"></div>
+      <p class="text-sm font-medium text-slate-300">Checking session...</p>
+    </div>
 
-    <!-- Top Compact Master Suite Header -->
-    <header class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur border-b border-slate-800/90 px-3 py-2.5 flex items-center justify-between gap-2 pt-[max(0.625rem,env(safe-area-inset-top))]">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
-          BASEMENT LAB
-        </span>
-        <h1 class="text-xs font-bold text-slate-100 truncate">
-          {{ activeModule.headerTitle }}
+    <!-- Mandatory Login Gate (Blocks Hub & Modules Until Signed In) -->
+    <section
+      v-else-if="!isAuthenticated"
+      aria-label="Sign in to Basement Lab"
+      class="min-h-[100dvh] flex flex-col justify-between p-6 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950"
+    >
+      <div class="pt-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-semibold mb-4">
+          <span>🏋️ BASEMENT LAB</span>
+          <span>•</span>
+          <span>PRIVATE ATHLETE SUITE</span>
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight text-white mb-2">
+          Sign in to enter your Hub
         </h1>
+        <p class="text-sm text-slate-400 leading-relaxed">
+          Your circuits, progression targets, cardio &amp; sauna logs, and personal profile stay isolated to your account.
+        </p>
+
+        <div class="mt-8 space-y-3">
+          <button
+            type="button"
+            @click="handleGoogleSignIn"
+            :disabled="authBusy"
+            class="w-full py-3.5 px-4 rounded-xl bg-white text-slate-900 font-semibold text-sm flex items-center justify-center gap-2.5 shadow hover:bg-slate-100 disabled:opacity-50 transition"
+          >
+            <span>Continue with Google</span>
+          </button>
+
+          <div class="pt-4 border-t border-slate-800 space-y-2.5">
+            <label class="block text-xs font-medium text-slate-400">Or sign in with email</label>
+            <input
+              v-model="email"
+              type="email"
+              placeholder="you@example.com"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+            />
+            <input
+              v-model="password"
+              type="password"
+              placeholder="Password"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+            />
+            <button
+              type="button"
+              @click="handleEmailSignIn"
+              :disabled="authBusy || !email || !password"
+              class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm disabled:opacity-40 transition"
+            >
+              {{ authBusy ? 'Signing in...' : 'Sign In' }}
+            </button>
+          </div>
+
+          <p v-if="authError" class="text-xs text-rose-400 bg-rose-950/50 border border-rose-800/60 rounded-lg p-3">
+            {{ authError }}
+          </p>
+        </div>
       </div>
 
-      <div class="flex items-center gap-1.5 shrink-0">
-        <!-- Signed-in Athlete Pill or Sign-In Button -->
-        <button
-          v-if="sessionUser"
-          @click="openDataModal"
-          title="Signed in via Google · Tap for Sync & Settings"
-          class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
-        >
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span class="max-w-[76px] truncate">{{ displayUserName }}</span>
-        </button>
-        <button
-          v-else
-          @click="handleGoogleSignIn"
-          :disabled="authLoading"
-          class="px-2.5 py-1 rounded-full text-[11px] font-bold border transition bg-emerald-500 text-slate-950 border-emerald-400 hover:bg-emerald-400 disabled:opacity-50"
-        >
-          {{ authLoading ? 'Signing in...' : 'Sign In' }}
-        </button>
+      <p class="text-[11px] text-slate-500 text-center pb-2">
+        Authenticated sessions required before loading Hub, Profile, Catalog, or Trainer.
+      </p>
+    </section>
 
-        <!-- Force Cloud Push + Pull Sync Button -->
-        <button
-          @click="forceCloudSync"
-          :disabled="syncing"
-          title="Push & Pull Supabase Sync Now"
-          class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-300 text-xs transition active:scale-95 disabled:opacity-50"
-        >
-          <span :class="syncing ? 'animate-spin' : ''">↻</span>
-        </button>
+    <!-- Authenticated App Shell (Only Rendered When Signed In) -->
+    <template v-else>
+      <header class="h-[3.25rem] px-3 flex items-center justify-between border-b border-slate-800/90 bg-slate-950/95 backdrop-blur sticky top-0 z-30">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xs font-bold tracking-wide text-indigo-400 shrink-0">BASEMENT LAB</span>
+          <span class="text-xs text-slate-500 shrink-0">{{ todayIso }}</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-[11px] text-slate-400 truncate max-w-[120px]">{{ userEmail }}</span>
+          <button
+            type="button"
+            @click="handleSignOut"
+            class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition"
+          >
+            Sign Out
+          </button>
+        </div>
+      </header>
 
-        <!-- Master JSON Data Backup / Gemini Key / Account Modal Trigger -->
-        <button
-          @click="openDataModal"
-          title="Cloud Sync, API Key & JSON Backup"
-          class="h-7 px-2 rounded-lg bg-indigo-950/80 hover:bg-indigo-900/70 border border-indigo-500/40 flex items-center justify-center text-indigo-300 text-xs font-semibold transition active:scale-95"
-        >
-          💾
-        </button>
-      </div>
-    </header>
+      <main class="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+        <iframe
+          :src="activeTabSrc"
+          class="module-frame"
+          title="Basement Lab Module"
+        ></iframe>
+      </main>
 
-    <!-- Non-Blocking Sign-In Banner if Logged Out -->
-    <div
-      v-if="!sessionUser && !authChecking"
-      class="bg-indigo-950/80 border-b border-indigo-500/40 px-3 py-2 flex items-center justify-between gap-2 text-[11px]"
-    >
-      <span class="text-indigo-200 leading-tight">
-        Sign in with Google to sync workouts &amp; AI catalog photos across devices.
-      </span>
-      <button
-        @click="handleGoogleSignIn"
-        class="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black shrink-0 text-[10px]"
+      <nav
+        aria-label="Primary Suite Navigation"
+        class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-950/95 border-t border-slate-800 px-2 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30"
       >
-        Google Sign-In
-      </button>
-    </div>
-
-    <!-- Main Dynamic Viewport Container (Viewport-Locked Iframe so fixed modals always center on screen!) -->
-    <main class="flex-1 flex flex-col relative w-full overflow-hidden">
-      <iframe
-        ref="moduleFrame"
-        :src="activeModule.file"
-        class="w-full flex-1 border-0 bg-slate-950 block"
-        style="height: calc(100dvh - 3.25rem - env(safe-area-inset-top));"
-        allow="microphone; autoplay"
-        title="Basement Lab Active Module"
-      ></iframe>
-    </main>
-
-    <!-- Fixed Mobile-First 4-Tab Bottom Navigation Dock -->
-    <nav
-      aria-label="Basement Lab Modules"
-      class="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 bg-slate-950/95 backdrop-blur-md border-t border-slate-800/90 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(2,6,23,0.85)]"
-    >
-      <div class="grid grid-cols-4 gap-1.5">
-        <button
-          v-for="mod in modules"
-          :key="mod.id"
-          @click="selectModule(mod.id)"
-          class="py-2 px-1.5 rounded-xl text-[11px] font-bold tracking-tight flex items-center justify-center gap-1 transition-all duration-150 select-none active:scale-95 border"
-          :class="activeTab === mod.id
-            ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md shadow-emerald-500/20'
-            : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'"
-        >
-          <span class="text-xs leading-none">{{ mod.icon }}</span>
-          <span class="truncate">{{ mod.label }}</span>
-        </button>
-      </div>
-    </nav>
-
-    <!-- Cloud Sync, Gemini API Key & Master JSON Backup Modal -->
-    <div
-      v-if="showDataModal"
-      class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-3"
-      @click.self="showDataModal = false"
-    >
-      <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88dvh]">
-        <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Supabase Cloud &amp; Local Bus</span>
-            <h2 class="text-sm font-bold text-white">
-              {{ sessionUser ? `${displayUserName} (${sessionUser.email})` : 'Guest / Local Mode' }}
-            </h2>
-          </div>
+        <div class="grid grid-cols-4 gap-1 text-center">
           <button
-            @click="showDataModal = false"
-            class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold"
+            v-for="tab in tabs"
+            :key="tab.id"
+            type="button"
+            @click="activeTab = tab.id"
+            :class="[
+              'py-1.5 px-1 rounded-lg text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition',
+              activeTab === tab.id
+                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/40'
+                : 'text-slate-400 hover:text-slate-200'
+            ]"
           >
-            ×
+            <span>{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
           </button>
         </div>
-
-        <div class="p-4 space-y-3.5 overflow-y-auto text-xs">
-          <!-- Google Account / Cloud Sync Status -->
-          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-200">
-                {{ sessionUser ? '🟢 Cloud Auto-Sync Active (3s)' : '⚪ Not Signed In' }}
-              </span>
-              <button
-                v-if="sessionUser"
-                @click="handleSignOut"
-                class="px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/40 text-rose-300 font-bold text-[10px]"
-              >
-                Sign Out
-              </button>
-              <button
-                v-else
-                @click="handleGoogleSignIn"
-                class="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black text-[10px]"
-              >
-                Sign In with Google
-              </button>
-            </div>
-            <p class="text-[11px] text-slate-400 leading-relaxed">
-              Your logs &amp; profile stay isolated to your Google account, while custom exercises &amp; AI photos in <code class="text-emerald-400">custom_catalog</code> automatically share across household accounts.
-            </p>
-          </div>
-
-          <!-- Gemini API Key Manager -->
-          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-            <label class="block text-[11px] font-bold text-indigo-300">
-              🔑 Gemini API Key (Synced to Your Private Account)
-            </label>
-            <div class="flex gap-1.5">
-              <input
-                v-model="geminiKeyInput"
-                type="password"
-                placeholder="AIzaSy..."
-                class="flex-1 rounded-lg bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
-              />
-              <button
-                @click="saveGeminiKey"
-                class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-
-          <!-- Manual JSON Backup / Restore -->
-          <div class="grid grid-cols-2 gap-2">
-            <button
-              @click="downloadBackupJson"
-              class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 font-bold text-xs transition"
-            >
-              ⬇ Download JSON
-            </button>
-            <button
-              @click="copyBackupJson"
-              class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-semibold text-xs transition"
-            >
-              {{ copied ? '✓ Copied!' : '📋 Copy JSON' }}
-            </button>
-          </div>
-
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-400 mb-1">
-              Inspect or Paste JSON Snapshot to Restore:
-            </label>
-            <textarea
-              v-model="jsonPayload"
-              rows="6"
-              class="w-full rounded-xl bg-slate-950 border border-slate-800 p-2.5 font-mono text-[11px] text-emerald-300 focus:outline-none focus:border-emerald-500"
-            ></textarea>
-          </div>
-
-          <div v-if="statusMsg" class="p-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium">
-            {{ statusMsg }}
-          </div>
-        </div>
-
-        <div class="px-4 py-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-2">
-          <button
-            @click="restoreBackupJson"
-            class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition"
-          >
-            ↻ Restore From JSON
-          </button>
-          <button
-            @click="showDataModal = false"
-            class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-
+      </nav>
+    </template>
   </div>
 
   <script>
     const { createApp, ref, computed, onMounted } = Vue;
 
-    const SHARED_KEYS = [
-      'basement_logs',
-      'basement_cardio_logs',
-      'basement_sauna_logs',
-      'basement_coach_context',
-      'basement_active_goal',
-      'basement_temp_injuries',
-      'basement_limits',
-      'basement_custom_catalog',
-      'basement_trainer_directives',
-      'basement_trainer_notes'
-    ];
-
     createApp({
       setup() {
-        const modules = [
-          {
-            id: 'hub',
-            icon: '🏋️',
-            label: '1. Hub',
-            headerTitle: 'Module 1 · Daily Hub & Circuit Coach',
-            file: 'basement-hub-circuit.html'
-          },
-          {
-            id: 'profile',
-            icon: '🎯',
-            label: '2. Profile',
-            headerTitle: 'Module 2 · Coach Context & Goals',
-            file: 'basement-coach-profile.html'
-          },
-          {
-            id: 'catalog',
-            icon: '📚',
-            label: '3. Catalog',
-            headerTitle: 'Module 3 · Smart Catalog & Form',
-            file: 'basement-catalog.html'
-          },
-          {
-            id: 'trainer',
-            icon: '📈',
-            label: '4. Trainer',
-            headerTitle: 'Module 4 · AI Pro Trainer & Lab',
-            file: 'basement-analytics.html'
-          }
+        const authReady = ref(false);
+        const isAuthenticated = ref(false);
+        const userEmail = ref('');
+        const authBusy = ref(false);
+        const authError = ref('');
+        const activeTab = ref('hub');
+        const email = ref('');
+        const password = ref('');
+
+        const tabs = [
+          { id: 'hub', icon: '🏋️', label: '1. Hub', src: './basement-hub-circuit.html' },
+          { id: 'profile', icon: '🎯', label: '2. Profile', src: './basement-coach-profile.html' },
+          { id: 'catalog', icon: '📚', label: '3. Catalog', src: './basement-catalog.html' },
+          { id: 'trainer', icon: '🧠', label: '4. Trainer', src: './basement-analytics.html' }
         ];
 
-        const activeTab = ref(localStorage.getItem('basement_active_tab') || 'hub');
-        const sessionUser = ref(null);
-        const authChecking = ref(true);
-        const authLoading = ref(false);
-        const syncing = ref(false);
-        const frameKey = ref(0);
-        const moduleFrame = ref(null);
-        const showDataModal = ref(false);
-        const jsonPayload = ref('');
-        const geminiKeyInput = ref(localStorage.getItem('basement_gemini_api_key') || '');
-        const copied = ref(false);
-        const statusMsg = ref('');
-
-        const activeModule = computed(() => {
-          return modules.find(m => m.id === activeTab.value) || modules[0];
+        const activeTabSrc = computed(() => {
+          const found = tabs.find((t) => t.id === activeTab.value);
+          return found ? found.src : './basement-hub-circuit.html';
         });
 
-        const displayUserName = computed(() => {
-          if (!sessionUser.value) return 'Guest';
-          const meta = sessionUser.value.user_metadata || {};
-          const full = meta.full_name || meta.name || sessionUser.value.email || 'Athlete';
-          return full.split(' ')[0].split('@')[0];
-        });
+        const todayIso = computed(() => new Date().toISOString().slice(0, 10));
 
-        function selectModule(id) {
-          activeTab.value = id;
-          localStorage.setItem('basement_active_tab', id);
-        }
-
-        function reloadActiveFrame() {
-          try {
-            if (moduleFrame.value && moduleFrame.value.contentWindow) {
-              moduleFrame.value.contentWindow.dispatchEvent(new Event('storage'));
-              moduleFrame.value.contentWindow.dispatchEvent(new Event('focus'));
-            }
-          } catch (e) {}
-          frameKey.value += 1;
-        }
-
-        let hydratedUserId = null;
-        let isHydrating = false;
-
-        function notifyActiveFrame() {
-          try {
-            if (moduleFrame.value && moduleFrame.value.contentWindow) {
-              moduleFrame.value.contentWindow.dispatchEvent(new Event('storage'));
-            }
-          } catch (e) {}
-        }
-
-        async function hydrateSession(session, forcePull = false) {
-          const nextUser = session?.user || null;
-          sessionUser.value = nextUser;
-          if (nextUser && window.BasementDB) {
-            if (!forcePull && (isHydrating || hydratedUserId === nextUser.id)) {
-              return;
-            }
-            isHydrating = true;
-            syncing.value = true;
-            try {
-              await window.BasementDB.pullFromCloud(nextUser.id);
-              hydratedUserId = nextUser.id;
-              geminiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
-              window.BasementDB.startAutoSync(nextUser.id);
-              notifyActiveFrame();
-            } catch (err) {
-              console.warn('Cloud pull error:', err);
-            } finally {
-              isHydrating = false;
-              syncing.value = false;
-            }
-          } else if (window.BasementDB) {
-            hydratedUserId = null;
-            window.BasementDB.stopAutoSync();
+        function syncAuthState(snap) {
+          authReady.value = Boolean(snap.authReady);
+          isAuthenticated.value = Boolean(snap.authenticated);
+          userEmail.value = snap.user && snap.user.email ? snap.user.email : '';
+          if (!snap.authenticated) {
+            activeTab.value = 'hub';
           }
         }
 
         async function handleGoogleSignIn() {
-          if (!window.BasementDB) return;
-          authLoading.value = true;
+          authBusy.value = true;
+          authError.value = '';
           try {
             await window.BasementDB.signInWithGoogle();
           } catch (err) {
-            statusMsg.value = 'Sign-in error: ' + (err.message || err);
-            authLoading.value = false;
+            authError.value = err && err.message ? err.message : 'Unable to sign in with Google.';
+          } finally {
+            authBusy.value = false;
+          }
+        }
+
+        async function handleEmailSignIn() {
+          authBusy.value = true;
+          authError.value = '';
+          try {
+            await window.BasementDB.signInWithEmailPassword(email.value.trim(), password.value);
+            email.value = '';
+            password.value = '';
+          } catch (err) {
+            authError.value = err && err.message ? err.message : 'Invalid email or password.';
+          } finally {
+            authBusy.value = false;
           }
         }
 
         async function handleSignOut() {
-          if (!window.BasementDB) return;
-          await window.BasementDB.signOut();
-          sessionUser.value = null;
-          showDataModal.value = false;
-          notifyActiveFrame();
-        }
-
-        async function forceCloudSync() {
-          syncing.value = true;
+          authBusy.value = true;
+          authError.value = '';
           try {
-            if (sessionUser.value && window.BasementDB) {
-              await window.BasementDB.pushAllToCloud(sessionUser.value.id);
-              await window.BasementDB.pullFromCloud(sessionUser.value.id);
-              statusMsg.value = 'Synced with Supabase cloud ✓';
-            }
-            notifyActiveFrame();
-          } catch (err) {
-            statusMsg.value = 'Sync warning: ' + (err.message || err);
+            await window.BasementDB.signOut();
           } finally {
-            syncing.value = false;
-          }
-        }
-
-        function onFrameLoad() {}
-
-        function buildSnapshot() {
-          const bundle = {
-            exportedAt: new Date().toISOString(),
-            userEmail: sessionUser.value?.email || 'local',
-            data: {}
-          };
-          SHARED_KEYS.forEach(k => {
-            const raw = localStorage.getItem(k);
-            if (raw !== null) {
-              try { bundle.data[k] = JSON.parse(raw); }
-              catch { bundle.data[k] = raw; }
-            }
-          });
-          return JSON.stringify(bundle, null, 2);
-        }
-
-        function openDataModal() {
-          statusMsg.value = '';
-          copied.value = false;
-          geminiKeyInput.value = localStorage.getItem('basement_gemini_api_key') || '';
-          jsonPayload.value = buildSnapshot();
-          showDataModal.value = true;
-        }
-
-        async function saveGeminiKey() {
-          const clean = geminiKeyInput.value.trim();
-          if (clean) {
-            localStorage.setItem('basement_gemini_api_key', clean);
-          } else {
-            localStorage.removeItem('basement_gemini_api_key');
-          }
-          if (sessionUser.value && window.BasementDB) {
-            await window.BasementDB.pushAllToCloud(sessionUser.value.id);
-          }
-          statusMsg.value = 'Gemini API Key saved & synced!';
-          notifyActiveFrame();
-        }
-
-        function downloadBackupJson() {
-          const blob = new Blob([jsonPayload.value], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          const dateStr = new Date().toISOString().slice(0, 10);
-          a.href = url;
-          a.download = `basement-lab-backup-${displayUserName.value.toLowerCase()}-${dateStr}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-          statusMsg.value = 'Backup JSON downloaded.';
-        }
-
-        async function copyBackupJson() {
-          try {
-            await navigator.clipboard.writeText(jsonPayload.value);
-            copied.value = true;
-            setTimeout(() => { copied.value = false; }, 2000);
-          } catch (e) {
-            statusMsg.value = 'Select the text box and copy manually.';
-          }
-        }
-
-        async function restoreBackupJson() {
-          try {
-            const parsed = JSON.parse(jsonPayload.value);
-            const source = parsed.data ? parsed.data : parsed;
-            Object.keys(source).forEach(k => {
-              if (SHARED_KEYS.includes(k)) {
-                const val = typeof source[k] === 'string' ? source[k] : JSON.stringify(source[k]);
-                localStorage.setItem(k, val);
-              }
-            });
-            statusMsg.value = 'Restored shared keys! Pushing to cloud...';
-            await forceCloudSync();
-          } catch (err) {
-            statusMsg.value = 'Invalid JSON format — please check syntax and try again.';
+            authBusy.value = false;
           }
         }
 
         onMounted(async () => {
-          if (window.BasementDB) {
-            const existingSession = await window.BasementDB.getSession();
-            await hydrateSession(existingSession);
-            authChecking.value = false;
-
-            window.BasementDB.onAuthStateChange(async (newSession) => {
-              await hydrateSession(newSession);
-            });
-          } else {
-            authChecking.value = false;
-          }
+          window.BasementDB.onAuthStateChange(syncAuthState);
+          await window.BasementDB.initAuth();
+          syncAuthState({
+            authReady: window.BasementDB.isAuthReady(),
+            authenticated: window.BasementDB.isAuthenticated(),
+            user: window.BasementDB.getCurrentUser()
+          });
         });
 
         return {
-          modules,
+          authReady,
+          isAuthenticated,
+          userEmail,
+          authBusy,
+          authError,
           activeTab,
-          sessionUser,
-          authChecking,
-          authLoading,
-          syncing,
-          displayUserName,
-          activeModule,
-          frameKey,
-          moduleFrame,
-          showDataModal,
-          jsonPayload,
-          geminiKeyInput,
-          copied,
-          statusMsg,
-          selectModule,
+          tabs,
+          activeTabSrc,
+          todayIso,
+          email,
+          password,
           handleGoogleSignIn,
-          handleSignOut,
-          forceCloudSync,
-          onFrameLoad,
-          openDataModal,
-          saveGeminiKey,
-          downloadBackupJson,
-          copyBackupJson,
-          restoreBackupJson
+          handleEmailSignIn,
+          handleSignOut
         };
       }
     }).mount('#app');

@@ -1,515 +1,432 @@
-// Basement Lab · Shared Supabase Auth & Cloud Sync Adapter (basement-db.js)
-// Works alongside localStorage so all 4 standalone modules stay fast offline
-// and sync per-user via Google Sign-In + Row Level Security (user_id = auth.uid()).
-
+// Basement Lab Data Bus, Auth Gate & Supabase Cloud Sync (basement-db.js)
 (function (global) {
   'use strict';
 
-  const SUPABASE_URL = 'https://flroxptovfxuzwpoyisf.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_tsAgCyDK0xMchdMW4lH8BA_rys4KouJ';
-  const ACTIVE_USER_KEY = 'basement_active_user_id';
+  const STORAGE_KEYS = {
+    COACH_CONTEXT: 'basement_coach_context',
+    LOGS: 'basement_logs',
+    CARDIO_LOGS: 'basement_cardio_logs',
+    SAUNA_LOGS: 'basement_sauna_logs',
+    CUSTOM_CATALOG: 'basement_custom_catalog',
+    TRAINER_DIRECTIVES: 'basement_trainer_directives',
+    TRAINER_NOTES: 'basement_trainer_notes'
+  };
 
-  const STATE_KEYS = [
-    'basement_coach_context',
-    'basement_active_goal',
-    'basement_temp_injuries',
-    'basement_limits',
-    'basement_trainer_directives',
-    'basement_gemini_api_key'
-  ];
+  const DEFAULT_COACH_CONTEXT = {
+    birthDate: null,
+    heightFeet: null,
+    heightInches: null,
+    weightLbs: null,
+    primaryGoal: {
+      title: 'Strength & Conditioning',
+      allocation: 100,
+      focusArea: 'dynamic_strength',
+      durationWeeks: 6,
+      currentWeek: 1,
+      weeklyTargetSets: 18,
+      primaryLifts: [],
+      secondaryLifts: []
+    },
+    secondaryGoal: null,
+    mesocyclePhase: 'Accumulation',
+    dumbbellCapMode: 'tempo_pause',
+    preferences: { favorites: [], banned: [] },
+    customCoachingVariables: [],
+    sorenessMap: {},
+    externalLifeLoads: [],
+    activeTemporaryInjuries: [],
+    chronicGuardrails: [],
+    sleepHours: null,
+    targetDurationMin: 25,
+    targetDurationMax: 40,
+    modalityPreferences: {
+      maxConsecutiveLiftDays: 2,
+      preventBackToBackRuns: true,
+      cardioOptions: ['treadmill', 'rower']
+    },
+    stepZeroPrimers: []
+  };
 
-  const ALL_SYNC_KEYS = [
-    ...STATE_KEYS,
-    'basement_logs',
-    'basement_cardio_logs',
-    'basement_sauna_logs',
-    'basement_trainer_notes',
-    'basement_custom_catalog'
-  ];
+  let _supabase = null;
+  let _session = null;
+  let _authReady = false;
+  let _isHydrating = false;
+  let _hydratedUserId = null;
+  const _authListeners = new Set();
 
-  let sb = null;
-  let lastSnapshots = {};
-  let syncTimer = null;
-  let isPulling = false;
-
-  function safeGet(key) {
-    try {
-      return localStorage.getItem(key);
-    } catch (e) {
-      return null;
+  function getSupabaseClient() {
+    if (_supabase) return _supabase;
+    if (global.supabase && typeof global.supabase.createClient === 'function') {
+      const cfg = global.BASEMENT_SUPABASE_CONFIG || {};
+      if (cfg.url && cfg.anonKey) {
+        _supabase = global.supabase.createClient(cfg.url, cfg.anonKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        });
+      }
     }
+    return _supabase;
   }
 
-  function safeSet(key, val) {
-    try {
-      localStorage.setItem(key, val);
-    } catch (e) {}
+  function getSession() {
+    return _session;
   }
 
-  function safeRemove(key) {
-    try {
-      localStorage.removeItem(key);
-    } catch (e) {}
+  function getCurrentUser() {
+    return _session && _session.user ? _session.user : null;
   }
 
-  function safeParse(raw, fallback) {
-    if (!raw) return fallback;
+  function isAuthenticated() {
+    return Boolean(_session && _session.user && _session.user.id);
+  }
+
+  function isAuthReady() {
+    return _authReady;
+  }
+
+  function onAuthStateChange(cb) {
+    _authListeners.add(cb);
+    return () => _authListeners.delete(cb);
+  }
+
+  function _emitAuth() {
+    const snap = {
+      session: _session,
+      user: getCurrentUser(),
+      authenticated: isAuthenticated(),
+      authReady: _authReady
+    };
+    _authListeners.forEach((fn) => {
+      try {
+        fn(snap);
+      } catch (e) {
+        console.error('Auth listener error:', e);
+      }
+    });
+  }
+
+  function readJson(key, fallback) {
     try {
+      const raw = global.localStorage.getItem(key);
+      if (!raw) return typeof fallback === 'function' ? fallback() : JSON.parse(JSON.stringify(fallback));
       return JSON.parse(raw);
+    } catch (_e) {
+      return typeof fallback === 'function' ? fallback() : JSON.parse(JSON.stringify(fallback));
+    }
+  }
+
+  function writeJson(key, value) {
+    try {
+      global.localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
-      return fallback;
+      console.warn('localStorage write error for', key, e);
     }
   }
 
-  function clearAllLocalProfileData() {
-    ALL_SYNC_KEYS.forEach(safeRemove);
-    lastSnapshots = {};
+  function _userSnapshotKey(userId) {
+    return `basement_user_cache_${userId}`;
   }
 
-  function getClient() {
-    if (!sb && global.supabase && typeof global.supabase.createClient === 'function') {
-      sb = global.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  function saveUserCacheSnapshot(userId) {
+    if (!userId) return;
+    const payload = {
+      savedAt: new Date().toISOString(),
+      coachContext: readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT),
+      logs: readJson(STORAGE_KEYS.LOGS, []),
+      cardioLogs: readJson(STORAGE_KEYS.CARDIO_LOGS, []),
+      saunaLogs: readJson(STORAGE_KEYS.SAUNA_LOGS, []),
+      trainerDirectives: readJson(STORAGE_KEYS.TRAINER_DIRECTIVES, null),
+      trainerNotes: readJson(STORAGE_KEYS.TRAINER_NOTES, [])
+    };
+    writeJson(_userSnapshotKey(userId), payload);
+  }
+
+  function restoreOrResetUserState(userId) {
+    if (!userId) {
+      clearActiveUserLocalState();
+      return;
     }
-    return sb;
+    const snap = readJson(_userSnapshotKey(userId), null);
+    if (snap && snap.coachContext) {
+      writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...snap.coachContext });
+      writeJson(STORAGE_KEYS.LOGS, Array.isArray(snap.logs) ? snap.logs : []);
+      writeJson(STORAGE_KEYS.CARDIO_LOGS, Array.isArray(snap.cardioLogs) ? snap.cardioLogs : []);
+      writeJson(STORAGE_KEYS.SAUNA_LOGS, Array.isArray(snap.saunaLogs) ? snap.saunaLogs : []);
+      writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, snap.trainerDirectives || null);
+      writeJson(STORAGE_KEYS.TRAINER_NOTES, Array.isArray(snap.trainerNotes) ? snap.trainerNotes : []);
+    } else {
+      // Fresh unseeded profile for newly signed-in user
+      writeJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
+      writeJson(STORAGE_KEYS.LOGS, []);
+      writeJson(STORAGE_KEYS.CARDIO_LOGS, []);
+      writeJson(STORAGE_KEYS.SAUNA_LOGS, []);
+      writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, null);
+      writeJson(STORAGE_KEYS.TRAINER_NOTES, []);
+    }
+  }
+
+  function clearActiveUserLocalState() {
+    [
+      STORAGE_KEYS.COACH_CONTEXT,
+      STORAGE_KEYS.LOGS,
+      STORAGE_KEYS.CARDIO_LOGS,
+      STORAGE_KEYS.SAUNA_LOGS,
+      STORAGE_KEYS.TRAINER_DIRECTIVES,
+      STORAGE_KEYS.TRAINER_NOTES
+    ].forEach((k) => {
+      try {
+        global.localStorage.removeItem(k);
+      } catch (_e) {}
+    });
+  }
+
+  async function hydrateUserFromCloud(userId, force = false) {
+    const client = getSupabaseClient();
+    if (!client || !userId) return;
+    if (_isHydrating) return;
+    if (!force && _hydratedUserId === userId) return;
+
+    _isHydrating = true;
+    try {
+      const { data: ctxRow, error: ctxErr } = await client
+        .from('coach_contexts')
+        .select('payload')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!ctxErr && ctxRow && ctxRow.payload) {
+        writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...ctxRow.payload });
+      }
+
+      const { data: logsRows } = await client
+        .from('workout_logs')
+        .select('entry')
+        .eq('user_id', userId);
+      if (Array.isArray(logsRows) && logsRows.length > 0) {
+        writeJson(STORAGE_KEYS.LOGS, logsRows.map((r) => r.entry).filter(Boolean));
+      }
+
+      const { data: cardioRows } = await client
+        .from('cardio_logs')
+        .select('entry')
+        .eq('user_id', userId);
+      if (Array.isArray(cardioRows) && cardioRows.length > 0) {
+        writeJson(STORAGE_KEYS.CARDIO_LOGS, cardioRows.map((r) => r.entry).filter(Boolean));
+      }
+
+      const { data: saunaRows } = await client
+        .from('sauna_logs')
+        .select('entry')
+        .eq('user_id', userId);
+      if (Array.isArray(saunaRows) && saunaRows.length > 0) {
+        writeJson(STORAGE_KEYS.SAUNA_LOGS, saunaRows.map((r) => r.entry).filter(Boolean));
+      }
+
+      // Merge shared custom_catalog non-destructively
+      const { data: catalogRows } = await client
+        .from('custom_catalog')
+        .select('exercise_key, item');
+      if (Array.isArray(catalogRows) && catalogRows.length > 0) {
+        const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, {});
+        const merged = { ...localCat };
+        catalogRows.forEach((row) => {
+          if (row && row.item && row.item.id) {
+            merged[row.item.id] = { ...(merged[row.item.id] || {}), ...row.item };
+          }
+        });
+        writeJson(STORAGE_KEYS.CUSTOM_CATALOG, merged);
+      }
+
+      saveUserCacheSnapshot(userId);
+      _hydratedUserId = userId;
+      notifyFrames('storage');
+    } catch (err) {
+      console.warn('Cloud hydration warning:', err);
+    } finally {
+      _isHydrating = false;
+    }
+  }
+
+  async function syncCoachContextToCloud(contextObj) {
+    const user = getCurrentUser();
+    if (!user || !user.id) return;
+    saveUserCacheSnapshot(user.id);
+    const client = getSupabaseClient();
+    if (!client) return;
+    const { error } = await client.from('coach_contexts').upsert(
+      {
+        user_id: user.id,
+        payload: contextObj,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id' }
+    );
+    if (error) console.warn('coach_contexts upsert error:', error.message);
+  }
+
+  async function syncCustomCatalogItemToCloud(item) {
+    const user = getCurrentUser();
+    if (!user || !user.id || !item || !item.id) return;
+    const client = getSupabaseClient();
+    if (!client) return;
+    const cleanId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const exerciseKey = `${user.id.slice(0, 8)}_${cleanId}`;
+    const { error } = await client.from('custom_catalog').upsert(
+      {
+        exercise_key: exerciseKey,
+        owner_user_id: user.id,
+        item,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'exercise_key' }
+    );
+    if (error) console.warn('custom_catalog upsert error:', error.message);
+  }
+
+  async function uploadCatalogImage(userId, exerciseName, stage, dataUrl) {
+    const client = getSupabaseClient();
+    if (!client || !userId || !dataUrl) return dataUrl;
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const safeName = String(exerciseName || 'lift')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    const path = `${userId}/${safeName}-${stage}-${Date.now()}.jpg`;
+    const { error } = await client.storage
+      .from('exercise-images')
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (error) throw error;
+    const { data } = client.storage.from('exercise-images').getPublicUrl(path);
+    return data && data.publicUrl ? data.publicUrl : dataUrl;
   }
 
   async function signInWithGoogle() {
-    const client = getClient();
-    if (!client) throw new Error('Supabase client failed to load.');
-    const redirectTo = window.location.origin + window.location.pathname;
-    const { error } = await client.auth.signInWithOAuth({
+    const client = getSupabaseClient();
+    if (!client) {
+      throw new Error('Supabase client is not configured. Check BASEMENT_SUPABASE_CONFIG.');
+    }
+    const { data, error } = await client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo }
+      options: {
+        redirectTo: global.location.origin + global.location.pathname
+      }
     });
     if (error) throw error;
+    return data;
+  }
+
+  async function signInWithEmailPassword(email, password) {
+    const client = getSupabaseClient();
+    if (!client) {
+      throw new Error('Supabase client is not configured. Check BASEMENT_SUPABASE_CONFIG.');
+    }
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
   }
 
   async function signOut() {
-    const client = getClient();
-    stopAutoSync();
+    const prevUser = getCurrentUser();
+    if (prevUser && prevUser.id) {
+      saveUserCacheSnapshot(prevUser.id);
+    }
+    _hydratedUserId = null;
+    clearActiveUserLocalState();
+    const client = getSupabaseClient();
     if (client) {
       await client.auth.signOut();
     }
-    safeRemove(ACTIVE_USER_KEY);
-    clearAllLocalProfileData();
+    _session = null;
+    _authReady = true;
+    _emitAuth();
   }
 
-  async function getSession() {
-    const client = getClient();
-    if (!client) return null;
-    const { data, error } = await client.auth.getSession();
-    if (error) return null;
-    return data?.session || null;
-  }
-
-  function onAuthStateChange(callback) {
-    const client = getClient();
-    if (!client) return { data: { subscription: { unsubscribe() {} } } };
-    return client.auth.onAuthStateChange((_event, session) => {
-      callback(session || null);
-    });
-  }
-
-  // Pull all tables for the signed-in user and hydrate localStorage.
-  // Never auto-seeds a new user's cloud account from another user's leftover browser storage.
-  async function pullFromCloud(userId) {
-    const client = getClient();
-    if (!client || !userId) return { imported: false };
-
-    isPulling = true;
+  function notifyFrames(eventName = 'storage') {
     try {
-      const previousUserId = safeGet(ACTIVE_USER_KEY);
-      if (previousUserId !== userId) {
-        clearAllLocalProfileData();
-      }
-      safeSet(ACTIVE_USER_KEY, userId);
-
-      const [stateRes, strengthRes, cardioRes, saunaRes, notesRes, catalogRes] = await Promise.all([
-        client.from('user_state').select('key, value').eq('user_id', userId),
-        client.from('strength_logs').select('*').eq('user_id', userId).order('date', { ascending: false }),
-        client.from('cardio_logs').select('*').eq('user_id', userId).order('date', { ascending: false }),
-        client.from('sauna_logs').select('*').eq('user_id', userId).order('date', { ascending: false }),
-        client.from('trainer_notes').select('*').eq('user_id', userId).order('date', { ascending: false }),
-        client.from('custom_catalog').select('id, owner_id, is_shared, data')
-      ]);
-
-      const hasCloudData =
-        (stateRes.data && stateRes.data.length > 0) ||
-        (strengthRes.data && strengthRes.data.length > 0) ||
-        (cardioRes.data && cardioRes.data.length > 0) ||
-        (saunaRes.data && saunaRes.data.length > 0) ||
-        (notesRes.data && notesRes.data.length > 0);
-
-      if (!hasCloudData) {
-        clearAllLocalProfileData();
-        // Still load shared custom catalog items if any exist
-        if (catalogRes.data && catalogRes.data.length > 0) {
-          const mapped = catalogRes.data.map((r) => ({
-            ...(r.data || {}),
-            id: r.id,
-            owner_id: r.owner_id,
-            is_shared: r.is_shared
-          }));
-          safeSet('basement_custom_catalog', JSON.stringify(mapped));
-        }
-        snapshotCurrentLocal();
-        return { freshProfile: true };
-      }
-
-      if (stateRes.data) {
-        const stateMap = {};
-        stateRes.data.forEach((row) => {
-          stateMap[row.key] = row.value;
-          if (row.key === 'basement_gemini_api_key') {
-            const strVal = typeof row.value === 'string' ? row.value : (row.value?.key || '');
-            if (strVal) safeSet(row.key, strVal);
-            else safeRemove(row.key);
-          } else {
-            safeSet(row.key, JSON.stringify(row.value));
-          }
-        });
-        STATE_KEYS.forEach((k) => {
-          if (!(k in stateMap)) safeRemove(k);
-        });
-      }
-
-      if (strengthRes.data) {
-        const mapped = strengthRes.data.map((r) => ({
-          ...(r.extra || {}),
-          id: r.id,
-          date: r.date,
-          exercise: r.exercise,
-          weight: r.weight !== null ? Number(r.weight) : undefined,
-          bandLevel: r.band_level || undefined,
-          reps: r.reps !== null ? Number(r.reps) : undefined,
-          rpe: r.rpe !== null ? Number(r.rpe) : undefined,
-          durationSec: r.duration_sec !== null ? Number(r.duration_sec) : undefined,
-          secPerRep: r.sec_per_rep !== null ? Number(r.sec_per_rep) : undefined
-        }));
-        safeSet('basement_logs', JSON.stringify(mapped));
-      }
-
-      if (cardioRes.data) {
-        const mapped = cardioRes.data.map((r) => ({
-          ...(r.extra || {}),
-          id: r.id,
-          date: r.date,
-          modality: r.modality,
-          duration: r.duration !== null ? Number(r.duration) : undefined,
-          distance: r.distance !== null ? Number(r.distance) : undefined,
-          incline: r.incline !== null ? Number(r.incline) : undefined,
-          resistance: r.resistance !== null ? Number(r.resistance) : undefined,
-          meters: r.meters !== null ? Number(r.meters) : undefined,
-          rpe: r.rpe !== null ? Number(r.rpe) : undefined
-        }));
-        safeSet('basement_cardio_logs', JSON.stringify(mapped));
-      }
-
-      if (saunaRes.data) {
-        const mapped = saunaRes.data.map((r) => ({
-          ...(r.extra || {}),
-          id: r.id,
-          date: r.date,
-          duration: r.duration !== null ? Number(r.duration) : undefined,
-          type: r.type || undefined,
-          timing: r.timing || undefined
-        }));
-        safeSet('basement_sauna_logs', JSON.stringify(mapped));
-      }
-
-      if (notesRes.data) {
-        const mapped = notesRes.data.map((r) => ({
-          ...(r.extra || {}),
-          id: r.id,
-          date: r.date,
-          type: r.note_type || undefined,
-          content: r.content || undefined
-        }));
-        safeSet('basement_trainer_notes', JSON.stringify(mapped));
-      }
-
-      if (catalogRes.data) {
-        const existingLocal = safeParse(safeGet('basement_custom_catalog'), []);
-        const cloudMapped = catalogRes.data.map((r) => ({
-          ...(r.data || {}),
-          id: r.id,
-          owner_id: r.owner_id,
-          is_shared: r.is_shared
-        }));
-        const byName = new Map();
-        existingLocal.forEach((it) => { if (it && it.name) byName.set(it.name.toLowerCase(), it); });
-        cloudMapped.forEach((it) => { if (it && it.name) byName.set(it.name.toLowerCase(), it); });
-        const mergedCatalog = Array.from(byName.values());
-        safeSet('basement_custom_catalog', JSON.stringify(mergedCatalog));
-      }
-
-      snapshotCurrentLocal();
-      return { hydrated: true };
-    } finally {
-      isPulling = false;
-    }
-  }
-
-  async function resetUserCloudAndLocal(userId) {
-    const client = getClient();
-    stopAutoSync();
-    isPulling = true;
-    try {
-      clearAllLocalProfileData();
-      if (client && userId) {
-        await Promise.all([
-          client.from('user_state').delete().eq('user_id', userId),
-          client.from('strength_logs').delete().eq('user_id', userId),
-          client.from('cardio_logs').delete().eq('user_id', userId),
-          client.from('sauna_logs').delete().eq('user_id', userId),
-          client.from('trainer_notes').delete().eq('user_id', userId)
-        ]);
-      }
-      snapshotCurrentLocal();
-    } finally {
-      isPulling = false;
-    }
-  }
-
-  async function pushKeyToCloud(userId, key) {
-    const client = getClient();
-    if (!client || !userId) return;
-
-    const raw = safeGet(key);
-
-    if (key === 'basement_gemini_api_key') {
-      if (!raw) {
-        await client.from('user_state').delete().eq('user_id', userId).eq('key', key);
-      } else {
-        await client.from('user_state').upsert({
-          user_id: userId,
-          key,
-          value: { key: raw },
-          updated_at: new Date().toISOString()
-        });
-      }
-      return;
-    }
-
-    if (!raw) return;
-
-    if (STATE_KEYS.includes(key)) {
-      const value = safeParse(raw, {});
-      await client.from('user_state').upsert({
-        user_id: userId,
-        key,
-        value,
-        updated_at: new Date().toISOString()
-      });
-      return;
-    }
-
-    const items = safeParse(raw, []);
-    if (!Array.isArray(items)) return;
-
-    if (key === 'basement_logs') {
-      const rows = items.map((it, idx) => {
-        const { id, date, exercise, weight, bandLevel, reps, rpe, durationSec, secPerRep, ...extra } = it;
-        return {
-          id: String(id || `log_${idx}_${date || 'na'}`),
-          user_id: userId,
-          date: date || new Date().toISOString().slice(0, 10),
-          exercise: exercise || 'Unknown',
-          weight: weight ?? null,
-          band_level: bandLevel ?? null,
-          reps: reps ?? null,
-          rpe: rpe ?? null,
-          duration_sec: durationSec ?? null,
-          sec_per_rep: secPerRep ?? null,
-          extra
-        };
-      });
-      await client.from('strength_logs').delete().eq('user_id', userId);
-      if (rows.length) await client.from('strength_logs').upsert(rows);
-    } else if (key === 'basement_cardio_logs') {
-      const rows = items.map((it, idx) => {
-        const { id, date, modality, duration, distance, incline, resistance, meters, rpe, ...extra } = it;
-        return {
-          id: String(id || `cardio_${idx}_${date || 'na'}`),
-          user_id: userId,
-          date: date || new Date().toISOString().slice(0, 10),
-          modality: modality || 'Cardio',
-          duration: duration ?? null,
-          distance: distance ?? null,
-          incline: incline ?? null,
-          resistance: resistance ?? null,
-          meters: meters ?? null,
-          rpe: rpe ?? null,
-          extra
-        };
-      });
-      await client.from('cardio_logs').delete().eq('user_id', userId);
-      if (rows.length) await client.from('cardio_logs').upsert(rows);
-    } else if (key === 'basement_sauna_logs') {
-      const rows = items.map((it, idx) => {
-        const { id, date, duration, type, timing, ...extra } = it;
-        return {
-          id: String(id || `sauna_${idx}_${date || 'na'}`),
-          user_id: userId,
-          date: date || new Date().toISOString().slice(0, 10),
-          duration: duration ?? null,
-          type: type ?? null,
-          timing: timing ?? null,
-          extra
-        };
-      });
-      await client.from('sauna_logs').delete().eq('user_id', userId);
-      if (rows.length) await client.from('sauna_logs').upsert(rows);
-    } else if (key === 'basement_trainer_notes') {
-      const rows = items.map((it, idx) => {
-        const { id, date, type, note_type, content, text, ...extra } = it;
-        return {
-          id: String(id || `note_${idx}_${date || 'na'}`),
-          user_id: userId,
-          date: date || new Date().toISOString().slice(0, 10),
-          note_type: type || note_type || null,
-          content: content || text || '',
-          extra
-        };
-      });
-      await client.from('trainer_notes').delete().eq('user_id', userId);
-      if (rows.length) await client.from('trainer_notes').upsert(rows);
-    } else if (key === 'basement_custom_catalog') {
-      const ownItems = items.filter((it) => !it.owner_id || it.owner_id === userId);
-      const rows = ownItems.map((it, idx) => {
-        const cleanId = String(it.id || it.name || `custom_${idx}`)
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '');
-        return {
-          id: `${userId.slice(0, 8)}_${cleanId || idx}`,
-          owner_id: userId,
-          is_shared: it.is_shared !== false,
-          data: { ...it, id: `${userId.slice(0, 8)}_${cleanId || idx}`, owner_id: userId },
-          updated_at: new Date().toISOString()
-        };
-      });
-      if (rows.length) {
-        const { error: upErr } = await client.from('custom_catalog').upsert(rows);
-        if (upErr) {
-          console.error('BasementDB custom_catalog upsert error:', upErr);
-          return;
-        }
-        // Only remove stale rows that are no longer in ownItems
-        const keepIds = new Set(rows.map((r) => r.id));
-        const { data: existingRows } = await client
-          .from('custom_catalog')
-          .select('id')
-          .eq('owner_id', userId);
-        const toDelete = (existingRows || []).map((r) => r.id).filter((id) => !keepIds.has(id));
-        if (toDelete.length) {
-          await client.from('custom_catalog').delete().in('id', toDelete);
-        }
-      } else {
-        await client.from('custom_catalog').delete().eq('owner_id', userId);
-      }
-    }
-  }
-
-  async function pushAllToCloud(userId) {
-    for (const key of ALL_SYNC_KEYS) {
-      await pushKeyToCloud(userId, key);
-    }
-  }
-
-  function snapshotCurrentLocal() {
-    lastSnapshots = {};
-    ALL_SYNC_KEYS.forEach((k) => {
-      lastSnapshots[k] = safeGet(k);
-    });
-  }
-
-  async function syncDirtyKeys(userId) {
-    if (isPulling || !userId) return;
-    for (const key of ALL_SYNC_KEYS) {
-      const current = safeGet(key);
-      if (current !== lastSnapshots[key]) {
-        lastSnapshots[key] = current;
+      global.dispatchEvent(new Event(eventName));
+      const frames = document.querySelectorAll('iframe');
+      frames.forEach((frame) => {
         try {
-          await pushKeyToCloud(userId, key);
-        } catch (err) {
-          console.warn('BasementDB sync warning for', key, err);
-        }
-      }
-    }
+          if (frame.contentWindow) {
+            frame.contentWindow.dispatchEvent(new Event(eventName));
+          }
+        } catch (_e) {}
+      });
+    } catch (_e) {}
   }
 
-  function startAutoSync(userId) {
-    stopAutoSync();
-    if (!userId) return;
-    snapshotCurrentLocal();
-    syncTimer = setInterval(() => {
-      syncDirtyKeys(userId);
-    }, 3000);
-  }
-
-  function stopAutoSync() {
-    if (syncTimer) {
-      clearInterval(syncTimer);
-      syncTimer = null;
+  async function initAuth() {
+    const client = getSupabaseClient();
+    if (!client || !client.auth) {
+      _session = null;
+      _authReady = true;
+      _emitAuth();
+      return null;
     }
-  }
 
+    const { data } = await client.auth.getSession();
+    _session = data && data.session ? data.session : null;
+    if (_session && _session.user) {
+      restoreOrResetUserState(_session.user.id);
+      await hydrateUserFromCloud(_session.user.id, false);
+    } else {
+      clearActiveUserLocalState();
+    }
+    _authReady = true;
+    _emitAuth();
 
-  async function uploadCatalogImage(userId, exerciseName, stage, dataUrl) {
-    const client = getClient();
-    if (!client || !userId || !dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
-    try {
-      const [meta, base64] = dataUrl.split(',');
-      const mimeMatch = meta.match(/data:(.*?);base64/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      const ext = mimeType.includes('png') ? 'png' : 'jpg';
-      const byteChars = atob(base64);
-      const byteNumbers = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) {
-        byteNumbers[i] = byteChars.charCodeAt(i);
-      }
-      const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
-      const safeSlug = String(exerciseName || 'exercise')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-      const filePath = `${userId}/${safeSlug}-${stage}-${Date.now()}.${ext}`;
+    client.auth.onAuthStateChange(async (event, nextSession) => {
+      const prevUserId = _session && _session.user ? _session.user.id : null;
+      const nextUserId = nextSession && nextSession.user ? nextSession.user.id : null;
 
-      const { error } = await client.storage
-        .from('exercise-images')
-        .upload(filePath, blob, { contentType: mimeType, upsert: true });
-
-      if (error) {
-        console.warn('BasementDB storage upload fallback to inline:', error.message);
-        return dataUrl;
+      if (event === 'SIGNED_OUT' || !nextUserId) {
+        if (prevUserId) saveUserCacheSnapshot(prevUserId);
+        _hydratedUserId = null;
+        clearActiveUserLocalState();
+        _session = null;
+        _authReady = true;
+        _emitAuth();
+        return;
       }
 
-      const { data: pub } = client.storage
-        .from('exercise-images')
-        .getPublicUrl(filePath);
+      if (prevUserId && prevUserId !== nextUserId) {
+        saveUserCacheSnapshot(prevUserId);
+        _hydratedUserId = null;
+      }
 
-      return pub?.publicUrl || dataUrl;
-    } catch (err) {
-      console.warn('BasementDB upload exception:', err);
-      return dataUrl;
-    }
+      _session = nextSession;
+      restoreOrResetUserState(nextUserId);
+      _authReady = true;
+      _emitAuth();
+      await hydrateUserFromCloud(nextUserId, prevUserId !== nextUserId);
+    });
+
+    return _session;
   }
 
   global.BasementDB = {
-    SUPABASE_URL,
-    ALL_SYNC_KEYS,
-    signInWithGoogle,
-    signOut,
+    STORAGE_KEYS,
+    DEFAULT_COACH_CONTEXT,
+    getSupabaseClient,
+    initAuth,
     getSession,
+    getCurrentUser,
+    isAuthenticated,
+    isAuthReady,
     onAuthStateChange,
-    pullFromCloud,
+    signInWithGoogle,
+    signInWithEmailPassword,
+    signOut,
+    readJson,
+    writeJson,
+    hydrateUserFromCloud,
+    syncCoachContextToCloud,
+    syncCustomCatalogItemToCloud,
     uploadCatalogImage,
-    pushAllToCloud,
-    resetUserCloudAndLocal,
-    startAutoSync,
-    stopAutoSync,
-    safeGet,
-    safeSet
+    notifyFrames
   };
 })(window);
