@@ -46,6 +46,7 @@
       </button>
     </div>
 
+    <!-- Tab 1: AI Pro Trainer -->
     <section v-if="activeSubTab === 'trainer'" class="space-y-3">
       <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-2.5">
         <div class="flex items-center justify-between">
@@ -80,6 +81,7 @@
       </div>
     </section>
 
+    <!-- Tab 2: E1RM & Volume -->
     <section v-if="activeSubTab === 'volume'" class="space-y-3">
       <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-2">
         <h2 class="text-sm font-bold text-white">7-Day Acute vs. 6-Week Chronic Workload</h2>
@@ -98,6 +100,7 @@
       </div>
     </section>
 
+    <!-- Tab 3: Correlations -->
     <section v-if="activeSubTab === 'correlations'" class="space-y-3">
       <div class="rounded-2xl bg-emerald-950/30 border border-emerald-700/50 p-4 space-y-3">
         <div class="flex items-center justify-between">
@@ -115,7 +118,7 @@
         </div>
 
         <p v-if="spottedTrends.length === 0" class="text-xs text-slate-400">
-          Log more workouts, cardio, and sauna sessions to spot multi-variable trends.
+          Log more workouts, cardio, and sauna sessions to spot trends across your training data.
         </p>
       </div>
     </section>
@@ -159,7 +162,7 @@
               id: 'sauna-next-day',
               metric: `${strengthLogs.value.length} sets`,
               headline: 'Next-Day Strength & RPE After Sauna',
-              detail: 'Comparing sessions following sauna days against non-sauna days shows how heat exposure and hydration affect next-day output and perceived effort.'
+              detail: 'Comparing sessions following sauna days against non-sauna days shows how heat exposure and hydration carry into your next workout.'
             });
           }
           if (cardioLogs.value.length > 0) {
@@ -183,7 +186,7 @@
         function submitFollowUp() {
           const q = followUpQuestion.value.trim();
           if (!q) return;
-          followUpAnswer.value = `Based on ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna logs, prioritize steady RPE around ${targetRpe.value} and watch how sleep, soreness, and training spacing affect your next session.`;
+          followUpAnswer.value = `Based on ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna logs, keep effort steady around RPE ${targetRpe.value} and watch how sleep, soreness, and training spacing affect your next session.`;
         }
 
         onMounted(async () => {
