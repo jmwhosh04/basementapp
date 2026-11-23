@@ -166,7 +166,6 @@
       writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, snap.trainerDirectives || null);
       writeJson(STORAGE_KEYS.TRAINER_NOTES, Array.isArray(snap.trainerNotes) ? snap.trainerNotes : []);
     } else if (hasAnyLocalWorkoutData()) {
-      // Preserve existing browser workout/cardio/sauna logs and migrate into user snapshot
       const ctx = readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
       writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...ctx });
       saveUserCacheSnapshot(userId);
@@ -227,7 +226,6 @@
 
     _isHydrating = true;
     try {
-      // Check coach_contexts or legacy user_state
       let cloudContext = null;
       const ctxRows = await _fetchRowsFromTable(client, 'coach_contexts', userId);
       if (ctxRows.length > 0 && ctxRows[0].payload) {
@@ -244,7 +242,6 @@
         writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...localCtx, ...cloudContext });
       }
 
-      // Check workout_logs or legacy strength_logs; do not wipe local logs if cloud table is empty
       let strengthRows = await _fetchRowsFromTable(client, 'workout_logs', userId);
       if (strengthRows.length === 0) {
         strengthRows = await _fetchRowsFromTable(client, 'strength_logs', userId);
@@ -275,7 +272,6 @@
         writeJson(STORAGE_KEYS.SAUNA_LOGS, localSauna);
       }
 
-      // Merge shared custom_catalog non-destructively
       try {
         const { data: catalogRows } = await client
           .from('custom_catalog')
