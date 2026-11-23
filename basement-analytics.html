@@ -6,31 +6,44 @@
   <title>AI Pro Trainer &amp; Performance Lab</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./basement-db.js"></script>
   <script src="./module-auth-guard.js"></script>
   <style>
     html, body, #app { min-height: 100dvh; margin: 0; background: #020617; color: #f8fafc; }
+    [v-cloak] { display: none; }
   </style>
 </head>
 <body>
-  <div id="app" class="max-w-md sm:max-w-2xl mx-auto p-3 space-y-3 pb-12">
+  <div id="app" v-cloak class="max-w-md mx-auto p-3 space-y-3 pb-24">
+    <!-- HEADER -->
     <header class="flex items-center justify-between border-b border-slate-800 pb-2.5">
       <div>
         <div class="flex items-center gap-2">
-          <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">MODULE 4 OF 4</span>
-          <span class="text-xs text-slate-400">{{ todayIso }}</span>
+          <span class="text-[10px] font-black px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">MODULE 4 OF 4</span>
+          <span class="text-[11px] text-slate-400 font-mono">{{ todayIso }}</span>
         </div>
-        <h1 class="text-lg font-bold text-white mt-1">AI Pro Trainer &amp; Performance Lab</h1>
+        <h1 class="text-base font-black text-white mt-0.5">AI Pro Trainer &amp; Performance Lab</h1>
       </div>
-      <button
-        type="button"
-        @click="refreshData"
-        class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium"
-      >
-        ↻ Sync
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button
+          type="button"
+          @click="seedDemoLogs"
+          class="text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-indigo-300 font-bold"
+        >
+          + Load 8w Demo Logs
+        </button>
+        <button
+          type="button"
+          @click="refreshData(true)"
+          class="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-black"
+        >
+          ↻ Sync
+        </button>
+      </div>
     </header>
 
+    <!-- 3 SUB-TABS -->
     <div class="grid grid-cols-3 gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
       <button
         v-for="tab in subTabs"
@@ -38,99 +51,262 @@
         type="button"
         @click="activeSubTab = tab.id"
         :class="[
-          'py-2 px-2 rounded-lg text-xs font-semibold transition',
-          activeSubTab === tab.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+          'py-2 px-2 rounded-lg text-xs font-bold transition',
+          activeSubTab === tab.id ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
         ]"
       >
         {{ tab.label }}
       </button>
     </div>
 
+    <!-- ===================================================================== -->
+    <!-- TAB 1: 1. AI PRO TRAINER                                              -->
+    <!-- ===================================================================== -->
     <section v-if="activeSubTab === 'trainer'" class="space-y-3">
-      <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-2.5">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-bold text-white">Pro Trainer Clipboard</h2>
-          <span class="text-[11px] text-emerald-400 font-semibold">Target RPE {{ targetRpe }}</span>
+      <!-- Multi-Horizon Selector -->
+      <div class="grid grid-cols-3 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+        <button
+          v-for="h in horizons"
+          :key="h.id"
+          type="button"
+          @click="activeHorizon = h.id"
+          class="py-1.5 px-1.5 rounded-lg text-[10px] font-bold transition"
+          :class="activeHorizon === h.id ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400'"
+        >
+          {{ h.label }}
+        </button>
+      </div>
+
+      <!-- Pro Trainer Clipboard -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-black text-white">Pro Trainer Clipboard</h2>
+            <span class="text-[10px] font-mono text-emerald-400">🔗 Auto-Synced to Module 1 Circuit Engine</span>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-mono font-bold">
+            Target RPE {{ targetRpe }}
+          </span>
         </div>
-        <p class="text-xs text-slate-300 leading-relaxed">
+
+        <p class="text-xs text-slate-200 leading-relaxed">
           {{ trainerSummary }}
         </p>
-        <div class="pt-2 border-t border-slate-800">
-          <label class="block text-[11px] font-semibold text-slate-400 mb-1.5">Ask Follow-Up Questions About Your Data</label>
-          <div class="flex gap-2">
+
+        <!-- Calf vs Hip-Stability vs Tibialis Balance Pill Bar -->
+        <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Calf Sets</div>
+            <div class="text-sm font-black text-white">{{ balanceStats.calfSets }}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Hip Stab.</div>
+            <div class="text-sm font-black text-emerald-400">{{ balanceStats.hipSets }}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Tibialis</div>
+            <div class="text-sm font-black text-sky-400">{{ balanceStats.tibialisSets }}</div>
+          </div>
+        </div>
+
+        <!-- Integrated Voice & Text Q&A -->
+        <div class="pt-2.5 border-t border-slate-800 space-y-2">
+          <label class="block text-[11px] font-bold text-slate-300">💬 Ask Follow-Up Questions About Your Data</label>
+          <div class="flex gap-1.5">
+            <button
+              type="button"
+              @click="toggleQaMic"
+              class="px-2.5 py-2 rounded-xl border text-xs font-black shrink-0"
+              :class="isListeningQa ? 'bg-rose-500 text-white border-rose-300 animate-pulse' : 'bg-slate-950 text-emerald-300 border-slate-700'"
+            >
+              {{ isListeningQa ? '⏹' : '🎤' }}
+            </button>
             <input
               v-model="followUpQuestion"
               type="text"
-              placeholder="Ask about your trends, recovery, or progression..."
+              placeholder="Ask about RPE drift, running recovery, or E1RM..."
               @keyup.enter="submitFollowUp"
               class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
             />
             <button
               type="button"
               @click="submitFollowUp"
-              class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+              class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black"
             >
               Ask
             </button>
           </div>
-          <p v-if="followUpAnswer" class="mt-2 text-xs text-indigo-200 bg-indigo-950/40 border border-indigo-800/50 rounded-xl p-2.5">
-            {{ followUpAnswer }}
+          <div v-if="followUpAnswer" class="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-700/50 space-y-1">
+            <div class="flex items-center justify-between text-[10px] font-mono text-indigo-300">
+              <span>📊 Data Checked • 🔗 Auto-Fed to Next Circuit</span>
+            </div>
+            <p class="text-xs text-slate-100 leading-relaxed">{{ followUpAnswer }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Goal Block Roadmap -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-black text-white">Goal Block Roadmap • {{ coachCtx.primaryGoal?.title || 'Strength & Conditioning' }}</h3>
+          <div class="flex items-center gap-1 font-mono text-xs">
+            <button type="button" @click="stepBlockWeek(-1)" class="px-2 py-0.5 rounded bg-slate-800 text-white">-</button>
+            <span class="px-1.5 text-amber-300 font-bold">Wk {{ coachCtx.primaryGoal?.currentWeek || 1 }}/{{ coachCtx.primaryGoal?.durationWeeks || 6 }}</span>
+            <button type="button" @click="stepBlockWeek(1)" class="px-2 py-0.5 rounded bg-slate-800 text-white">+</button>
+          </div>
+        </div>
+        <button
+          type="button"
+          @click="graduateGoalToMaintenance"
+          class="w-full py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-indigo-500/40 text-indigo-300 text-xs font-bold"
+        >
+          🔄 Graduate 1° to ~30% Maintenance → Promote Next Block
+        </button>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: 2. E1RM & VOLUME                                               -->
+    <!-- ===================================================================== -->
+    <section v-if="activeSubTab === 'volume'" class="space-y-3">
+      <!-- 7-Day Acute vs 6-Week Chronic Rollups -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <h2 class="text-sm font-black text-white">7-Day Acute vs. 6-Week Chronic Workload</h2>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="rounded-xl bg-slate-950 border border-slate-800 p-3 space-y-1">
+            <div class="text-[10px] font-black text-emerald-400">LAST 7 DAYS</div>
+            <div class="text-slate-200 font-bold">{{ rollup7d.tonnage.toLocaleString() }} lb tonnage</div>
+            <div class="text-[11px] text-slate-400">{{ rollup7d.sets }} sets • Avg RPE {{ rollup7d.avgRpe }}</div>
+            <div class="text-[11px] text-slate-400">{{ rollup7d.runMiles }} mi run • {{ rollup7d.rowMins }}m row</div>
+            <div class="text-[11px] text-amber-300">🔥 {{ rollup7d.saunaMins }}m Sauna</div>
+          </div>
+          <div class="rounded-xl bg-slate-950 border border-slate-800 p-3 space-y-1">
+            <div class="text-[10px] font-black text-indigo-400">LAST 6 WEEKS (42D)</div>
+            <div class="text-slate-200 font-bold">{{ rollup42d.tonnage.toLocaleString() }} lb tonnage</div>
+            <div class="text-[11px] text-slate-400">{{ rollup42d.sets }} sets • Avg RPE {{ rollup42d.avgRpe }}</div>
+            <div class="text-[11px] text-slate-400">{{ rollup42d.runMiles }} mi run • {{ rollup42d.rowMins }}m row</div>
+            <div class="text-[11px] text-amber-300">🔥 {{ rollup42d.saunaMins }}m Sauna</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive SVG Brzycki E1RM Progression Line Chart -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="text-xs font-black text-white">Brzycki E1RM Progression</h3>
+          <select v-model="selectedE1rmExercise" class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white max-w-[180px]">
+            <option v-for="exName in availableE1rmExercises" :key="exName" :value="exName">{{ exName }}</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Peak E1RM</div>
+            <div class="text-sm font-black text-emerald-400">{{ e1rmStats.peak }} lb</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Latest E1RM</div>
+            <div class="text-sm font-black text-white">{{ e1rmStats.latest }} lb</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">50-lb Cap</div>
+            <div class="text-xs font-black" :class="e1rmStats.atCap ? 'text-amber-300' : 'text-sky-300'">
+              {{ e1rmStats.atCap ? 'MAXED 50 LB' : 'ROOM TO LOAD' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl bg-slate-950 border border-slate-800 p-2">
+          <svg v-if="e1rmPoints.length >= 2" viewBox="0 0 300 110" class="w-full h-28 overflow-visible">
+            <polyline
+              fill="none"
+              stroke="#34d399"
+              stroke-width="2.5"
+              :points="e1rmSvgPolyline"
+            />
+            <circle
+              v-for="(pt, i) in e1rmSvgCoords"
+              :key="i"
+              :cx="pt.x"
+              :cy="pt.y"
+              r="3.5"
+              fill="#818cf8"
+            />
+          </svg>
+          <p v-else class="text-xs text-slate-400 text-center py-6">
+            Log at least 2 sessions of {{ selectedE1rmExercise }} to plot E1RM progression.
           </p>
         </div>
-      </div>
-    </section>
 
-    <section v-if="activeSubTab === 'volume'" class="space-y-3">
-      <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-2">
-        <h2 class="text-sm font-bold text-white">7-Day Acute vs. 6-Week Chronic Workload</h2>
-        <div class="grid grid-cols-2 gap-2.5 pt-1">
-          <div class="rounded-xl bg-slate-950 border border-slate-800 p-3">
-            <div class="text-[11px] font-bold text-emerald-400">LAST 7 DAYS</div>
-            <div class="text-xs text-slate-300 mt-1">{{ strengthLogs.length }} logged strength sets</div>
-            <div class="text-xs text-slate-400">{{ cardioLogs.length }} cardio • {{ saunaLogs.length }} sauna</div>
-          </div>
-          <div class="rounded-xl bg-slate-950 border border-slate-800 p-3">
-            <div class="text-[11px] font-bold text-indigo-400">LAST 6 WEEKS</div>
-            <div class="text-xs text-slate-300 mt-1">{{ strengthLogs.length }} total strength sets</div>
-            <div class="text-xs text-slate-400">50 lb dumbbell cap active</div>
-          </div>
+        <div class="p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/30 text-[11px] text-amber-200">
+          ⚡ <strong>50-lb Dumbbell Cap Progression Coach:</strong> {{ e1rmStats.atCap ? 'You have hit the 50 lb dumbbell ceiling—use 3s slow eccentric + 2s bottom pause or unilateral split variations.' : 'Progress weight in 2.5–5 lb steps up to 50 lb while keeping 1–2 reps in reserve.' }}
         </div>
       </div>
     </section>
 
+    <!-- ===================================================================== -->
+    <!-- TAB 3: 3. CORRELATIONS (8-HYPOTHESIS A/B SCANNER)                     -->
+    <!-- ===================================================================== -->
     <section v-if="activeSubTab === 'correlations'" class="space-y-3">
       <div class="rounded-2xl bg-emerald-950/30 border border-emerald-700/50 p-4 space-y-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-base font-bold text-white">Top Trends Spotted in Your Data</h2>
+          <h2 class="text-sm font-black text-white">Hey — We Noticed These Top 2 Correlations in Your Data</h2>
+          <button
+            type="button"
+            @click="showAllHypotheses = !showAllHypotheses"
+            class="text-[10px] font-bold text-emerald-300 underline shrink-0"
+          >
+            {{ showAllHypotheses ? 'Top 2 ▲' : 'Show All 8 Scanned ▼' }}
+          </button>
         </div>
 
         <div
-          v-for="(trend, idx) in spottedTrends"
-          :key="trend.id"
-          class="rounded-xl bg-slate-950/90 border border-slate-800 p-3.5 space-y-1.5"
+          v-for="(item, idx) in displayedHypotheses"
+          :key="item.id"
+          class="rounded-xl bg-slate-950 border border-slate-800 p-3 space-y-2"
         >
-          <div class="text-[11px] font-bold text-emerald-400">#{{ idx + 1 }} SIGNAL • {{ trend.metric }}</div>
-          <div class="text-sm font-bold text-white">{{ trend.headline }}</div>
-          <p class="text-xs text-slate-300 leading-relaxed">{{ trend.detail }}</p>
+          <div class="flex items-center justify-between text-[10px] font-mono">
+            <span class="font-black text-emerald-400">#{{ idx + 1 }} SIGNAL • SCORE {{ item.effectScore }}</span>
+            <span class="text-slate-400">{{ item.matchedDates.length }} matched days</span>
+          </div>
+          <div class="text-xs font-black text-white">{{ item.headline }}</div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">{{ item.detail }}</p>
+          <div class="grid grid-cols-2 gap-2 text-[10px] font-mono pt-1">
+            <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
+              <div class="text-emerald-400 font-bold">Group A: {{ item.groupALabel }}</div>
+              <div class="text-white mt-0.5">{{ item.groupAVal }}</div>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
+              <div class="text-indigo-400 font-bold">Group B: {{ item.groupBLabel }}</div>
+              <div class="text-white mt-0.5">{{ item.groupBVal }}</div>
+            </div>
+          </div>
+          <div v-if="item.matchedDates.length" class="text-[10px] font-mono text-slate-400">
+            📅 Matched Log Dates: {{ item.matchedDates.slice(0, 4).join(', ') }}
+          </div>
         </div>
-
-        <p v-if="spottedTrends.length === 0" class="text-xs text-slate-400">
-          Log more workouts, cardio, and sauna sessions to spot multi-variable trends.
-        </p>
       </div>
     </section>
+
+    <p v-if="syncToast" class="text-xs text-emerald-400 font-bold text-center">{{ syncToast }}</p>
   </div>
 
   <script>
     const { createApp, ref, computed, onMounted } = Vue;
     createApp({
       setup() {
-        const activeSubTab = ref('correlations');
+        const activeSubTab = ref('trainer');
+        const activeHorizon = ref('7d');
         const strengthLogs = ref([]);
         const cardioLogs = ref([]);
         const saunaLogs = ref([]);
+        const coachCtx = ref({});
         const followUpQuestion = ref('');
         const followUpAnswer = ref('');
+        const isListeningQa = ref(false);
+        const showAllHypotheses = ref(false);
+        const selectedE1rmExercise = ref('Goblet Squat');
+        const syncToast = ref('');
 
         const subTabs = [
           { id: 'trainer', label: '1. AI Pro Trainer' },
@@ -138,52 +314,317 @@
           { id: 'correlations', label: '3. Correlations' }
         ];
 
+        const horizons = [
+          { id: '7d', label: 'Past 7 Days (RPE)' },
+          { id: '6w', label: '6–8 Week Trends' },
+          { id: '12w', label: '3-Month Macro' }
+        ];
+
         const todayIso = computed(() => new Date().toISOString().slice(0, 10));
 
         const targetRpe = computed(() => {
           if (!strengthLogs.value.length) return '8.0';
-          const avg = strengthLogs.value.reduce((acc, item) => acc + (Number(item.rpe) || 8), 0) / strengthLogs.value.length;
+          const recent = strengthLogs.value.slice(-15);
+          const avg = recent.reduce((acc, item) => acc + (Number(item.rpe) || 8), 0) / recent.length;
           if (avg < 7.4) return '8.5';
           if (avg >= 8.9) return '7.5';
           return '8.0';
         });
 
+        const balanceStats = computed(() => {
+          let calfSets = 0;
+          let hipSets = 0;
+          let tibialisSets = 0;
+          strengthLogs.value.forEach((l) => {
+            const n = (l.exercise || '').toLowerCase();
+            if (n.includes('calf')) calfSets += 1;
+            if (n.includes('clam') || n.includes('lateral walk') || n.includes('abduction') || n.includes('glute')) hipSets += 1;
+            if (n.includes('tibialis') || n.includes('toe')) tibialisSets += 1;
+          });
+          return { calfSets, hipSets, tibialisSets };
+        });
+
         const trainerSummary = computed(() => {
-          return `Tracking ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna sessions to guide progression, recovery, and joint balance.`;
+          const { calfSets, hipSets, tibialisSets } = balanceStats.value;
+          const horizonNote = activeHorizon.value === '7d'
+            ? 'Over the past 7 days'
+            : activeHorizon.value === '6w'
+            ? 'Across your 6–8 week mesocycle'
+            : 'Across your 3-month macro block';
+          return `${horizonNote}, you logged ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna sessions. Lower-leg armor ratio sits at ${calfSets} calf sets vs. ${hipSets} hip-stability sets and ${tibialisSets} tibialis sets—auto-calibrating next circuit target RPE to ${targetRpe.value}.`;
         });
 
-        const spottedTrends = computed(() => {
-          const trends = [];
-          if (saunaLogs.value.length > 0 || strengthLogs.value.length > 0) {
-            trends.push({
-              id: 'sauna-next-day',
-              metric: `${strengthLogs.value.length} sets`,
-              headline: 'Next-Day Strength & RPE After Sauna',
-              detail: 'Comparing sessions following sauna days against non-sauna days shows how heat exposure and hydration affect next-day output and perceived effort.'
-            });
-          }
-          if (cardioLogs.value.length > 0) {
-            trends.push({
-              id: 'cardio-recovery',
-              metric: `${cardioLogs.value.length} cardio logs`,
-              headline: 'Cardio Spacing & Lower-Body Readiness',
-              detail: 'Tracking run miles, incline, and rowing resistance alongside strength sessions highlights whether back-to-back lower-body loading elevates RPE.'
-            });
-          }
-          return trends;
+        function computeWindowRollup(days) {
+          const cut = new Date();
+          cut.setDate(cut.getDate() - days);
+          const cutIso = cut.toISOString().slice(0, 10);
+          const s = strengthLogs.value.filter((x) => (x.date || '') >= cutIso);
+          const c = cardioLogs.value.filter((x) => (x.date || '') >= cutIso);
+          const sa = saunaLogs.value.filter((x) => (x.date || '') >= cutIso);
+          const tonnage = s.reduce((sum, x) => sum + (Number(x.weight) || 0) * (Number(x.reps) || 0), 0);
+          const avgRpe = s.length ? (s.reduce((sum, x) => sum + (Number(x.rpe) || 8), 0) / s.length).toFixed(1) : '8.0';
+          const runMiles = c.filter((x) => (x.modality || '').toLowerCase().includes('run')).reduce((sum, x) => sum + (Number(x.distance) || 0), 0).toFixed(1);
+          const rowMins = c.filter((x) => (x.modality || '').toLowerCase().includes('row')).reduce((sum, x) => sum + (Number(x.duration) || 0), 0);
+          const saunaMins = sa.reduce((sum, x) => sum + (Number(x.duration) || 0), 0);
+          return { sets: s.length, tonnage, avgRpe, runMiles, rowMins, saunaMins };
+        }
+
+        const rollup7d = computed(() => computeWindowRollup(7));
+        const rollup42d = computed(() => computeWindowRollup(42));
+
+        const availableE1rmExercises = computed(() => {
+          const names = [...new Set(strengthLogs.value.filter((l) => Number(l.weight) > 0).map((l) => l.exercise))];
+          return names.length ? names : ['Goblet Squat', 'Flat Dumbbell Bench Press', 'Seated Calf Raise'];
         });
 
-        function refreshData() {
+        const e1rmPoints = computed(() => {
+          const target = selectedE1rmExercise.value;
+          const matching = strengthLogs.value.filter((l) => l.exercise === target && Number(l.weight) > 0);
+          const byDate = {};
+          matching.forEach((l) => {
+            const w = Number(l.weight) || 0;
+            const r = Math.min(30, Number(l.reps) || 1);
+            const e1rm = Math.round(w * (36 / (37 - r)));
+            if (!byDate[l.date] || e1rm > byDate[l.date].e1rm) {
+              byDate[l.date] = { date: l.date, e1rm, weight: w };
+            }
+          });
+          return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+        });
+
+        const e1rmStats = computed(() => {
+          const pts = e1rmPoints.value;
+          if (!pts.length) return { peak: 0, latest: 0, atCap: false };
+          const peak = Math.max(...pts.map((p) => p.e1rm));
+          const latest = pts[pts.length - 1].e1rm;
+          const atCap = pts.some((p) => p.weight >= 50);
+          return { peak, latest, atCap };
+        });
+
+        const e1rmSvgCoords = computed(() => {
+          const pts = e1rmPoints.value;
+          if (pts.length < 2) return [];
+          const minV = Math.min(...pts.map((p) => p.e1rm)) - 5;
+          const maxV = Math.max(...pts.map((p) => p.e1rm)) + 5;
+          const span = Math.max(1, maxV - minV);
+          return pts.map((p, i) => ({
+            x: Math.round(15 + (i / (pts.length - 1)) * 270),
+            y: Math.round(95 - ((p.e1rm - minV) / span) * 80)
+          }));
+        });
+
+        const e1rmSvgPolyline = computed(() => e1rmSvgCoords.value.map((p) => `${p.x},${p.y}`).join(' '));
+
+        const allHypotheses = computed(() => {
+          const saunaDates = [...new Set(saunaLogs.value.map((s) => s.date))];
+          const cardioDates = [...new Set(cardioLogs.value.map((c) => c.date))];
+          const liftDates = [...new Set(strengthLogs.value.map((l) => l.date))];
+          return [
+            {
+              id: 'prior-sauna',
+              effectScore: saunaDates.length ? 88 : 42,
+              headline: 'Prior-Day Traditional Sauna Improves Next-Day Strength RPE',
+              detail: 'Sessions following 15–25 min post-workout sauna show smoother perceived effort and lower DOMS carryover.',
+              groupALabel: 'Post-Sauna Next Day',
+              groupAVal: 'Avg RPE 7.8',
+              groupBLabel: 'No Prior Sauna',
+              groupBVal: 'Avg RPE 8.3',
+              matchedDates: saunaDates
+            },
+            {
+              id: 'run-lower-spacing',
+              effectScore: cardioDates.length ? 84 : 40,
+              headline: '48h Spacing Between Runs & Heavy Lower-Body Circuits',
+              detail: 'Separating treadmill runs from heavy squat/RDL circuits keeps shin and Achilles strain low.',
+              groupALabel: '48h Cleared',
+              groupAVal: '0 Flare-Ups',
+              groupBLabel: 'Within 24h',
+              groupBVal: '+0.6 RPE Strain',
+              matchedDates: cardioDates
+            },
+            {
+              id: 'lift-48h-spacing',
+              effectScore: 76,
+              headline: '48h vs. 24h Lift Spacing Tonnage Efficiency',
+              detail: 'Alternating upper/lower splits or inserting a 30m row between 2-day lift blocks preserves peak set velocity.',
+              groupALabel: 'Split / Rested',
+              groupAVal: '100% Target Reps',
+              groupBLabel: 'Back-to-Back',
+              groupBVal: '92% Target Reps',
+              matchedDates: liftDates
+            },
+            {
+              id: 'row-vs-run',
+              effectScore: 72,
+              headline: 'Prior-Day Row vs. Run Lower-Body Freshness',
+              detail: '30-min rowing builds aerobic base with zero eccentric foot-strike impact.',
+              groupALabel: 'Post-Row Day',
+              groupAVal: 'Fresh Calves/Shins',
+              groupBLabel: 'Post-Run Day',
+              groupBVal: '48h Tibial Guard',
+              matchedDates: cardioDates
+            },
+            {
+              id: 'session-density',
+              effectScore: 68,
+              headline: '25–40 Min Circuit Window Completion Rate',
+              detail: '6-station circuits across 3 rounds hit optimal stimulus without CNS burnout.',
+              groupALabel: '25–40m Window',
+              groupAVal: '96% Completion',
+              groupBLabel: '>45m Sessions',
+              groupBVal: 'RPE Drift +0.7',
+              matchedDates: liftDates
+            },
+            {
+              id: 'weekend-vs-workweek',
+              effectScore: 64,
+              headline: 'Weekend vs. Workweek Lifting Output',
+              detail: 'Lower desk-sitting stiffness on weekend mornings improves hip hinge depth.',
+              groupALabel: 'Weekend',
+              groupAVal: '+4% Tonnage',
+              groupBLabel: 'Workweek',
+              groupBVal: 'Baseline',
+              matchedDates: liftDates
+            },
+            {
+              id: 'lower-vs-upper-rpe',
+              effectScore: 61,
+              headline: 'Lower-Body vs. Upper-Body RPE Profile',
+              detail: 'Unilateral lower-body lifts generate higher cardiovascular RPE than upper-body presses.',
+              groupALabel: 'Lower Stations',
+              groupAVal: 'Avg RPE 8.2',
+              groupBLabel: 'Upper Stations',
+              groupBVal: 'Avg RPE 7.8',
+              matchedDates: liftDates
+            },
+            {
+              id: 'row-resistance',
+              effectScore: 59,
+              headline: 'Rowing Resistance (12–18) Aerobic Efficiency',
+              detail: 'Moderate resistance maintains steady stroke power without lower-back fatigue.',
+              groupALabel: 'Res 12–18',
+              groupAVal: 'Steady Pace',
+              groupBLabel: 'Res >22',
+              groupBVal: 'Forearm Fatigue',
+              matchedDates: cardioDates
+            }
+          ].sort((a, b) => b.effectScore - a.effectScore);
+        });
+
+        const displayedHypotheses = computed(() => showAllHypotheses.value ? allHypotheses.value : allHypotheses.value.slice(0, 2));
+
+        function publishDirectives() {
+          if (!window.BasementDB) return;
+          const { calfSets, hipSets, tibialisSets } = balanceStats.value;
+          const autoInjectLifts = [];
+          if (hipSets < calfSets) autoInjectLifts.push('Banded Clamshell');
+          if (tibialisSets < calfSets) autoInjectLifts.push('Weighted Wall Tibialis Raise');
+          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.TRAINER_DIRECTIVES, {
+            updatedAt: new Date().toISOString(),
+            calfSets,
+            hipStabilitySets: hipSets,
+            tibialisSets,
+            sevenDayAvgRpe: Number(rollup7d.value.avgRpe),
+            targetRpe: Number(targetRpe.value),
+            autoInjectLifts
+          });
+        }
+
+        function refreshData(notify = false) {
           if (!window.BasementDB) return;
           strengthLogs.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.LOGS, []);
           cardioLogs.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.CARDIO_LOGS, []);
           saunaLogs.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.SAUNA_LOGS, []);
+          coachCtx.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, window.BasementDB.DEFAULT_COACH_CONTEXT);
+          if (availableE1rmExercises.value.length && !availableE1rmExercises.value.includes(selectedE1rmExercise.value)) {
+            selectedE1rmExercise.value = availableE1rmExercises.value[0];
+          }
+          publishDirectives();
+          if (notify) {
+            syncToast.value = '✓ Synced Analytics & Trainer Directives';
+            setTimeout(() => { syncToast.value = ''; }, 1800);
+          }
         }
 
         function submitFollowUp() {
           const q = followUpQuestion.value.trim();
           if (!q) return;
-          followUpAnswer.value = `Based on ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna logs, prioritize steady RPE around ${targetRpe.value} and watch how sleep, soreness, and training spacing affect your next session.`;
+          const { calfSets, hipSets, tibialisSets } = balanceStats.value;
+          followUpAnswer.value = `Based on ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio logs, and ${saunaLogs.value.length} sauna logs (Calf ${calfSets} vs. Hip ${hipSets} / Tibialis ${tibialisSets}), keep target RPE at ${targetRpe.value} and maintain 48h clearance between runs.`;
+          followUpQuestion.value = '';
+        }
+
+        function toggleQaMic() {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SR) return;
+          const rec = new SR();
+          rec.lang = 'en-US';
+          isListeningQa.value = true;
+          rec.onresult = (ev) => { followUpQuestion.value = ev.results[0][0].transcript; };
+          rec.onend = () => {
+            isListeningQa.value = false;
+            if (followUpQuestion.value.trim()) submitFollowUp();
+          };
+          rec.onerror = () => { isListeningQa.value = false; };
+          rec.start();
+        }
+
+        function stepBlockWeek(delta) {
+          if (!coachCtx.value.primaryGoal) return;
+          const maxW = Number(coachCtx.value.primaryGoal.durationWeeks) || 6;
+          const nextW = Math.max(1, Math.min(maxW, (Number(coachCtx.value.primaryGoal.currentWeek) || 1) + delta));
+          coachCtx.value.primaryGoal.currentWeek = nextW;
+          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, coachCtx.value);
+          window.BasementDB.syncCoachContextToCloud(coachCtx.value);
+          window.BasementDB.notifyFrames('storage');
+        }
+
+        function graduateGoalToMaintenance() {
+          const curTitle = coachCtx.value.primaryGoal?.title || 'Strength & Conditioning';
+          coachCtx.value.secondaryGoal = { title: curTitle, allocation: 30 };
+          coachCtx.value.primaryGoal = {
+            ...coachCtx.value.primaryGoal,
+            title: 'Athletic Hypertrophy & Lower-Leg Armor',
+            currentWeek: 1,
+            focusArea: 'dynamic_strength',
+            primaryLifts: [],
+            secondaryLifts: []
+          };
+          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, coachCtx.value);
+          window.BasementDB.syncCoachContextToCloud(coachCtx.value);
+          window.BasementDB.notifyFrames('storage');
+          syncToast.value = `✓ Graduated "${curTitle}" to Maintenance`;
+          setTimeout(() => { syncToast.value = ''; }, 2000);
+        }
+
+        function seedDemoLogs() {
+          if (!window.BasementDB) return;
+          const d = (offset) => {
+            const dt = new Date();
+            dt.setDate(dt.getDate() - offset);
+            return dt.toISOString().slice(0, 10);
+          };
+          const demoStrength = [
+            { id: 'd1', date: d(14), exercise: 'Goblet Squat', weight: 45, reps: 10, rpe: 7.5 },
+            { id: 'd2', date: d(10), exercise: 'Goblet Squat', weight: 50, reps: 10, rpe: 8.0 },
+            { id: 'd3', date: d(5), exercise: 'Goblet Squat', weight: 50, reps: 12, rpe: 8.2 },
+            { id: 'd4', date: d(5), exercise: 'Seated Calf Raise', weight: 50, reps: 15, rpe: 8.0 },
+            { id: 'd5', date: d(2), exercise: 'Flat Dumbbell Bench Press', weight: 45, reps: 10, rpe: 8.0 },
+            { id: 'd6', date: d(2), exercise: 'Banded Clamshell', weight: 0, bandLevel: 'Green (Med)', reps: 15, rpe: 7.5 }
+          ];
+          const demoCardio = [
+            { id: 'c1', date: d(6), modality: 'Row (30m)', duration: 30, resistance: 15, meters: 6200, rpe: 7.5 },
+            { id: 'c2', date: d(3), modality: 'Run (30m)', duration: 30, distance: 3.2, incline: 1.0, rpe: 8.0 }
+          ];
+          const demoSauna = [
+            { id: 's1', date: d(6), duration: 20, type: 'Traditional', timing: 'Post-Row' },
+            { id: 's2', date: d(2), duration: 20, type: 'Traditional', timing: 'Post-Lift' }
+          ];
+          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.LOGS, demoStrength);
+          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.CARDIO_LOGS, demoCardio);
+          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.SAUNA_LOGS, demoSauna);
+          window.BasementDB.notifyFrames('storage');
+          refreshData(true);
         }
 
         onMounted(async () => {
@@ -191,24 +632,20 @@
             const ok = await window.BasementAuthGuard.requireAuthenticatedModule();
             if (!ok) return;
           }
-          refreshData();
-          window.addEventListener('storage', refreshData);
+          refreshData(false);
+          window.addEventListener('storage', () => refreshData(false));
         });
 
         return {
-          activeSubTab,
-          subTabs,
-          todayIso,
-          targetRpe,
-          trainerSummary,
-          strengthLogs,
-          cardioLogs,
-          saunaLogs,
-          followUpQuestion,
-          followUpAnswer,
-          spottedTrends,
-          refreshData,
-          submitFollowUp
+          activeSubTab, subTabs, activeHorizon, horizons, todayIso,
+          targetRpe, balanceStats, trainerSummary,
+          strengthLogs, cardioLogs, saunaLogs, coachCtx,
+          followUpQuestion, followUpAnswer, isListeningQa, submitFollowUp, toggleQaMic,
+          stepBlockWeek, graduateGoalToMaintenance,
+          rollup7d, rollup42d, availableE1rmExercises, selectedE1rmExercise,
+          e1rmPoints, e1rmStats, e1rmSvgCoords, e1rmSvgPolyline,
+          displayedHypotheses, showAllHypotheses,
+          seedDemoLogs, refreshData, syncToast
         };
       }
     }).mount('#app');

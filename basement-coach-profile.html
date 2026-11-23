@@ -6,31 +6,90 @@
   <title>Coach Context &amp; Goals Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./basement-db.js"></script>
+  <script src="./basement-exercises.js"></script>
   <script src="./module-auth-guard.js"></script>
   <style>
     html, body, #app { min-height: 100dvh; margin: 0; background: #020617; color: #f8fafc; }
+    [v-cloak] { display: none; }
   </style>
 </head>
 <body>
-  <div id="app" class="max-w-md sm:max-w-2xl mx-auto p-3 space-y-3 pb-12">
+  <div id="app" v-cloak class="max-w-md mx-auto p-3 space-y-3 pb-24">
+    <!-- HEADER -->
     <header class="flex items-center justify-between border-b border-slate-800 pb-2.5">
       <div>
         <div class="flex items-center gap-2">
-          <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">MODULE 2 OF 4</span>
-          <span class="text-xs text-slate-400">{{ todayIso }}</span>
+          <span class="text-[10px] font-black px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">MODULE 2 OF 4</span>
+          <span class="text-[11px] text-slate-400 font-mono">{{ todayIso }}</span>
         </div>
-        <h1 class="text-lg font-bold text-white mt-1">Coach Context &amp; Goals Engine</h1>
+        <h1 class="text-base font-black text-white mt-0.5">Coach Context &amp; Goals Engine</h1>
       </div>
-      <button
-        type="button"
-        @click="saveContext"
-        class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
-      >
-        Save
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button
+          type="button"
+          @click="showJsonModal = true"
+          class="text-[11px] px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 font-mono font-bold"
+        >
+          JSON
+        </button>
+        <button
+          type="button"
+          @click="saveContext(true)"
+          class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black"
+        >
+          ↻ Sync ({{ readinessScore }}/100)
+        </button>
+      </div>
     </header>
 
+    <!-- AI PROFILE INTERVIEW BAR -->
+    <div class="rounded-2xl bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/40 p-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">🎤 AI Profile Interview &amp; Variable Extractor</span>
+        <span v-if="context.customCoachingVariables?.length" class="text-[10px] font-mono text-emerald-400 font-bold">
+          {{ context.customCoachingVariables.length }} Custom Rule(s) Active
+        </span>
+      </div>
+      <div class="flex gap-1.5">
+        <button
+          type="button"
+          @click="toggleInterviewMic"
+          class="px-2.5 py-2 rounded-xl border text-xs font-black shrink-0"
+          :class="isListeningInterview ? 'bg-rose-500 text-white border-rose-300 animate-pulse' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'"
+        >
+          {{ isListeningInterview ? '⏹' : '🎤' }}
+        </button>
+        <input
+          v-model="interviewInput"
+          @keyup.enter="applyAiProfileInterview"
+          type="text"
+          placeholder="e.g., 5 days/wk, 30 min window, no back-to-back runs, cap DB rows at 45 lb..."
+          class="flex-1 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+        />
+        <button
+          type="button"
+          @click="applyAiProfileInterview"
+          :disabled="!interviewInput.trim()"
+          class="px-3 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black disabled:opacity-40"
+        >
+          Apply
+        </button>
+      </div>
+      <div v-if="context.customCoachingVariables && context.customCoachingVariables.length > 0" class="flex flex-wrap gap-1.5 pt-1">
+        <span
+          v-for="(v, idx) in context.customCoachingVariables"
+          :key="idx"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-950 border border-indigo-500/40 text-[10px] text-indigo-200"
+        >
+          <strong>{{ v.label }}:</strong> {{ v.value }}
+          <button type="button" @click="removeCustomVariable(idx)" class="text-rose-400 font-bold ml-1">&times;</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- 4 SUB-TABS -->
     <div class="grid grid-cols-4 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
       <button
         v-for="tab in subTabs"
@@ -38,161 +97,416 @@
         type="button"
         @click="activeSubTab = tab.id"
         :class="[
-          'py-2 px-1.5 rounded-lg text-xs font-semibold transition',
-          activeSubTab === tab.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+          'py-2 px-1 rounded-lg text-[11px] font-bold transition',
+          activeSubTab === tab.id ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
         ]"
       >
-        {{ tab.label }}
+        {{ tab.id === 'injuries' ? `2. Injuries (${activeInjuryCount})` : tab.label }}
       </button>
     </div>
 
+    <!-- ===================================================================== -->
+    <!-- TAB 1: GOALS (DYNAMIC AI GOAL ROTATION)                               -->
+    <!-- ===================================================================== -->
     <section v-if="activeSubTab === 'goals'" class="space-y-3">
-      <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-3">
+      <!-- Primary Goal Card -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold text-indigo-400">PRIMARY GOAL</span>
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 block">
+              1° PRIMARY GOAL ({{ context.secondaryGoal ? '~70% FOCUS' : '100% FOCUS' }})
+            </span>
+            <h2 class="text-base font-black text-white mt-0.5">{{ context.primaryGoal.title }}</h2>
+          </div>
           <button
             type="button"
             @click="showGoalEditor = !showGoalEditor"
-            class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium"
+            class="text-xs px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold"
           >
-            {{ showGoalEditor ? 'Done' : 'Change Goal' }}
+            {{ showGoalEditor ? 'Close ▲' : 'Change 1° Goal ▼' }}
           </button>
         </div>
 
-        <div class="text-base font-bold text-white">
-          {{ context.primaryGoal.title }}
+        <!-- Dynamic AI Pro Trainer Notice (Zero Static 6-Lift List) -->
+        <div class="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-emerald-200 leading-snug">
+          🤖 <strong>Dynamic AI Pro Trainer Lift Selection Active:</strong> Exercises rotate dynamically each session across the catalog based on recovery, DOMS, recent RPE, and your goal—never locked to a static lift list.
         </div>
 
-        <div v-if="showGoalEditor" class="pt-2 border-t border-slate-800 space-y-2">
+        <!-- Collapsible Goal Presets & Custom AI Builder -->
+        <div v-if="showGoalEditor" class="pt-2.5 border-t border-slate-800 space-y-2.5">
+          <div class="text-[10px] font-bold uppercase text-slate-400">Quick Goal Block Presets:</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button
+              v-for="preset in goalPresets"
+              :key="preset.title"
+              type="button"
+              @click="selectGoalPreset(preset)"
+              class="p-2 rounded-xl border text-left text-[11px] font-bold transition"
+              :class="context.primaryGoal.title === preset.title ? 'bg-indigo-600/30 border-indigo-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'"
+            >
+              {{ preset.title }}
+            </button>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80 space-y-2">
+            <div class="text-[10px] font-bold uppercase text-emerald-400">✨ Custom Goal Builder:</div>
+            <input
+              v-model="customGoalPrompt"
+              type="text"
+              placeholder="e.g., General strength and athletic conditioning..."
+              class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+            />
+            <div class="grid grid-cols-2 gap-2">
+              <label class="text-[10px] text-slate-400 font-bold">
+                Weekly Target Sets
+                <input v-model.number="context.primaryGoal.weeklyTargetSets" type="number" min="6" max="40" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+              </label>
+              <label class="text-[10px] text-slate-400 font-bold">
+                Block Duration (Weeks)
+                <input v-model.number="context.primaryGoal.durationWeeks" type="number" min="4" max="16" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+              </label>
+            </div>
+            <button
+              type="button"
+              @click="buildCustomGoalWithAi"
+              :disabled="!customGoalPrompt.trim()"
+              class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs disabled:opacity-40"
+            >
+              ✨ AI Build &amp; Set Goal
+            </button>
+          </div>
+        </div>
+
+        <!-- Weekly Stimulus Progress Bar -->
+        <div>
+          <div class="flex justify-between text-xs text-slate-400 mb-1">
+            <span>Weekly Goal Stimulus Target</span>
+            <span class="font-mono font-bold text-white">{{ completedSetsThisWeek }} / {{ context.primaryGoal.weeklyTargetSets || 18 }} sets</span>
+          </div>
+          <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+            <div class="h-full bg-indigo-500 transition-all" :style="{ width: goalProgressPct + '%' }"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Block Phase & Deload Control -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-black text-white">Block Phase &amp; Deload Control</span>
+          <span class="text-[10px] font-mono text-amber-300">Wk {{ context.primaryGoal.currentWeek || 1 }} of {{ context.primaryGoal.durationWeeks || 6 }}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            v-for="p in phaseOptions"
+            :key="p.value"
+            type="button"
+            @click="context.mesocyclePhase = p.value; saveContext()"
+            class="py-2 px-2 rounded-xl text-[11px] font-bold border transition"
+            :class="context.mesocyclePhase === p.value ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-950 border-slate-800 text-slate-400'"
+          >
+            {{ p.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Secondary / Maintenance Goal (~30% Focus) -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-black uppercase text-sky-400 block">Secondary / Maintenance Goal (~30% Focus)</span>
+            <span class="text-xs font-bold text-white">{{ context.secondaryGoal ? context.secondaryGoal.title : 'None (100% Primary Focus)' }}</span>
+          </div>
+          <button
+            v-if="context.secondaryGoal"
+            type="button"
+            @click="context.secondaryGoal = null; saveContext()"
+            class="text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-rose-300 font-bold"
+          >
+            Clear
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="sec in secondaryPresets"
+            :key="sec"
+            type="button"
+            @click="context.secondaryGoal = { title: sec, allocation: 30 }; saveContext()"
+            class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition"
+            :class="context.secondaryGoal?.title === sec ? 'bg-sky-500/20 border-sky-400 text-sky-200' : 'bg-slate-950 border-slate-800 text-slate-400'"
+          >
+            + {{ sec }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 50-lb Dumbbell Cap Progression Mode -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
+        <span class="text-xs font-black text-white block">50-lb Dumbbell Cap Progression Mode</span>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            v-for="m in capModes"
+            :key="m.id"
+            type="button"
+            @click="context.dumbbellCapMode = m.id; saveContext()"
+            class="py-2 px-1.5 rounded-xl text-[11px] font-bold border transition"
+            :class="context.dumbbellCapMode === m.id ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-slate-950 border-slate-800 text-slate-400'"
+          >
+            {{ m.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Personal Exercise Preferences (★ & ⊘) -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-black text-white">Personal Exercise Preferences (★ Boost / ⊘ Ban)</span>
+          <span class="text-[10px] font-mono text-slate-400">{{ favCount }} ★ • {{ banCount }} ⊘</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+          <div
+            v-for="lift in quickPreferenceLifts"
+            :key="lift"
+            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px]"
+          >
+            <span class="text-slate-200 truncate max-w-[140px]">{{ lift }}</span>
+            <button
+              type="button"
+              @click="togglePrefFavorite(lift)"
+              class="px-1 rounded font-black"
+              :class="isPrefFav(lift) ? 'bg-amber-500 text-slate-950' : 'text-slate-500'"
+            >
+              ★
+            </button>
+            <button
+              type="button"
+              @click="togglePrefBanned(lift)"
+              class="px-1 rounded font-black"
+              :class="isPrefBan(lift) ? 'bg-rose-500 text-white' : 'text-slate-500'"
+            >
+              ⊘
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: INJURIES (EXPIRING TEMPORARY INJURIES)                         -->
+    <!-- ===================================================================== -->
+    <section v-if="activeSubTab === 'injuries'" class="space-y-3">
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+        <h2 class="text-sm font-black text-white">Expiring Temporary Injuries &amp; Flare-Ups</h2>
+        <div class="space-y-2">
           <input
-            v-model="context.primaryGoal.title"
+            v-model="newInjuryName"
             type="text"
-            placeholder="Primary goal title"
+            placeholder="e.g., Mild Right Ankle Sprain, Tight Left Shoulder..."
             class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
           />
           <div class="grid grid-cols-2 gap-2">
-            <label class="text-[11px] text-slate-400">
-              Weekly Target Sets
-              <input
-                v-model.number="context.primaryGoal.weeklyTargetSets"
-                type="number"
-                min="4"
-                max="40"
-                class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-              />
-            </label>
-            <label class="text-[11px] text-slate-400">
-              Block Length (Weeks)
-              <input
-                v-model.number="context.primaryGoal.durationWeeks"
-                type="number"
-                min="2"
-                max="16"
-                class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
-              />
-            </label>
+            <select v-model="newInjuryRegion" class="px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white">
+              <option value="ankle">Ankle / Foot / Shin</option>
+              <option value="knee">Knee</option>
+              <option value="hip">Hip / Glute</option>
+              <option value="lower_back">Lower Back</option>
+              <option value="shoulder">Shoulder</option>
+              <option value="elbow_wrist">Elbow / Wrist</option>
+            </select>
+            <select v-model="newInjuryDays" class="px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white">
+              <option :value="7">+7 Days Expiration</option>
+              <option :value="14">+14 Days Expiration</option>
+              <option :value="30">+30 Days Expiration</option>
+            </select>
           </div>
-        </div>
-
-        <div>
-          <div class="flex justify-between text-xs text-slate-400 mb-1">
-            <span>Weekly Stimulus Target</span>
-            <span>{{ completedSetsCount }} / {{ context.primaryGoal.weeklyTargetSets || 18 }} sets</span>
-          </div>
-          <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-            <div
-              class="h-full bg-indigo-500 transition-all"
-              :style="{ width: goalProgressPct + '%' }"
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-2">
-        <div class="text-xs font-bold text-slate-300">Mesocycle Phase</div>
-        <div class="grid grid-cols-3 gap-2">
-          <button
-            v-for="phase in phases"
-            :key="phase"
-            type="button"
-            @click="context.mesocyclePhase = phase; saveContext()"
-            :class="[
-              'py-2 px-2 rounded-xl text-xs font-semibold border transition',
-              context.mesocyclePhase === phase
-                ? 'bg-amber-500/20 border-amber-400 text-amber-200'
-                : 'bg-slate-950 border-slate-800 text-slate-400'
-            ]"
-          >
-            {{ phase }}
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section v-if="activeSubTab === 'injuries'" class="space-y-3">
-      <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-2.5">
-        <h2 class="text-sm font-bold text-white">Temporary Injuries &amp; Guardrails</h2>
-        <div class="flex gap-2">
-          <input
-            v-model="newInjury"
-            type="text"
-            placeholder="Area or movement limitation (optional)"
-            class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
-          />
           <button
             type="button"
             @click="addInjury"
-            class="px-3 py-2 rounded-xl bg-indigo-600 text-xs font-semibold text-white"
+            :disabled="!newInjuryName.trim()"
+            class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black text-white disabled:opacity-40"
           >
-            Add
+            + Log Expiring Injury Guardrail
           </button>
         </div>
-        <div v-for="(inj, i) in context.activeTemporaryInjuries" :key="i" class="flex items-center justify-between text-xs bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
-          <span>{{ inj }}</span>
-          <button type="button" @click="removeInjury(i)" class="text-rose-400">Remove</button>
+
+        <div v-if="normalizedInjuries.length === 0" class="text-xs text-slate-400 text-center py-3">
+          No temporary injuries logged. All movement patterns cleared.
+        </div>
+
+        <div
+          v-for="(inj, i) in normalizedInjuries"
+          :key="inj.id || i"
+          class="p-3 rounded-xl bg-slate-950 border space-y-1"
+          :class="inj.expired ? 'border-slate-800 opacity-60' : 'border-amber-500/40'"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-black text-white">{{ inj.name }}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded" :class="inj.expired ? 'bg-slate-800 text-slate-400' : 'bg-amber-500/20 text-amber-300 font-bold'">
+                {{ inj.expired ? 'EXPIRED / IGNORED' : `${inj.daysLeft}d left` }}
+              </span>
+              <button type="button" @click="removeInjury(i)" class="text-rose-400 font-bold text-xs px-1">&times;</button>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400">
+            <strong>AI Impact:</strong> Automatically swaps high-stress {{ inj.region.replace('_', ' ') }} movements to joint-safe alternatives.
+          </p>
         </div>
       </div>
     </section>
 
+    <!-- ===================================================================== -->
+    <!-- TAB 3: LIFE & DOMS                                                    -->
+    <!-- ===================================================================== -->
     <section v-if="activeSubTab === 'life'" class="space-y-3">
-      <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-3">
-        <h2 class="text-sm font-bold text-white">Baseline &amp; Daily Readiness</h2>
-        <div class="grid grid-cols-3 gap-2">
-          <label class="text-[11px] text-slate-400">
-            Weight (lb)
-            <input v-model.number="context.weightLbs" type="number" min="70" max="450" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white" />
+      <!-- Athlete Baseline Anthropometrics -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-black text-white">Athlete Baseline Anthropometrics</h2>
+          <button type="button" @click="editingBiometrics = !editingBiometrics" class="text-xs text-indigo-300 font-bold underline">
+            {{ editingBiometrics ? 'Done' : 'Edit' }}
+          </button>
+        </div>
+        <div v-if="editingBiometrics" class="grid grid-cols-2 gap-2">
+          <label class="text-[10px] text-slate-400 font-bold">
+            Birthdate
+            <input v-model="context.birthDate" @change="saveContext()" type="date" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white" />
           </label>
-          <label class="text-[11px] text-slate-400">
+          <label class="text-[10px] text-slate-400 font-bold">
+            Weight (lbs)
+            <input v-model.number="context.weightLbs" @change="saveContext()" type="number" min="70" max="450" placeholder="lbs" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white" />
+          </label>
+          <label class="text-[10px] text-slate-400 font-bold">
             Height (ft)
-            <input v-model.number="context.heightFeet" type="number" min="3" max="8" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white" />
+            <input v-model.number="context.heightFeet" @change="saveContext()" type="number" min="3" max="8" placeholder="ft" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white" />
           </label>
-          <label class="text-[11px] text-slate-400">
+          <label class="text-[10px] text-slate-400 font-bold">
             Height (in)
-            <input v-model.number="context.heightInches" type="number" min="0" max="11" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white" />
+            <input v-model.number="context.heightInches" @change="saveContext()" type="number" min="0" max="11" placeholder="in" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white" />
           </label>
         </div>
-        <label class="block text-[11px] text-slate-400">
-          Notes / Preferences / Guardrails
-          <textarea
-            v-model="notesDraft"
-            rows="3"
-            placeholder="Add any schedule notes, soreness, or exercise preferences..."
-            class="mt-1 w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
-          ></textarea>
+        <div v-else class="text-xs text-slate-300 font-mono">
+          {{ context.weightLbs ? `${context.weightLbs} lbs` : 'Weight unset' }} •
+          {{ context.heightFeet ? `${context.heightFeet}'${context.heightInches || 0}"` : 'Height unset' }} •
+          {{ context.birthDate ? `DOB ${context.birthDate}` : 'DOB unset' }}
+        </div>
+      </div>
+
+      <!-- 6-Zone Local Muscle Soreness (DOMS) Map -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-black text-white">Local Muscle Soreness (DOMS) Map</h2>
+          <button type="button" @click="resetSoreness" class="text-[11px] text-slate-400 underline">Reset</button>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button
+            v-for="zone in domsZones"
+            :key="zone"
+            type="button"
+            @click="cycleSoreness(zone)"
+            class="p-2.5 rounded-xl border text-left flex items-center justify-between text-xs font-bold transition"
+            :class="sorenessClass(context.sorenessMap?.[zone])"
+          >
+            <span>{{ zone }}</span>
+            <span class="text-[10px] font-mono">{{ context.sorenessMap?.[zone] || 'Fresh ✓' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Non-Gym Real Life Physical Loads -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
+        <h2 class="text-sm font-black text-white">Non-Gym "Real Life" Physical Load</h2>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="item in lifeLoadPresets"
+            :key="item"
+            type="button"
+            @click="toggleLifeLoad(item)"
+            class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition"
+            :class="(context.externalLifeLoads || []).includes(item) ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-950 border-slate-800 text-slate-400'"
+          >
+            {{ item }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Chronic Guardrails -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
+        <h2 class="text-sm font-black text-white">Chronic Guardrails &amp; Joint Rules</h2>
+        <textarea
+          v-model="notesDraft"
+          @change="saveContext()"
+          rows="3"
+          placeholder="One guardrail per line (e.g., Protect left plantar fascia on consecutive run days)..."
+          class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+        ></textarea>
+      </div>
+
+      <!-- Weekly Modality Cadence & Session Window -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <h2 class="text-sm font-black text-white">Pro Trainer Weekly Modality Cadence</h2>
+        <div class="grid grid-cols-3 gap-2">
+          <label class="text-[10px] text-slate-400 font-bold">
+            Days / Week
+            <input v-model.number="context.modalityPreferences.targetDaysPerWeek" @change="saveContext()" type="number" min="2" max="7" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+          </label>
+          <label class="text-[10px] text-slate-400 font-bold">
+            Min Window (m)
+            <input v-model.number="context.targetDurationMin" @change="saveContext()" type="number" min="15" max="60" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+          </label>
+          <label class="text-[10px] text-slate-400 font-bold">
+            Max Window (m)
+            <input v-model.number="context.targetDurationMax" @change="saveContext()" type="number" min="20" max="90" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+          </label>
+        </div>
+        <label class="flex items-center gap-2 text-xs text-slate-200 pt-1">
+          <input type="checkbox" v-model="context.modalityPreferences.preventBackToBackRuns" @change="saveContext()" class="rounded" />
+          <span>Never Run 2 Days in a Row (48h Shin/Achilles Clearance)</span>
         </label>
       </div>
     </section>
 
+    <!-- ===================================================================== -->
+    <!-- TAB 4: AI SIM                                                         -->
+    <!-- ===================================================================== -->
     <section v-if="activeSubTab === 'sim'" class="space-y-3">
-      <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 space-y-2">
-        <h2 class="text-sm font-bold text-white">Circuit Synthesis Preview</h2>
-        <p class="text-xs text-slate-300">
-          Target window: {{ context.targetDurationMin || 25 }}–{{ context.targetDurationMax || 40 }} min • Max consecutive lift days: {{ context.modalityPreferences?.maxConsecutiveLiftDays || 2 }}.
-        </p>
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+        <h2 class="text-sm font-black text-white">Holistic AI Conflict &amp; Anti-Overload Simulator</h2>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            v-for="sc in simScenarios"
+            :key="sc.id"
+            type="button"
+            @click="activeSimScenario = sc.id"
+            class="py-2 px-2 rounded-xl text-[11px] font-bold border transition"
+            :class="activeSimScenario === sc.id ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
+          >
+            {{ sc.label }}
+          </button>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+          <div class="font-bold text-emerald-400">{{ currentSimDetail.headline }}</div>
+          <p class="text-slate-300 leading-relaxed">{{ currentSimDetail.rationale }}</p>
+          <div class="pt-1 space-y-1">
+            <div v-for="(st, idx) in currentSimDetail.stations" :key="idx" class="text-[11px] font-mono text-slate-200">
+              {{ idx + 1 }}. {{ st }}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <p v-if="savedBanner" class="text-xs text-emerald-300 text-center">Saved.</p>
+    <!-- JSON MODAL -->
+    <div v-if="showJsonModal" @click.self="showJsonModal = false" class="fixed inset-0 bg-slate-950/85 z-50 flex items-start justify-center p-3 pt-6 overflow-y-auto">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-black text-white">Shared Coach Context JSON</h3>
+          <button type="button" @click="showJsonModal = false" class="text-slate-400 hover:text-white font-bold">&times;</button>
+        </div>
+        <pre class="text-[10px] font-mono text-emerald-300 bg-slate-950 p-3 rounded-xl overflow-x-auto max-h-80">{{ JSON.stringify(context, null, 2) }}</pre>
+      </div>
+    </div>
+
+    <p v-if="savedBanner" class="text-xs text-emerald-400 font-bold text-center">✓ Synced to Shared Bus &amp; Cloud</p>
   </div>
 
   <script>
@@ -201,10 +515,18 @@
       setup() {
         const activeSubTab = ref('goals');
         const showGoalEditor = ref(false);
+        const editingBiometrics = ref(false);
+        const showJsonModal = ref(false);
         const savedBanner = ref(false);
-        const newInjury = ref('');
+        const newInjuryName = ref('');
+        const newInjuryRegion = ref('ankle');
+        const newInjuryDays = ref(14);
         const notesDraft = ref('');
-        const logsCount = ref(0);
+        const customGoalPrompt = ref('');
+        const interviewInput = ref('');
+        const isListeningInterview = ref(false);
+        const logs = ref([]);
+        const activeSimScenario = ref('A');
 
         const defaultCtx = () => JSON.parse(JSON.stringify(window.BasementDB.DEFAULT_COACH_CONTEXT));
         const context = ref(defaultCtx());
@@ -216,50 +538,301 @@
           { id: 'sim', label: '4. AI Sim' }
         ];
 
-        const phases = ['Accumulation', 'Intensification', 'Deload'];
+        const goalPresets = [
+          { title: 'General Strength & Athletic Conditioning', weeklyTargetSets: 18, durationWeeks: 6 },
+          { title: 'Calf, Shin & Ankle Running Armor', weeklyTargetSets: 16, durationWeeks: 6 },
+          { title: 'Upper-Body V-Taper & Posture', weeklyTargetSets: 20, durationWeeks: 8 },
+          { title: 'Joint-Safe Hypertrophy & Core', weeklyTargetSets: 18, durationWeeks: 6 }
+        ];
+
+        const secondaryPresets = ['V-Taper Lats', 'Shin & Hip Armor', 'Rotator Cuff Health', 'Core Anti-Rotation'];
+
+        const phaseOptions = [
+          { value: 'Accumulation', label: 'Wk 1-3: Base' },
+          { value: 'Intensification', label: 'Wk 4-7: Push' },
+          { value: 'Deload', label: 'Deload Week' }
+        ];
+
+        const capModes = [
+          { id: 'tempo_pause', label: 'Tempo + Pause' },
+          { id: 'unilateral', label: 'Unilateral Upgrade' },
+          { id: 'band_combo', label: 'Band + DB Combo' }
+        ];
+
+        const domsZones = ['Quads', 'Hamstrings & Glutes', 'Calves & Shins', 'Chest & Front Delts', 'Lats & Upper Back', 'Side Delts & Arms'];
+        const lifeLoadPresets = ['Yard Work / Heavy Labor', 'Long Drive / Travel', '10+ Hr Desk Crunch', 'High Life Stress'];
+        const quickPreferenceLifts = [
+          'Goblet Squat', 'Dumbbell Bulgarian Split Squat', 'Dumbbell Romanian Deadlift',
+          'Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Single-Arm Dumbbell Row',
+          'Chest-Supported Incline Row', 'Dumbbell Pullover', 'Dumbbell Lateral Raise',
+          'Seated Calf Raise', 'Banded Clamshell', 'Weighted Wall Tibialis Raise'
+        ];
+
+        const simScenarios = [
+          { id: 'A', label: 'Scenario A: Upper Yest.' },
+          { id: 'B', label: 'Scenario B: Ran Yest.' },
+          { id: 'C', label: 'Scenario C: 2 Lift Days' }
+        ];
+
         const todayIso = computed(() => new Date().toISOString().slice(0, 10));
-        const completedSetsCount = computed(() => logsCount.value);
+
+        const completedSetsThisWeek = computed(() => {
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - 7);
+          const cutIso = cutoff.toISOString().slice(0, 10);
+          return logs.value.filter((l) => (l.date || '') >= cutIso).length;
+        });
+
         const goalProgressPct = computed(() => {
           const target = Number(context.value.primaryGoal?.weeklyTargetSets) || 18;
-          return Math.min(100, Math.round((completedSetsCount.value / target) * 100));
+          return Math.min(100, Math.round((completedSetsThisWeek.value / target) * 100));
+        });
+
+        const normalizedInjuries = computed(() => {
+          const list = Array.isArray(context.value.activeTemporaryInjuries) ? context.value.activeTemporaryInjuries : [];
+          const today = todayIso.value;
+          return list.map((item, idx) => {
+            if (typeof item === 'string') {
+              return { id: `inj-${idx}`, name: item, region: 'ankle', daysLeft: 14, expired: false };
+            }
+            const exp = item.expiresAt || '';
+            const expired = Boolean(exp && exp < today);
+            const diffDays = exp ? Math.max(0, Math.ceil((new Date(exp) - new Date(today)) / 86400000)) : 14;
+            return { ...item, daysLeft: diffDays, expired };
+          });
+        });
+
+        const activeInjuryCount = computed(() => normalizedInjuries.value.filter((i) => !i.expired).length);
+
+        const readinessScore = computed(() => {
+          let score = 94;
+          const soreness = context.value.sorenessMap || {};
+          Object.values(soreness).forEach((v) => {
+            if (v === 'Tight') score -= 2;
+            if (v === 'Sore ⊘') score -= 5;
+          });
+          score -= activeInjuryCount.value * 4;
+          score -= (context.value.externalLifeLoads || []).length * 3;
+          return Math.max(45, Math.min(100, score));
+        });
+
+        const favCount = computed(() => (context.value.preferences?.favorites || context.value.exercisePreferences?.favorites || []).length);
+        const banCount = computed(() => (context.value.preferences?.banned || context.value.exercisePreferences?.banned || []).length);
+
+        const isPrefFav = (name) => {
+          const favs = context.value.preferences?.favorites || context.value.exercisePreferences?.favorites || [];
+          return favs.includes(name);
+        };
+        const isPrefBan = (name) => {
+          const bans = context.value.preferences?.banned || context.value.exercisePreferences?.banned || [];
+          return bans.includes(name);
+        };
+
+        function togglePrefFavorite(name) {
+          const prefs = context.value.preferences || { favorites: [], banned: [] };
+          prefs.banned = (prefs.banned || []).filter((n) => n !== name);
+          if ((prefs.favorites || []).includes(name)) {
+            prefs.favorites = prefs.favorites.filter((n) => n !== name);
+          } else {
+            prefs.favorites = [...(prefs.favorites || []), name];
+          }
+          context.value.preferences = prefs;
+          context.value.exercisePreferences = prefs;
+          saveContext();
+        }
+
+        function togglePrefBanned(name) {
+          const prefs = context.value.preferences || { favorites: [], banned: [] };
+          prefs.favorites = (prefs.favorites || []).filter((n) => n !== name);
+          if ((prefs.banned || []).includes(name)) {
+            prefs.banned = prefs.banned.filter((n) => n !== name);
+          } else {
+            prefs.banned = [...(prefs.banned || []), name];
+          }
+          context.value.preferences = prefs;
+          context.value.exercisePreferences = prefs;
+          saveContext();
+        }
+
+        const currentSimDetail = computed(() => {
+          if (activeSimScenario.value === 'B') {
+            return {
+              headline: 'Post-Run Lower-Body & Tibialis Protection Circuit',
+              rationale: 'Blocks consecutive-day running (48h tibial clearance) and routes to upper-body + seated calf/hip stabilizers.',
+              stations: ['Incline Dumbbell Bench Press', 'Chest-Supported Incline Row', 'Seated Calf Raise', 'Banded Clamshell', 'Dumbbell Lateral Raise', 'Dead Bug']
+            };
+          }
+          if (activeSimScenario.value === 'C') {
+            return {
+              headline: '2 Consecutive Lift Days Reached → Active Conditioning Shift',
+              rationale: 'Enforces max 2 consecutive lift days rule and recommends a 30-minute Rowing session instead of heavy barbell/DB loading.',
+              stations: ['Step 0: Half-Kneeling Hip Flexor Stretch', 'Step 0: Band Pull-Apart', 'Main: 30-Min Steady Aerobic Row (Resistance 12–16)', 'Post: 15m Traditional Sauna']
+            };
+          }
+          return {
+            headline: 'Lower-Body & Posterior Chain Rotation (Upper Worked Yesterday)',
+            rationale: 'Protects pressed/pulled upper-body muscles from yesterday with a 6-station lower, hip-stability, and core circuit.',
+            stations: ['Goblet Squat', 'Dumbbell Romanian Deadlift', 'Dumbbell Bulgarian Split Squat', 'Seated Calf Raise', 'Band Lateral Walk', 'Suitcase Carry (Single-Arm)']
+          };
         });
 
         function loadState() {
           if (!window.BasementDB) return;
           const loaded = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, defaultCtx);
-          context.value = { ...defaultCtx(), ...loaded, primaryGoal: { ...defaultCtx().primaryGoal, ...(loaded.primaryGoal || {}) } };
-          notesDraft.value = Array.isArray(context.value.chronicGuardrails) ? context.value.chronicGuardrails.join('
-') : '';
-          const logs = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.LOGS, []);
-          logsCount.value = Array.isArray(logs) ? logs.length : 0;
+          const merged = {
+            ...defaultCtx(),
+            ...loaded,
+            primaryGoal: { ...defaultCtx().primaryGoal, ...(loaded.primaryGoal || {}) },
+            modalityPreferences: { ...defaultCtx().modalityPreferences, ...(loaded.modalityPreferences || {}) }
+          };
+          context.value = merged;
+          notesDraft.value = Array.isArray(merged.chronicGuardrails)
+            ? merged.chronicGuardrails.map((g) => (typeof g === 'string' ? g : g.label || '')).filter(Boolean).join('\n')
+            : '';
+          const rawLogs = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.LOGS, []);
+          logs.value = Array.isArray(rawLogs) ? rawLogs : [];
         }
 
-        function saveContext() {
+        function saveContext(notify = false) {
           if (!window.BasementDB) return;
           context.value.chronicGuardrails = notesDraft.value
-            .split('
-')
+            .split('\n')
             .map((s) => s.trim())
             .filter(Boolean);
+          context.value.readinessScore = readinessScore.value;
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, context.value);
           window.BasementDB.syncCoachContextToCloud(context.value);
           window.BasementDB.notifyFrames('storage');
-          savedBanner.value = true;
-          setTimeout(() => { savedBanner.value = false; }, 1600);
+          if (notify) {
+            savedBanner.value = true;
+            setTimeout(() => { savedBanner.value = false; }, 1800);
+          }
+        }
+
+        function selectGoalPreset(preset) {
+          context.value.primaryGoal = {
+            ...context.value.primaryGoal,
+            title: preset.title,
+            weeklyTargetSets: preset.weeklyTargetSets,
+            durationWeeks: preset.durationWeeks,
+            focusArea: 'dynamic_strength',
+            primaryLifts: [],
+            secondaryLifts: []
+          };
+          showGoalEditor.value = false;
+          saveContext(true);
+        }
+
+        function buildCustomGoalWithAi() {
+          const title = customGoalPrompt.value.trim();
+          if (!title) return;
+          context.value.primaryGoal = {
+            ...context.value.primaryGoal,
+            title,
+            focusArea: 'dynamic_strength',
+            primaryLifts: [],
+            secondaryLifts: []
+          };
+          customGoalPrompt.value = '';
+          showGoalEditor.value = false;
+          saveContext(true);
         }
 
         function addInjury() {
-          const val = newInjury.value.trim();
-          if (!val) return;
+          const name = newInjuryName.value.trim();
+          if (!name) return;
+          const exp = new Date();
+          exp.setDate(exp.getDate() + Number(newInjuryDays.value || 14));
           if (!Array.isArray(context.value.activeTemporaryInjuries)) context.value.activeTemporaryInjuries = [];
-          context.value.activeTemporaryInjuries.push(val);
-          newInjury.value = '';
-          saveContext();
+          context.value.activeTemporaryInjuries.push({
+            id: `inj-${Date.now()}`,
+            name,
+            region: newInjuryRegion.value,
+            expiresAt: exp.toISOString().slice(0, 10)
+          });
+          newInjuryName.value = '';
+          saveContext(true);
         }
 
         function removeInjury(idx) {
           context.value.activeTemporaryInjuries.splice(idx, 1);
+          saveContext(true);
+        }
+
+        function cycleSoreness(zone) {
+          if (!context.value.sorenessMap) context.value.sorenessMap = {};
+          const cur = context.value.sorenessMap[zone] || '';
+          const next = cur === '' ? 'Tight' : cur === 'Tight' ? 'Sore ⊘' : '';
+          if (next) context.value.sorenessMap[zone] = next;
+          else delete context.value.sorenessMap[zone];
           saveContext();
+        }
+
+        function resetSoreness() {
+          context.value.sorenessMap = {};
+          saveContext(true);
+        }
+
+        function sorenessClass(val) {
+          if (val === 'Sore ⊘') return 'bg-rose-950/50 border-rose-500/50 text-rose-200';
+          if (val === 'Tight') return 'bg-amber-950/40 border-amber-500/40 text-amber-200';
+          return 'bg-slate-950 border-slate-800 text-slate-300';
+        }
+
+        function toggleLifeLoad(item) {
+          const list = Array.isArray(context.value.externalLifeLoads) ? [...context.value.externalLifeLoads] : [];
+          const idx = list.indexOf(item);
+          if (idx >= 0) list.splice(idx, 1);
+          else list.push(item);
+          context.value.externalLifeLoads = list;
+          saveContext();
+        }
+
+        function applyAiProfileInterview() {
+          const text = interviewInput.value.trim();
+          if (!text) return;
+          const lower = text.toLowerCase();
+          const dayMatch = lower.match(/(\d)\s*days?/);
+          if (dayMatch) context.value.modalityPreferences.targetDaysPerWeek = Number(dayMatch[1]);
+          const minMatch = lower.match(/(\d{2})\s*min/);
+          if (minMatch) {
+            const m = Number(minMatch[1]);
+            context.value.targetDurationMin = Math.max(15, m - 5);
+            context.value.targetDurationMax = m + 10;
+          }
+          if (lower.includes('no back-to-back run') || lower.includes('never run 2')) {
+            context.value.modalityPreferences.preventBackToBackRuns = true;
+          }
+          if (!Array.isArray(context.value.customCoachingVariables)) context.value.customCoachingVariables = [];
+          context.value.customCoachingVariables.push({
+            key: `custom_${Date.now()}`,
+            type: 'constraint',
+            label: 'Coach Rule',
+            value: text,
+            rule: text
+          });
+          interviewInput.value = '';
+          saveContext(true);
+        }
+
+        function removeCustomVariable(idx) {
+          context.value.customCoachingVariables.splice(idx, 1);
+          saveContext(true);
+        }
+
+        function toggleInterviewMic() {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SR) return;
+          const rec = new SR();
+          rec.lang = 'en-US';
+          isListeningInterview.value = true;
+          rec.onresult = (ev) => { interviewInput.value = ev.results[0][0].transcript; };
+          rec.onend = () => {
+            isListeningInterview.value = false;
+            if (interviewInput.value.trim()) applyAiProfileInterview();
+          };
+          rec.onerror = () => { isListeningInterview.value = false; };
+          rec.start();
         }
 
         onMounted(async () => {
@@ -272,20 +845,17 @@
         });
 
         return {
-          activeSubTab,
-          subTabs,
-          phases,
-          showGoalEditor,
-          context,
-          newInjury,
-          notesDraft,
-          todayIso,
-          completedSetsCount,
-          goalProgressPct,
-          savedBanner,
-          saveContext,
-          addInjury,
-          removeInjury
+          activeSubTab, subTabs, showGoalEditor, editingBiometrics, showJsonModal,
+          context, todayIso, completedSetsThisWeek, goalProgressPct,
+          goalPresets, secondaryPresets, phaseOptions, capModes,
+          customGoalPrompt, selectGoalPreset, buildCustomGoalWithAi,
+          quickPreferenceLifts, favCount, banCount, isPrefFav, isPrefBan, togglePrefFavorite, togglePrefBanned,
+          newInjuryName, newInjuryRegion, newInjuryDays, normalizedInjuries, activeInjuryCount, addInjury, removeInjury,
+          domsZones, cycleSoreness, resetSoreness, sorenessClass,
+          lifeLoadPresets, toggleLifeLoad, notesDraft,
+          simScenarios, activeSimScenario, currentSimDetail,
+          interviewInput, isListeningInterview, applyAiProfileInterview, removeCustomVariable, toggleInterviewMic,
+          readinessScore, savedBanner, saveContext
         };
       }
     }).mount('#app');

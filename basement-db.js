@@ -2,6 +2,11 @@
 (function (global) {
   'use strict';
 
+  const DEFAULT_SUPABASE_CONFIG = {
+    url: 'https://flroxptovfxuzwpoyisf.supabase.co',
+    anonKey: 'sb_publishable_tsAgCyDK0xMchdMW4lH8BA_rys4KouJ'
+  };
+
   const STORAGE_KEYS = {
     COACH_CONTEXT: 'basement_coach_context',
     LOGS: 'basement_logs',
@@ -54,10 +59,23 @@
   let _hydratedUserId = null;
   const _authListeners = new Set();
 
+  function _resolveConfig() {
+    if (global.BASEMENT_SUPABASE_CONFIG && global.BASEMENT_SUPABASE_CONFIG.url && global.BASEMENT_SUPABASE_CONFIG.anonKey) {
+      return global.BASEMENT_SUPABASE_CONFIG;
+    }
+    try {
+      if (global.parent && global.parent !== global && global.parent.BASEMENT_SUPABASE_CONFIG) {
+        const pCfg = global.parent.BASEMENT_SUPABASE_CONFIG;
+        if (pCfg.url && pCfg.anonKey) return pCfg;
+      }
+    } catch (_e) {}
+    return DEFAULT_SUPABASE_CONFIG;
+  }
+
   function getSupabaseClient() {
     if (_supabase) return _supabase;
     if (global.supabase && typeof global.supabase.createClient === 'function') {
-      const cfg = global.BASEMENT_SUPABASE_CONFIG || {};
+      const cfg = _resolveConfig();
       if (cfg.url && cfg.anonKey) {
         _supabase = global.supabase.createClient(cfg.url, cfg.anonKey, {
           auth: {
@@ -71,16 +89,27 @@
     return _supabase;
   }
 
+  function _getParentSession() {
+    try {
+      if (global.parent && global.parent !== global && global.parent.BasementDB) {
+        return global.parent.BasementDB.getSession();
+      }
+    } catch (_e) {}
+    return null;
+  }
+
   function getSession() {
-    return _session;
+    return _session || _getParentSession();
   }
 
   function getCurrentUser() {
-    return _session && _session.user ? _session.user : null;
+    const s = getSession();
+    return s && s.user ? s.user : null;
   }
 
   function isAuthenticated() {
-    return Boolean(_session && _session.user && _session.user.id);
+    const u = getCurrentUser();
+    return Boolean(u && u.id);
   }
 
   function isAuthReady() {
@@ -94,7 +123,7 @@
 
   function _emitAuth() {
     const snap = {
-      session: _session,
+      session: getSession(),
       user: getCurrentUser(),
       authenticated: isAuthenticated(),
       authReady: _authReady
@@ -277,14 +306,18 @@
           .from('custom_catalog')
           .select('exercise_key, item');
         if (Array.isArray(catalogRows) && catalogRows.length > 0) {
-          const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, {});
-          const merged = { ...localCat };
-          catalogRows.forEach((row) => {
-            if (row && row.item && row.item.id) {
-              merged[row.item.id] = { ...(merged[row.item.id] || {}), ...row.item };
-            }
-          });
-          writeJson(STORAGE_KEYS.CUSTOM_CATALOG, merged);
+          const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, []);
+          if (Array.isArray(localCat)) {
+            const mergedArr = [...localCat];
+            catalogRows.forEach((row) => {
+              if (row && row.item && row.item.name) {
+                const idx = mergedArr.findIndex((x) => x.name === row.item.name);
+                if (idx >= 0) mergedArr[idx] = { ...mergedArr[idx], ...row.item };
+                else mergedArr.push(row.item);
+              }
+            });
+            writeJson(STORAGE_KEYS.CUSTOM_CATALOG, mergedArr);
+          }
         }
       } catch (_e) {}
 
@@ -317,10 +350,12 @@
 
   async function syncCustomCatalogItemToCloud(item) {
     const user = getCurrentUser();
-    if (!user || !user.id || !item || !item.id) return;
+    if (!user || !user.id || !item) return;
+    const itemKey = item.id || item.name;
+    if (!itemKey) return;
     const client = getSupabaseClient();
     if (!client) return;
-    const cleanId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanId = String(itemKey).replace(/[^a-zA-Z0-9_-]/g, '_');
     const exerciseKey = `${user.id.slice(0, 8)}_${cleanId}`;
     const { error } = await client.from('custom_catalog').upsert(
       {
@@ -332,6 +367,19 @@
       { onConflict: 'exercise_key' }
     );
     if (error) console.warn('custom_catalog upsert error:', error.message);
+  }
+
+  async function pushAllToCloud(userId) {
+    const uid = userId || (getCurrentUser() && getCurrentUser().id);
+    if (!uid) return;
+    const ctx = readJson(STORAGE_KEYS.COACH_CONTEXT, null);
+    if (ctx) await syncCoachContextToCloud(ctx);
+    const customCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, []);
+    if (Array.isArray(customCat)) {
+      for (const item of customCat) {
+        await syncCustomCatalogItemToCloud(item);
+      }
+    }
   }
 
   async function uploadCatalogImage(userId, exerciseName, stage, dataUrl) {
@@ -408,6 +456,14 @@
   }
 
   async function initAuth() {
+    const parentSess = _getParentSession();
+    if (parentSess && parentSess.user) {
+      _session = parentSess;
+      _authReady = true;
+      _emitAuth();
+      return _session;
+    }
+
     const client = getSupabaseClient();
     if (!client || !client.auth) {
       _session = null;
@@ -472,6 +528,7 @@
     hydrateUserFromCloud,
     syncCoachContextToCloud,
     syncCustomCatalogItemToCloud,
+    pushAllToCloud,
     uploadCatalogImage,
     notifyFrames
   };
