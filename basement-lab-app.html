@@ -21,19 +21,38 @@
       background-color: #090d16;
       color: #f8fafc;
     }
+    /* Mobile-first column on phones, centered clean stage on desktop */
+    .shell-frame {
+      width: 100%;
+      max-width: 28rem; /* 448px mobile-first column */
+      margin-left: auto;
+      margin-right: auto;
+      min-height: 100dvh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background-color: #020617;
+    }
+    @media (min-width: 640px) {
+      .shell-frame {
+        max-width: 42rem; /* 672px centered stage on tablets/desktops */
+        border-left: 1px solid rgba(30, 41, 59, 0.7);
+        border-right: 1px solid rgba(30, 41, 59, 0.7);
+      }
+    }
     .module-frame {
       width: 100%;
-      height: calc(100dvh - 3.25rem - env(safe-area-inset-top));
+      height: calc(100dvh - 3.25rem - 4.25rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
       border: 0;
       display: block;
-      background: #090d16;
+      background: #020617;
     }
   </style>
 </head>
 <body>
-  <div id="app" class="max-w-md mx-auto min-h-[100dvh] flex flex-col bg-slate-950 text-slate-100 relative">
+  <div id="app" class="min-h-[100dvh] w-full bg-slate-950 text-slate-100">
     <!-- Loading State While Resolving Auth Session -->
-    <div v-if="!authReady" class="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center">
+    <div v-if="!authReady" class="shell-frame items-center justify-center p-6 text-center">
       <div class="w-10 h-10 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin mb-3"></div>
       <p class="text-sm font-medium text-slate-300">Checking session...</p>
     </div>
@@ -42,7 +61,7 @@
     <section
       v-else-if="!isAuthenticated"
       aria-label="Sign in to Basement Lab"
-      class="min-h-[100dvh] flex flex-col justify-between p-6 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950"
+      class="shell-frame justify-between p-6 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950"
     >
       <div class="pt-10">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-semibold mb-4">
@@ -87,12 +106,12 @@
               :disabled="authBusy || !email || !password"
               class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm disabled:opacity-40 transition"
             >
-              {{ authBusy ? 'Signing in...' : 'Sign In' }}
+              { authBusy ? 'Signing in...' : 'Sign In' }
             </button>
           </div>
 
           <p v-if="authError" class="text-xs text-rose-400 bg-rose-950/50 border border-rose-800/60 rounded-lg p-3">
-            {{ authError }}
+            { authError }
           </p>
         </div>
       </div>
@@ -102,15 +121,15 @@
       </p>
     </section>
 
-    <!-- Authenticated App Shell (Only Rendered When Signed In) -->
-    <template v-else>
-      <header class="h-[3.25rem] px-3 flex items-center justify-between border-b border-slate-800/90 bg-slate-950/95 backdrop-blur sticky top-0 z-30">
+    <!-- Authenticated App Shell (Centered on Desktop, Full Mobile Width on Phones) -->
+    <div v-else class="shell-frame">
+      <header class="h-[3.25rem] px-4 flex items-center justify-between border-b border-slate-800/90 bg-slate-950/95 backdrop-blur sticky top-0 z-30">
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-xs font-bold tracking-wide text-indigo-400 shrink-0">BASEMENT LAB</span>
-          <span class="text-xs text-slate-500 shrink-0">{{ todayIso }}</span>
+          <span class="text-xs text-slate-500 shrink-0">{ todayIso }</span>
         </div>
         <div class="flex items-center gap-2 shrink-0">
-          <span class="text-[11px] text-slate-400 truncate max-w-[120px]">{{ userEmail }}</span>
+          <span class="text-xs text-slate-400 truncate max-w-[180px]">{ userEmail }</span>
           <button
             type="button"
             @click="handleSignOut"
@@ -121,7 +140,7 @@
         </div>
       </header>
 
-      <main class="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+      <main class="flex-1">
         <iframe
           :src="activeTabSrc"
           class="module-frame"
@@ -131,27 +150,27 @@
 
       <nav
         aria-label="Primary Suite Navigation"
-        class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-slate-950/95 border-t border-slate-800 px-2 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30"
+        class="sticky bottom-0 w-full bg-slate-950/95 border-t border-slate-800 px-3 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30"
       >
-        <div class="grid grid-cols-4 gap-1 text-center">
+        <div class="grid grid-cols-4 gap-2 text-center">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             type="button"
             @click="activeTab = tab.id"
             :class="[
-              'py-1.5 px-1 rounded-lg text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition',
+              'py-1.5 px-2 rounded-lg text-xs font-semibold flex flex-col items-center justify-center gap-0.5 transition',
               activeTab === tab.id
                 ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/40'
                 : 'text-slate-400 hover:text-slate-200'
             ]"
           >
-            <span>{{ tab.icon }}</span>
-            <span>{{ tab.label }}</span>
+            <span>{ tab.icon }</span>
+            <span>{ tab.label }</span>
           </button>
         </div>
       </nav>
-    </template>
+    </div>
   </div>
 
   <script>
