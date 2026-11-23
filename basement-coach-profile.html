@@ -46,15 +46,15 @@
         <button @click="showContractInspector = !showContractInspector" class="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-left transition min-w-[116px]">
           <div class="flex items-center justify-between gap-1">
             <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Body Readiness</span>
-            <span class="text-[10px] font-mono font-black text-emerald-400">{{ readinessScore }}/92</span>
+            <span class="text-[10px] font-mono font-black text-emerald-400">{{ readinessScore }}/100</span>
           </div>
           <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden flex mt-1 border border-slate-700/80">
-            <div class="h-full bg-emerald-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, (readinessScore / 92) * 100)) + '%' }"></div>
-            <div v-if="readinessScore < 92" class="h-full bg-rose-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, ((92 - readinessScore) / 92) * 100)) + '%' }"></div>
+            <div class="h-full bg-emerald-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, readinessScore)) + '%' }"></div>
+            <div v-if="readinessScore < 100" class="h-full bg-rose-500 transition-all duration-300" :style="{ width: Math.max(0, Math.min(100, 100 - readinessScore)) + '%' }"></div>
           </div>
           <div class="flex items-center justify-between text-[8px] font-mono mt-0.5">
             <span class="text-emerald-400">{{ readinessScore }} pts</span>
-            <span v-if="readinessScore < 92" class="text-rose-400">-{{ 92 - readinessScore }} pts</span>
+            <span v-if="readinessScore < 100" class="text-rose-400">-{{ 100 - readinessScore }} pts</span>
           </div>
         </button>
       </div>
@@ -2599,15 +2599,57 @@ Return ONLY valid JSON:
           return Math.max(0, diff);
         };
 
+        const loggedStrengthSets = ref([]);
+        const loggedCardioSessions = ref([]);
+        const loggedSaunaSessions = ref([]);
+
         const readinessScore = computed(() => {
-          let score = 92;
+          let score = 95;
+          const yesterdayIso = getLocalIsoDate(-1);
+          const twoDaysAgoIso = getLocalIsoDate(-2);
+
           if (Number(dailyBiometrics.value.sleepHours ?? 7.5) < 6.5) score -= 12;
           score -= 4 * activeTemporaryInjuries.value.length;
           const activeLife = externalLifeLoadList.value.filter(x => x.active).length;
           score -= activeLife * 3;
-          const verySoreCount = Object.values(sorenessMap.value).filter(v => v === 2).length;
-          score -= verySoreCount * 4;
-          return Math.max(55, Math.min(98, score));
+
+          Object.values(sorenessMap.value).forEach(v => {
+            if (v === 1) score -= 2;
+            else if (v === 2) score -= 5;
+          });
+
+          const todaySets = loggedStrengthSets.value.filter(l => l.date === todayIso.value);
+          const yestSets = loggedStrengthSets.value.filter(l => l.date === yesterdayIso);
+          const twoDaysSets = loggedStrengthSets.value.filter(l => l.date === twoDaysAgoIso);
+
+          const todayCardio = loggedCardioSessions.value.filter(c => c.date === todayIso.value);
+          const yestCardio = loggedCardioSessions.value.filter(c => c.date === yesterdayIso);
+
+          const workedOutToday = todaySets.length > 0 || todayCardio.length > 0;
+          const workedOutYest = yestSets.length > 0 || yestCardio.length > 0;
+          const workedOutTwoDaysAgo = twoDaysSets.length > 0 || loggedCardioSessions.value.some(c => c.date === twoDaysAgoIso);
+
+          if (workedOutToday) score -= 6;
+          if (workedOutYest) score -= 4;
+          if (workedOutYest && workedOutTwoDaysAgo) score -= 5;
+
+          const recent48hSets = [...todaySets, ...yestSets];
+          if (recent48hSets.length > 0) {
+            const avgRecentRpe = recent48hSets.reduce((s, l) => s + (Number(l.rpe) || 8.0), 0) / recent48hSets.length;
+            if (avgRecentRpe >= 8.8) score -= 4;
+            else if (avgRecentRpe >= 8.3) score -= 2;
+          }
+
+          const recentRunMiles = [...todayCardio, ...yestCardio]
+            .filter(c => (c.modality || '').toLowerCase().includes('run'))
+            .reduce((sum, c) => sum + (Number(c.distance) || 0), 0);
+          if (recentRunMiles >= 3.0) score -= 3;
+
+          if (loggedSaunaSessions.value.some(s => s.date === yesterdayIso)) {
+            score += 2;
+          }
+
+          return Math.max(45, Math.min(100, Math.round(score)));
         });
 
         const goalWeeklySetsCompleted = ref(6);
@@ -3165,6 +3207,12 @@ Return ONLY valid JSON:
 
         const loadSharedStateFromStorage = () => {
           try {
+            const wLogs = localStorage.getItem('basement_logs');
+            loggedStrengthSets.value = wLogs ? JSON.parse(wLogs) : [];
+            const cLogs = localStorage.getItem('basement_cardio_logs');
+            loggedCardioSessions.value = cLogs ? JSON.parse(cLogs) : [];
+            const sLogs = localStorage.getItem('basement_sauna_logs');
+            loggedSaunaSessions.value = sLogs ? JSON.parse(sLogs) : [];
             const g = localStorage.getItem('basement_active_goal');
             if (g) { const parsedG = JSON.parse(g); activeGoal.value = { ...parsedG, primaryLifts: [], secondaryLifts: [] }; }
             const t = localStorage.getItem('basement_temp_injuries');
@@ -3230,6 +3278,9 @@ Return ONLY valid JSON:
           window.addEventListener('storage', (e) => {
             if (!e.key || e.key.startsWith('basement_')) {
               loadSharedStateFromStorage();
+              if (e.key === 'basement_logs' || e.key === 'basement_cardio_logs' || e.key === 'basement_sauna_logs') {
+                saveContextToStorage();
+              }
             }
           });
           window.addEventListener('focus', () => loadSharedStateFromStorage());
