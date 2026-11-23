@@ -47,10 +47,8 @@
     <!-- AI PROFILE INTERVIEW BAR -->
     <div class="rounded-2xl bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/40 p-3 space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">🎤 AI Profile Interview &amp; Variable Extractor</span>
-        <span v-if="context.customCoachingVariables?.length" class="text-[10px] font-mono text-emerald-400 font-bold">
-          {{ context.customCoachingVariables.length }} Custom Rule(s) Active
-        </span>
+        <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">🎤 AI Profile Interview</span>
+        <span class="text-[10px] font-mono text-slate-400">Auto-fills Profile, Life &amp; DOMS</span>
       </div>
       <div class="flex gap-1.5">
         <button
@@ -65,7 +63,7 @@
           v-model="interviewInput"
           @keyup.enter="applyAiProfileInterview"
           type="text"
-          placeholder="e.g., 5 days/wk, 30 min window, no back-to-back runs, cap DB rows at 45 lb..."
+          placeholder="Speak or type anything: age, weight, height, prone to shin splints, sore calves, yard work, 5 days/wk..."
           class="flex-1 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
         />
         <button
@@ -78,16 +76,6 @@
         </button>
       </div>
       <p v-if="interviewStatusMsg" class="text-[11px] text-emerald-300 font-bold">{{ interviewStatusMsg }}</p>
-      <div v-if="context.customCoachingVariables && context.customCoachingVariables.length > 0" class="flex flex-wrap gap-1.5 pt-1">
-        <span
-          v-for="(v, idx) in context.customCoachingVariables"
-          :key="idx"
-          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-950 border border-indigo-500/40 text-[10px] text-indigo-200"
-        >
-          <strong>{{ v.label }}:</strong> {{ v.value }}
-          <button type="button" @click="removeCustomVariable(idx)" class="text-rose-400 font-bold ml-1">&times;</button>
-        </span>
-      </div>
     </div>
 
     <!-- 4 SUB-TABS -->
@@ -126,11 +114,6 @@
           >
             {{ showGoalEditor ? 'Close ▲' : 'Change 1° Goal ▼' }}
           </button>
-        </div>
-
-        <!-- Dynamic AI Pro Trainer Notice (Zero Static 6-Lift List) -->
-        <div class="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-emerald-200 leading-snug">
-          🤖 <strong>Dynamic AI Pro Trainer Lift Selection Active:</strong> Exercises rotate dynamically each session across the catalog based on recovery, DOMS, recent RPE, and your goal—never locked to a static lift list.
         </div>
 
         <!-- Collapsible Goal Presets & Custom AI Builder -->
@@ -802,15 +785,31 @@
         const interviewLoading = ref(false);
         const interviewStatusMsg = ref('');
 
+        function appendChronicGuardrailLine(ruleText) {
+          const clean = String(ruleText || '').trim();
+          if (!clean) return false;
+          const existingLines = notesDraft.value
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean);
+          if (!existingLines.some((line) => line.toLowerCase() === clean.toLowerCase())) {
+            existingLines.push(clean);
+            notesDraft.value = existingLines.join('\n');
+            return true;
+          }
+          return false;
+        }
+
         function parseProfileLocally(text) {
           const lower = text.toLowerCase();
           const updates = [];
 
-          // 1. Birthdate (YYYY-MM-DD, MM/DD/YYYY, Month DD, YYYY)
+          // 1. Birthdate (YYYY-MM-DD, MM/DD/YYYY, Month DD, YYYY) or Age ("I am 46")
           const isoDate = text.match(/\b(19\d{2}|20\d{2})-(0?[1-9]|1[0-2])-(0?[1-9]|[12]\d|3[01])\b/);
           const usDate = text.match(/\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(19\d{2}|20\d{2})\b/);
           const monthMap = { jan: '01', january: '01', feb: '02', february: '02', mar: '03', march: '03', apr: '04', april: '04', may: '05', jun: '06', june: '06', jul: '07', july: '07', aug: '08', august: '08', sep: '09', sept: '09', september: '09', oct: '10', october: '10', nov: '11', november: '11', dec: '12', december: '12' };
           const textDate = lower.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(19\d{2}|20\d{2})\b/);
+          const ageMatch = lower.match(/\b(?:i\s*am|i'm|age\s*(?:is|:)?)\s*(\d{2})\s*(?:years?\s*old|yrs?)?\b/);
 
           if (isoDate) {
             context.value.birthDate = `${isoDate[1]}-${isoDate[2].padStart(2, '0')}-${isoDate[3].padStart(2, '0')}`;
@@ -821,6 +820,10 @@
           } else if (textDate && monthMap[textDate[1]]) {
             context.value.birthDate = `${textDate[3]}-${monthMap[textDate[1]]}-${textDate[2].padStart(2, '0')}`;
             updates.push(`DOB (${context.value.birthDate})`);
+          } else if (ageMatch && !context.value.birthDate) {
+            const yr = new Date().getFullYear() - Number(ageMatch[1]);
+            context.value.birthDate = `${yr}-01-01`;
+            updates.push(`Age (~${ageMatch[1]} yrs)`);
           }
 
           // 2. Weight (lbs / pounds)
@@ -850,7 +853,7 @@
             updates.push(`Height (${context.value.heightFeet}'${context.value.heightInches}")`);
           }
 
-          // 4. Days per week & Session Window
+          // 4. Days per week & Session Window (Life & DOMS -> Weekly Modality Cadence)
           const dayMatch = lower.match(/(\d)\s*(?:days?|workouts?)\s*(?:a|per)?\s*week/);
           if (dayMatch) {
             context.value.modalityPreferences.targetDaysPerWeek = Number(dayMatch[1]);
@@ -885,11 +888,11 @@
             updates.push(`1° Goal (${context.value.primaryGoal.title})`);
           }
 
-          // 7. DOMS / Soreness zones
+          // 7. DOMS / Soreness zones (Life & DOMS -> Local Muscle Soreness Map)
           const zoneKeywords = [
             { kw: ['quad'], zone: 'Quads' },
             { kw: ['hamstring', 'glute'], zone: 'Hamstrings & Glutes' },
-            { kw: ['calf', 'calves', 'shin'], zone: 'Calves & Shins' },
+            { kw: ['calf', 'calves'], zone: 'Calves & Shins' },
             { kw: ['chest', 'pec'], zone: 'Chest & Front Delts' },
             { kw: ['lat', 'upper back'], zone: 'Lats & Upper Back' },
             { kw: ['shoulder', 'delt', 'arm', 'bicep', 'tricep'], zone: 'Side Delts & Arms' }
@@ -905,6 +908,40 @@
             });
           }
 
+          // 8. Real-Life Physical Loads (Life & DOMS -> Non-Gym Real Life Physical Load)
+          const lifeMappings = [
+            { kw: ['yard work', 'mowing', 'shoveling', 'heavy labor', 'landscaping'], label: 'Yard Work / Heavy Labor' },
+            { kw: ['long drive', 'travel', 'flight', 'flying', 'road trip'], label: 'Long Drive / Travel' },
+            { kw: ['desk', 'sitting all day', 'office crunch'], label: '10+ Hr Desk Crunch' },
+            { kw: ['stress', 'poor sleep', 'exhausted'], label: 'High Life Stress' }
+          ];
+          lifeMappings.forEach(({ kw, label }) => {
+            if (kw.some((k) => lower.includes(k))) {
+              if (!Array.isArray(context.value.externalLifeLoads)) context.value.externalLifeLoads = [];
+              if (!context.value.externalLifeLoads.includes(label)) {
+                context.value.externalLifeLoads.push(label);
+                updates.push(`Life Load (${label})`);
+              }
+            }
+          });
+
+          // 9. Chronic Guardrails & Joint Tendencies (Life & DOMS -> Chronic Guardrails & Joint Rules)
+          const chronicPatterns = [
+            { kw: ['shin splint', 'shin splints'], rule: 'Prone to Shin Splints — enforce 48h run clearance, low incline (<=1.5%), and tibialis/soleus armor' },
+            { kw: ['plantar', 'heel pain', 'heel strain'], rule: 'Plantar Fasciitis / Heel Guardrail — favor seated calf raises and avoid consecutive high-impact days' },
+            { kw: ['lower back', 'lumbar', 'sciatica'], rule: 'Lower-Back Guardrail — prioritize chest-supported rows, glute bridges, and braced hinges' },
+            { kw: ['bad knee', 'knee pain', 'patellar', 'meniscus'], rule: 'Knee Guardrail — prioritize posterior-chain hinges, glute bridges, and controlled split squats' },
+            { kw: ['bad shoulder', 'rotator cuff', 'impingement', 'shoulder pain'], rule: 'Shoulder Guardrail — use neutral-grip/floor presses, 45° elbow tuck, and band face pulls' },
+            { kw: ['tennis elbow', 'golfer elbow', 'elbow pain'], rule: 'Elbow Guardrail — favor neutral hammer grips and controlled 3s eccentrics' }
+          ];
+          chronicPatterns.forEach(({ kw, rule }) => {
+            if (kw.some((k) => lower.includes(k))) {
+              if (appendChronicGuardrailLine(rule)) {
+                updates.push('Chronic Guardrail added');
+              }
+            }
+          });
+
           return updates;
         }
 
@@ -916,7 +953,7 @@
 
           const updatedFields = parseProfileLocally(text);
 
-          // Also try Gemini structured extraction if API key is present
+          // Try Gemini structured extraction to map everything into Goals, Injuries, or Life & DOMS
           try {
             const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
             if (apiKey) {
@@ -924,7 +961,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  contents: [{ parts: [{ text: `Extract profile updates from: "${text}". Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number), heightFeet (number), heightInches (number), primaryGoalTitle (string), secondaryGoalTitle (string), targetDaysPerWeek (number), targetDurationMin (number), targetDurationMax (number), preventBackToBackRuns (boolean), customVariables (array of {label, value, rule} ONLY for novel preferences/constraints not covered by the standard fields above).` }] }],
+                  contents: [{ parts: [{ text: `Extract profile updates from: "${text}". Route every detail into the user's profile sections rather than separate custom variables. Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number), heightFeet (number), heightInches (number), primaryGoalTitle (string), secondaryGoalTitle (string), targetDaysPerWeek (number), targetDurationMin (number), targetDurationMax (number), preventBackToBackRuns (boolean), chronicGuardrails (array of concise 1-sentence joint/tendency/equipment guardrail rules for Life & DOMS -> Chronic Guardrails, e.g. "Prone to Shin Splints — enforce 48h run spacing"), externalLifeLoads (array from ["Yard Work / Heavy Labor", "Long Drive / Travel", "10+ Hr Desk Crunch", "High Life Stress"]), sorenessZones (array of {zone, level} where zone is one of ["Quads", "Hamstrings & Glutes", "Calves & Shins", "Chest & Front Delts", "Lats & Upper Back", "Side Delts & Arms"] and level is "Tight" or "Sore ⊘"), temporaryInjury (optional {name, region, days} for acute short-term flare-ups).` }] }],
                   generationConfig: { responseMimeType: 'application/json' }
                 })
               });
@@ -940,39 +977,57 @@
                 if (parsed.targetDurationMin) context.value.targetDurationMin = Number(parsed.targetDurationMin);
                 if (parsed.targetDurationMax) context.value.targetDurationMax = Number(parsed.targetDurationMax);
                 if (typeof parsed.preventBackToBackRuns === 'boolean') context.value.modalityPreferences.preventBackToBackRuns = parsed.preventBackToBackRuns;
-                if (Array.isArray(parsed.customVariables) && parsed.customVariables.length > 0) {
-                  if (!Array.isArray(context.value.customCoachingVariables)) context.value.customCoachingVariables = [];
-                  parsed.customVariables.forEach((cv) => {
-                    if (cv && cv.value) {
-                      context.value.customCoachingVariables.push({
-                        key: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                        type: 'preference',
-                        label: cv.label || 'Coach Rule',
-                        value: cv.value,
-                        rule: cv.rule || cv.value
-                      });
-                      updatedFields.push(`${cv.label || 'Rule'}: ${cv.value}`);
+                if (Array.isArray(parsed.chronicGuardrails)) {
+                  parsed.chronicGuardrails.forEach((rule) => {
+                    if (appendChronicGuardrailLine(rule) && !updatedFields.includes('Chronic Guardrail added')) {
+                      updatedFields.push('Chronic Guardrail added');
                     }
                   });
+                }
+                if (Array.isArray(parsed.externalLifeLoads)) {
+                  if (!Array.isArray(context.value.externalLifeLoads)) context.value.externalLifeLoads = [];
+                  parsed.externalLifeLoads.forEach((lbl) => {
+                    if (lbl && !context.value.externalLifeLoads.includes(lbl)) {
+                      context.value.externalLifeLoads.push(lbl);
+                      updatedFields.push(`Life Load (${lbl})`);
+                    }
+                  });
+                }
+                if (Array.isArray(parsed.sorenessZones)) {
+                  if (!context.value.sorenessMap) context.value.sorenessMap = {};
+                  parsed.sorenessZones.forEach((sz) => {
+                    if (sz && sz.zone && sz.level) {
+                      context.value.sorenessMap[sz.zone] = sz.level;
+                      updatedFields.push(`${sz.zone}: ${sz.level}`);
+                    }
+                  });
+                }
+                if (parsed.temporaryInjury && parsed.temporaryInjury.name) {
+                  const exp = new Date();
+                  exp.setDate(exp.getDate() + Number(parsed.temporaryInjury.days || 14));
+                  if (!Array.isArray(context.value.activeTemporaryInjuries)) context.value.activeTemporaryInjuries = [];
+                  context.value.activeTemporaryInjuries.push({
+                    id: `inj-${Date.now()}`,
+                    name: parsed.temporaryInjury.name,
+                    region: parsed.temporaryInjury.region || 'ankle',
+                    expiresAt: exp.toISOString().slice(0, 10)
+                  });
+                  updatedFields.push(`Injury (${parsed.temporaryInjury.name})`);
                 }
               }
             }
           } catch (_e) {}
 
-          // Only save raw text as a custom coaching variable if NO structured profile fields were matched
+          // If the user stated a general preference/constraint that didn't match a numeric biometric, place it directly into Chronic Guardrails & Joint Rules in Life & DOMS (never into separate variable chips)
           if (updatedFields.length === 0) {
-            if (!Array.isArray(context.value.customCoachingVariables)) context.value.customCoachingVariables = [];
-            context.value.customCoachingVariables.push({
-              key: `custom_${Date.now()}`,
-              type: 'constraint',
-              label: 'Coach Rule',
-              value: text,
-              rule: text
-            });
-            updatedFields.push('Custom Coaching Rule');
+            if (appendChronicGuardrailLine(text)) {
+              updatedFields.push('Chronic Guardrail (Life & DOMS)');
+            }
           }
 
-          interviewStatusMsg.value = `✓ Updated Profile: ${updatedFields.join(' • ')}`;
+          // Keep customCoachingVariables empty so nothing renders below the interviewer
+          context.value.customCoachingVariables = [];
+          interviewStatusMsg.value = `✓ Updated Profile & Life/DOMS: ${updatedFields.join(' • ')}`;
           interviewInput.value = '';
           interviewLoading.value = false;
           saveContext(true);
