@@ -145,23 +145,119 @@
         </div>
       </div>
 
-      <!-- Goal Block Roadmap -->
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-black text-white">Goal Block Roadmap • {{ coachCtx.primaryGoal?.title || 'Strength & Conditioning' }}</h3>
-          <div class="flex items-center gap-1 font-mono text-xs">
-            <button type="button" @click="stepBlockWeek(-1)" class="px-2 py-0.5 rounded bg-slate-800 text-white">-</button>
+      <!-- Goal Block Roadmap & Auto-Mesocycle -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+              Goal Block Roadmap • Auto-Mesocycle Active
+            </span>
+            <h3 class="text-xs font-black text-white mt-0.5">{{ coachCtx.primaryGoal?.title || 'Strength & Conditioning' }}</h3>
+          </div>
+          <div class="flex items-center gap-1 font-mono text-xs shrink-0">
+            <button type="button" @click="stepBlockWeek(-1)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-white">-</button>
             <span class="px-1.5 text-amber-300 font-bold">Wk {{ coachCtx.primaryGoal?.currentWeek || 1 }}/{{ coachCtx.primaryGoal?.durationWeeks || 6 }}</span>
-            <button type="button" @click="stepBlockWeek(1)" class="px-2 py-0.5 rounded bg-slate-800 text-white">+</button>
+            <button type="button" @click="stepBlockWeek(1)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-white">+</button>
           </div>
         </div>
+
+        <!-- Active Mesocycle Auto-Status Pill -->
+        <div class="p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/30 flex items-center justify-between gap-2 text-[11px]">
+          <div>
+            <span class="font-black text-amber-300">Phase: {{ coachCtx.mesocyclePhase || 'Accumulation' }}</span>
+            <span class="text-slate-300 block text-[10px]">{{ mesocycleReason }}</span>
+          </div>
+          <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold shrink-0">AUTO</span>
+        </div>
+
+        <!-- 3 Readiness Pillars -->
+        <div class="grid grid-cols-3 gap-1.5 text-xs">
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Volume</span>
+              <span class="font-mono font-bold text-white">{{ roadmapPillars.volumePct }}%</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+              <div class="h-full bg-indigo-500" :style="{ width: roadmapPillars.volumePct + '%' }"></div>
+            </div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Strength</span>
+              <span class="font-mono font-bold text-emerald-400">{{ roadmapPillars.strengthPct }}%</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+              <div class="h-full bg-emerald-500" :style="{ width: roadmapPillars.strengthPct + '%' }"></div>
+            </div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Armor</span>
+              <span class="font-mono font-bold text-sky-400">{{ roadmapPillars.armorPct }}%</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+              <div class="h-full bg-sky-500" :style="{ width: roadmapPillars.armorPct + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graduate Trigger Button -->
         <button
           type="button"
-          @click="graduateGoalToMaintenance"
-          class="w-full py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-indigo-500/40 text-indigo-300 text-xs font-bold"
+          @click="openGraduatePicker"
+          class="w-full py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-indigo-500/40 text-indigo-300 text-xs font-bold transition"
         >
-          🔄 Graduate 1° to ~30% Maintenance → Promote Next Block
+          {{ showGraduateDrawer ? 'Cancel Graduation ▲' : '🔄 Graduate 1° to ~30% Maintenance → Choose Next Block ▼' }}
         </button>
+
+        <!-- Interactive Next-Goal Selection Drawer -->
+        <div v-if="showGraduateDrawer" class="p-3 rounded-xl bg-slate-950 border border-indigo-500/50 space-y-2.5 text-xs">
+          <div class="text-[11px] text-slate-300 leading-snug">
+            Moves <strong class="text-white">{{ coachCtx.primaryGoal?.title }}</strong> into <strong>~30% Maintenance</strong> and starts a fresh <strong>Wk 1</strong> Primary Block:
+          </div>
+
+          <!-- Option A: Promote existing Secondary Goal if present -->
+          <button
+            v-if="coachCtx.secondaryGoal?.title"
+            type="button"
+            @click="nextPrimaryGoalInput = coachCtx.secondaryGoal.title"
+            class="w-full p-2 rounded-lg border text-left text-[11px] font-bold transition"
+            :class="nextPrimaryGoalInput === coachCtx.secondaryGoal.title ? 'bg-sky-500/20 border-sky-400 text-white' : 'bg-slate-900 border-slate-800 text-sky-300'"
+          >
+            ⬆️ Promote Current 2° Goal: "{{ coachCtx.secondaryGoal.title }}"
+          </button>
+
+          <!-- Option B: AI-Recommended Next Block based on logs -->
+          <button
+            type="button"
+            @click="nextPrimaryGoalInput = aiRecommendedNextGoal.title"
+            class="w-full p-2 rounded-lg border text-left text-[11px] transition space-y-0.5"
+            :class="nextPrimaryGoalInput === aiRecommendedNextGoal.title ? 'bg-emerald-500/20 border-emerald-400 text-white' : 'bg-slate-900 border-slate-800 text-emerald-300'"
+          >
+            <div class="font-bold">✨ AI Suggested: "{{ aiRecommendedNextGoal.title }}"</div>
+            <div class="text-[10px] text-slate-400">{{ aiRecommendedNextGoal.reason }}</div>
+          </button>
+
+          <!-- Option C: Custom Goal Input -->
+          <div>
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Or Enter Your Own Next Primary Goal:</label>
+            <input
+              v-model="nextPrimaryGoalInput"
+              type="text"
+              placeholder="Type your next primary focus..."
+              class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-400"
+            />
+          </div>
+
+          <button
+            type="button"
+            @click="confirmGraduateGoal"
+            :disabled="!nextPrimaryGoalInput.trim()"
+            class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs disabled:opacity-40"
+          >
+            ✓ Confirm Graduation &amp; Start Wk 1
+          </button>
+        </div>
       </div>
     </section>
 
@@ -539,6 +635,7 @@
           if (availableE1rmExercises.value.length && !availableE1rmExercises.value.includes(selectedE1rmExercise.value)) {
             selectedE1rmExercise.value = availableE1rmExercises.value[0];
           }
+          autoUpdateMesocycle(true);
           publishDirectives();
           if (notify) {
             syncToast.value = '✓ Synced Analytics & Trainer Directives';
@@ -569,32 +666,131 @@
           rec.start();
         }
 
+        const showGraduateDrawer = ref(false);
+        const nextPrimaryGoalInput = ref('');
+        const mesocycleReason = ref('Wk 1–3 Base volume & movement control');
+
+        const roadmapPillars = computed(() => {
+          const targetSets = Number(coachCtx.value.primaryGoal?.weeklyTargetSets) || 18;
+          const volumePct = Math.min(100, Math.round((rollup7d.value.sets / Math.max(1, targetSets)) * 100));
+          const strengthPct = strengthLogs.value.length >= 6 ? 85 : Math.min(100, strengthLogs.value.length * 14);
+          const { calfSets, hipSets, tibialisSets } = balanceStats.value;
+          const armorTotal = calfSets + hipSets + tibialisSets;
+          const armorPct = Math.min(100, Math.round((armorTotal / 8) * 100));
+          return { volumePct, strengthPct, armorPct };
+        });
+
+        const aiRecommendedNextGoal = computed(() => {
+          const cur = (coachCtx.value.primaryGoal?.title || '').toLowerCase();
+          const { calfSets, hipSets, tibialisSets } = balanceStats.value;
+          if ((hipSets + tibialisSets) < calfSets || cur.includes('upper') || cur.includes('v-taper')) {
+            return {
+              title: 'Calf, Shin & Hip Running Armor',
+              reason: 'Balances lower-leg stabilizer volume to protect shins and ankles.'
+            };
+          }
+          if (e1rmStats.value.atCap) {
+            return {
+              title: '50-lb Cap Hypertrophy & Tempo Mastery',
+              reason: 'You hit the 50 lb dumbbell cap—focuses on 3s eccentrics, pauses, and unilateral overload.'
+            };
+          }
+          return {
+            title: 'Upper-Body V-Taper & Postural Strength',
+            reason: 'Shifts primary stimulus to lats, rear delts, and scapular posture while maintaining lower-body gains.'
+          };
+        });
+
+        function autoUpdateMesocycle(persist = true) {
+          if (!coachCtx.value || !coachCtx.value.primaryGoal) return;
+          const g = coachCtx.value.primaryGoal;
+
+          // 1. Auto-advance currentWeek based on block startDate if available
+          if (g.startDate) {
+            const startMs = new Date(g.startDate).getTime();
+            if (!Number.isNaN(startMs)) {
+              const elapsedWeeks = Math.floor((Date.now() - startMs) / (7 * 86400000)) + 1;
+              const maxW = Number(g.durationWeeks) || 6;
+              g.currentWeek = Math.max(1, Math.min(maxW, elapsedWeeks));
+            }
+          } else {
+            g.startDate = todayIso.value;
+          }
+
+          const curW = Number(g.currentWeek) || 1;
+          const maxW = Number(g.durationWeeks) || 6;
+          const avgRpe7d = Number(rollup7d.value.avgRpe) || 8.0;
+
+          // 2. Determine optimal mesocycle phase automatically
+          let nextPhase = 'Accumulation';
+          let reason = `Wk ${curW}/${maxW} • Building base volume & movement quality`;
+
+          if (rollup7d.value.sets >= 4 && avgRpe7d >= 8.9) {
+            nextPhase = 'Deload';
+            reason = `Auto-triggered Deload: 7-day avg RPE hit ${avgRpe7d} (fatigue protection)`;
+          } else if (curW >= maxW && maxW >= 4) {
+            nextPhase = 'Deload';
+            reason = `Wk ${curW}/${maxW} • Final block taper & recovery week before graduating`;
+          } else if (curW >= 4) {
+            nextPhase = 'Intensification';
+            reason = `Wk ${curW}/${maxW} • Pushing load progression & 50-lb cap tempo`;
+          }
+
+          mesocycleReason.value = reason;
+          const changed = coachCtx.value.mesocyclePhase !== nextPhase;
+          coachCtx.value.mesocyclePhase = nextPhase;
+
+          if (changed && persist && window.BasementDB) {
+            window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, coachCtx.value);
+            window.BasementDB.syncCoachContextToCloud(coachCtx.value);
+            window.BasementDB.notifyFrames('storage');
+          }
+        }
+
         function stepBlockWeek(delta) {
           if (!coachCtx.value.primaryGoal) return;
           const maxW = Number(coachCtx.value.primaryGoal.durationWeeks) || 6;
           const nextW = Math.max(1, Math.min(maxW, (Number(coachCtx.value.primaryGoal.currentWeek) || 1) + delta));
           coachCtx.value.primaryGoal.currentWeek = nextW;
+          // Shift startDate so elapsed week stays aligned with manual adjustment
+          const d = new Date();
+          d.setDate(d.getDate() - (nextW - 1) * 7);
+          coachCtx.value.primaryGoal.startDate = d.toISOString().slice(0, 10);
+          autoUpdateMesocycle(false);
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, coachCtx.value);
           window.BasementDB.syncCoachContextToCloud(coachCtx.value);
           window.BasementDB.notifyFrames('storage');
         }
 
-        function graduateGoalToMaintenance() {
+        function openGraduatePicker() {
+          showGraduateDrawer.value = !showGraduateDrawer.value;
+          if (showGraduateDrawer.value) {
+            nextPrimaryGoalInput.value = coachCtx.value.secondaryGoal?.title || aiRecommendedNextGoal.value.title;
+          }
+        }
+
+        function confirmGraduateGoal() {
+          const chosenTitle = nextPrimaryGoalInput.value.trim();
+          if (!chosenTitle) return;
           const curTitle = coachCtx.value.primaryGoal?.title || 'Strength & Conditioning';
           coachCtx.value.secondaryGoal = { title: curTitle, allocation: 30 };
           coachCtx.value.primaryGoal = {
             ...coachCtx.value.primaryGoal,
-            title: 'Athletic Hypertrophy & Lower-Leg Armor',
+            title: chosenTitle,
             currentWeek: 1,
+            startDate: todayIso.value,
             focusArea: 'dynamic_strength',
             primaryLifts: [],
             secondaryLifts: []
           };
+          coachCtx.value.mesocyclePhase = 'Accumulation';
+          mesocycleReason.value = 'Wk 1 • Fresh block base accumulation';
+          showGraduateDrawer.value = false;
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, coachCtx.value);
           window.BasementDB.syncCoachContextToCloud(coachCtx.value);
           window.BasementDB.notifyFrames('storage');
-          syncToast.value = `✓ Graduated "${curTitle}" to Maintenance`;
-          setTimeout(() => { syncToast.value = ''; }, 2000);
+          syncToast.value = `✓ Graduated "${curTitle}" → Started "${chosenTitle}"`;
+          setTimeout(() => { syncToast.value = ''; }, 2400);
         }
 
         function seedDemoLogs() {
@@ -641,7 +837,8 @@
           targetRpe, balanceStats, trainerSummary,
           strengthLogs, cardioLogs, saunaLogs, coachCtx,
           followUpQuestion, followUpAnswer, isListeningQa, submitFollowUp, toggleQaMic,
-          stepBlockWeek, graduateGoalToMaintenance,
+          stepBlockWeek, showGraduateDrawer, nextPrimaryGoalInput, openGraduatePicker, confirmGraduateGoal,
+          mesocycleReason, roadmapPillars, aiRecommendedNextGoal,
           rollup7d, rollup42d, availableE1rmExercises, selectedE1rmExercise,
           e1rmPoints, e1rmStats, e1rmSvgCoords, e1rmSvgPolyline,
           displayedHypotheses, showAllHypotheses,
