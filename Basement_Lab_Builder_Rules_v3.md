@@ -1,0 +1,6 @@
+# Basement Lab · Builder Rules (Updated v3)
+
+## Pre-Workout DOMS Placement & Conditional Lower-Leg Armor Rules
+- **Daily Hub Pre-Workout Muscle Soreness (`basement-hub-circuit.html`):** The 6-zone `Local Muscle Soreness (DOMS)` selector (`Quads`, `Hamstrings & Glutes`, `Calves & Shins`, `Chest & Front Delts`, `Lats & Upper Back`, `Side Delts & Arms`) lives directly on `1. Hub` inside the pre-workout check-in card right above the circuit generation triggers (`Today's Update` / `Nothing to Update`), rather than in `2. Profile → 3. Life & DOMS`.
+- **Conditional Lower-Leg Armor Ratio (`basement-analytics.html` & `basement-hub-circuit.html`):** `Calf Sets`, `Hip Stab.`, and `Tibialis` balance cards and automatic lower-leg stabilizer injections only appear when the signed-in user has an active lower-leg/shin/calf/Achilles/plantar guardrail, injury, or running-armor goal. Users without lower-leg guardrails see general `Upper Sets / Lower Sets / Core Sets` balance instead.
+- **Unseeded Multi-User Defaults:** All modules (`basement-hub-circuit.html`, `basement-coach-profile.html`, `basement-analytics.html`, `basement-db.js`) initialize with empty personal biometrics, guardrails, injuries, soreness map, and logs so each signed-in account starts clean without another user's pre-seeded data.
