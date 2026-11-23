@@ -404,25 +404,9 @@
         </div>
       </div>
 
-      <!-- 6-Zone Local Muscle Soreness (DOMS) Map -->
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-black text-white">Local Muscle Soreness (DOMS) Map</h2>
-          <button type="button" @click="resetSoreness" class="text-[11px] text-slate-400 underline">Reset</button>
-        </div>
-        <div class="grid grid-cols-2 gap-1.5">
-          <button
-            v-for="zone in domsZones"
-            :key="zone"
-            type="button"
-            @click="cycleSoreness(zone)"
-            class="p-2.5 rounded-xl border text-left flex items-center justify-between text-xs font-bold transition"
-            :class="sorenessClass(context.sorenessMap?.[zone])"
-          >
-            <span>{{ zone }}</span>
-            <span class="text-[10px] font-mono">{{ context.sorenessMap?.[zone] || 'Fresh ✓' }}</span>
-          </button>
-        </div>
+      <!-- Local Muscle Soreness (DOMS) Moved to Daily Hub -->
+      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between gap-2">
+        <span>🩺 Day-to-day <strong class="text-slate-200">Local Muscle Soreness (DOMS)</strong> is now on <strong class="text-emerald-400">1. Hub</strong> right before generating today's circuit.</span>
       </div>
 
       <!-- Non-Gym Real Life Physical Loads -->

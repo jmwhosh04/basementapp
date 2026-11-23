@@ -93,8 +93,8 @@
           {{ trainerSummary }}
         </p>
 
-        <!-- Calf vs Hip-Stability vs Tibialis Balance Pill Bar -->
-        <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
+        <!-- Conditional Balance Pill Bar: Lower-Leg Armor ONLY when lower-leg guardrails/injuries/goals are active -->
+        <div v-if="hasLowerLegArmorFocus" class="grid grid-cols-3 gap-1.5 text-center font-mono">
           <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
             <div class="text-[10px] text-slate-400">Calf Sets</div>
             <div class="text-sm font-black text-white">{{ balanceStats.calfSets }}</div>
@@ -106,6 +106,20 @@
           <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
             <div class="text-[10px] text-slate-400">Tibialis</div>
             <div class="text-sm font-black text-sky-400">{{ balanceStats.tibialisSets }}</div>
+          </div>
+        </div>
+        <div v-else class="grid grid-cols-3 gap-1.5 text-center font-mono">
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Upper Sets</div>
+            <div class="text-sm font-black text-white">{{ balanceStats.upperSets }}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Lower Sets</div>
+            <div class="text-sm font-black text-emerald-400">{{ balanceStats.lowerSets }}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[10px] text-slate-400">Core Sets</div>
+            <div class="text-sm font-black text-sky-400">{{ balanceStats.coreSets }}</div>
           </div>
         </div>
 
@@ -427,27 +441,52 @@
           return '8.0';
         });
 
+        const hasLowerLegArmorFocus = computed(() => {
+          const activeGuards = (coachCtx.value.chronicGuardrails || [])
+            .filter((g) => (typeof g === 'string' ? true : g.active !== false))
+            .map((g) => (typeof g === 'string' ? g : `${g.label || ''} ${g.region || ''}`).toLowerCase());
+          const activeInjs = (coachCtx.value.activeTemporaryInjuries || [])
+            .filter((i) => !i.expiresAt || i.expiresAt >= todayIso.value)
+            .map((i) => `${i.name || ''} ${i.region || ''}`.toLowerCase());
+          const goalText = `${coachCtx.value.primaryGoal?.title || ''} ${coachCtx.value.secondaryGoal?.title || ''}`.toLowerCase();
+          const combined = [...activeGuards, ...activeInjs, goalText].join(' ');
+          return /calf|calves|shin|tibialis|achilles|plantar|ankle|heel|running armor/.test(combined);
+        });
+
         const balanceStats = computed(() => {
           let calfSets = 0;
           let hipSets = 0;
           let tibialisSets = 0;
+          let upperSets = 0;
+          let lowerSets = 0;
+          let coreSets = 0;
           strengthLogs.value.forEach((l) => {
             const n = (l.exercise || '').toLowerCase();
             if (n.includes('calf')) calfSets += 1;
             if (n.includes('clam') || n.includes('lateral walk') || n.includes('abduction') || n.includes('glute')) hipSets += 1;
             if (n.includes('tibialis') || n.includes('toe')) tibialisSets += 1;
+            if (n.includes('bench') || n.includes('press') || n.includes('row') || n.includes('pullover') || n.includes('fly') || n.includes('curl') || n.includes('raise') || n.includes('pull-apart') || n.includes('face pull')) {
+              upperSets += 1;
+            } else if (n.includes('plank') || n.includes('dead bug') || n.includes('carry') || n.includes('crunch') || n.includes('twist')) {
+              coreSets += 1;
+            } else {
+              lowerSets += 1;
+            }
           });
-          return { calfSets, hipSets, tibialisSets };
+          return { calfSets, hipSets, tibialisSets, upperSets, lowerSets, coreSets };
         });
 
         const trainerSummary = computed(() => {
-          const { calfSets, hipSets, tibialisSets } = balanceStats.value;
+          const { calfSets, hipSets, tibialisSets, upperSets, lowerSets, coreSets } = balanceStats.value;
           const horizonNote = activeHorizon.value === '7d'
             ? 'Over the past 7 days'
             : activeHorizon.value === '6w'
             ? 'Across your 6–8 week mesocycle'
             : 'Across your 3-month macro block';
-          return `${horizonNote}, you logged ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna sessions. Lower-leg armor ratio sits at ${calfSets} calf sets vs. ${hipSets} hip-stability sets and ${tibialisSets} tibialis sets—auto-calibrating next circuit target RPE to ${targetRpe.value}.`;
+          if (hasLowerLegArmorFocus.value) {
+            return `${horizonNote}, you logged ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna sessions. Active lower-leg guardrails show ${calfSets} calf sets vs. ${hipSets} hip-stability sets and ${tibialisSets} tibialis sets—auto-calibrating next circuit target RPE to ${targetRpe.value}.`;
+          }
+          return `${horizonNote}, you logged ${strengthLogs.value.length} strength sets (${upperSets} upper, ${lowerSets} lower, ${coreSets} core), ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna sessions—auto-calibrating next circuit target RPE to ${targetRpe.value}.`;
         });
 
         function computeWindowRollup(days) {
@@ -613,10 +652,13 @@
           if (!window.BasementDB) return;
           const { calfSets, hipSets, tibialisSets } = balanceStats.value;
           const autoInjectLifts = [];
-          if (hipSets < calfSets) autoInjectLifts.push('Banded Clamshell');
-          if (tibialisSets < calfSets) autoInjectLifts.push('Weighted Wall Tibialis Raise');
+          if (hasLowerLegArmorFocus.value) {
+            if (hipSets < calfSets) autoInjectLifts.push('Banded Clamshell');
+            if (tibialisSets < calfSets) autoInjectLifts.push('Weighted Wall Tibialis Raise');
+          }
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.TRAINER_DIRECTIVES, {
             updatedAt: new Date().toISOString(),
+            hasLowerLegArmorFocus: hasLowerLegArmorFocus.value,
             calfSets,
             hipStabilitySets: hipSets,
             tibialisSets,
@@ -646,8 +688,11 @@
         function submitFollowUp() {
           const q = followUpQuestion.value.trim();
           if (!q) return;
-          const { calfSets, hipSets, tibialisSets } = balanceStats.value;
-          followUpAnswer.value = `Based on ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio logs, and ${saunaLogs.value.length} sauna logs (Calf ${calfSets} vs. Hip ${hipSets} / Tibialis ${tibialisSets}), keep target RPE at ${targetRpe.value} and maintain 48h clearance between runs.`;
+          const { calfSets, hipSets, tibialisSets, upperSets, lowerSets, coreSets } = balanceStats.value;
+          const splitNote = hasLowerLegArmorFocus.value
+            ? `Calf ${calfSets} vs. Hip ${hipSets} / Tibialis ${tibialisSets}`
+            : `Upper ${upperSets} / Lower ${lowerSets} / Core ${coreSets}`;
+          followUpAnswer.value = `Based on ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio logs, and ${saunaLogs.value.length} sauna logs (${splitNote}), keep target RPE at ${targetRpe.value} and honor your active recovery spacing.`;
           followUpQuestion.value = '';
         }
 
@@ -834,7 +879,7 @@
 
         return {
           activeSubTab, subTabs, activeHorizon, horizons, todayIso,
-          targetRpe, balanceStats, trainerSummary,
+          targetRpe, hasLowerLegArmorFocus, balanceStats, trainerSummary,
           strengthLogs, cardioLogs, saunaLogs, coachCtx,
           followUpQuestion, followUpAnswer, isListeningQa, submitFollowUp, toggleQaMic,
           stepBlockWeek, showGraduateDrawer, nextPrimaryGoalInput, openGraduatePicker, confirmGraduateGoal,
