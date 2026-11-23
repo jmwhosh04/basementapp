@@ -1,16 +1,8 @@
-// Fast auth guard for standalone modules (checks parent shell first to avoid flash on tab switch)
+// Enforces authentication even when opening a standalone module HTML directly
 (function (global) {
   'use strict';
 
   async function requireAuthenticatedModule() {
-    try {
-      if (global.parent && global.parent !== global && global.parent.BasementDB) {
-        if (global.parent.BasementDB.isAuthReady() && global.parent.BasementDB.isAuthenticated()) {
-          return true;
-        }
-      }
-    } catch (_e) {}
-
     if (!global.BasementDB) return false;
     if (!global.BasementDB.isAuthReady()) {
       await global.BasementDB.initAuth();
