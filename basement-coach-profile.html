@@ -200,21 +200,50 @@
             <span class="text-[10px] font-black uppercase text-sky-400 block">Secondary / Maintenance Goal (~30% Focus)</span>
             <span class="text-xs font-bold text-white">{{ context.secondaryGoal ? context.secondaryGoal.title : 'None (100% Primary Focus)' }}</span>
           </div>
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              @click="showNewSecondaryForm = !showNewSecondaryForm"
+              class="text-[11px] px-2.5 py-1 rounded-lg bg-sky-500/20 border border-sky-400/50 text-sky-200 font-bold"
+            >
+              {{ showNewSecondaryForm ? 'Close ▲' : '+ Add New' }}
+            </button>
+            <button
+              v-if="context.secondaryGoal"
+              type="button"
+              @click="context.secondaryGoal = null; saveContext(true)"
+              class="text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-rose-300 font-bold"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Secondary Goal Creator -->
+        <div v-if="showNewSecondaryForm" class="pt-2 border-t border-slate-800 flex gap-1.5">
+          <input
+            v-model="customSecondaryTitle"
+            @keyup.enter="createCustomSecondaryGoal"
+            type="text"
+            placeholder="e.g., Grip & Forearm Endurance, Posterior Chain..."
+            class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
+          />
           <button
-            v-if="context.secondaryGoal"
             type="button"
-            @click="context.secondaryGoal = null; saveContext()"
-            class="text-[11px] px-2 py-1 rounded-lg bg-slate-800 text-rose-300 font-bold"
+            @click="createCustomSecondaryGoal"
+            :disabled="!customSecondaryTitle.trim()"
+            class="px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black disabled:opacity-40 shrink-0"
           >
-            Clear
+            Set 2°
           </button>
         </div>
+
         <div class="flex flex-wrap gap-1.5">
           <button
             v-for="sec in secondaryPresets"
             :key="sec"
             type="button"
-            @click="context.secondaryGoal = { title: sec, allocation: 30 }; saveContext()"
+            @click="context.secondaryGoal = { title: sec, allocation: 30 }; saveContext(true)"
             class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition"
             :class="context.secondaryGoal?.title === sec ? 'bg-sky-500/20 border-sky-400 text-sky-200' : 'bg-slate-950 border-slate-800 text-slate-400'"
           >
@@ -576,6 +605,8 @@
         const editingGuardrailIdx = ref(-1);
         const editingGuardrailDraft = ref('');
         const customGoalPrompt = ref('');
+        const showNewSecondaryForm = ref(false);
+        const customSecondaryTitle = ref('');
         const interviewInput = ref('');
         const isListeningInterview = ref(false);
         const logs = ref([]);
@@ -863,6 +894,19 @@
           };
           customGoalPrompt.value = '';
           showGoalEditor.value = false;
+          saveContext(true);
+        }
+
+        function createCustomSecondaryGoal() {
+          const title = customSecondaryTitle.value.trim();
+          if (!title) return;
+          context.value.secondaryGoal = {
+            title,
+            allocation: 30,
+            focusArea: 'dynamic_strength'
+          };
+          customSecondaryTitle.value = '';
+          showNewSecondaryForm.value = false;
           saveContext(true);
         }
 
@@ -1198,6 +1242,7 @@
           context, todayIso, completedSetsThisWeek, goalProgressPct,
           goalPresets, secondaryPresets, phaseOptions, capModes,
           customGoalPrompt, selectGoalPreset, buildCustomGoalWithAi,
+          showNewSecondaryForm, customSecondaryTitle, createCustomSecondaryGoal,
           quickPreferenceLifts, favCount, banCount, isPrefFav, isPrefBan, togglePrefFavorite, togglePrefBanned,
           newInjuryName, newInjuryRegion, newInjuryDays, normalizedInjuries, activeInjuryCount, addInjury, removeInjury,
           domsZones, cycleSoreness, resetSoreness, sorenessClass,
