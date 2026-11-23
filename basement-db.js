@@ -130,6 +130,17 @@
     return `basement_user_cache_${userId}`;
   }
 
+  function hasAnyLocalWorkoutData() {
+    const logs = readJson(STORAGE_KEYS.LOGS, []);
+    const cardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
+    const sauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
+    return (
+      (Array.isArray(logs) && logs.length > 0) ||
+      (Array.isArray(cardio) && cardio.length > 0) ||
+      (Array.isArray(sauna) && sauna.length > 0)
+    );
+  }
+
   function saveUserCacheSnapshot(userId) {
     if (!userId) return;
     const payload = {
@@ -145,10 +156,7 @@
   }
 
   function restoreOrResetUserState(userId) {
-    if (!userId) {
-      clearActiveUserLocalState();
-      return;
-    }
+    if (!userId) return;
     const snap = readJson(_userSnapshotKey(userId), null);
     if (snap && snap.coachContext) {
       writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...snap.coachContext });
@@ -157,8 +165,12 @@
       writeJson(STORAGE_KEYS.SAUNA_LOGS, Array.isArray(snap.saunaLogs) ? snap.saunaLogs : []);
       writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, snap.trainerDirectives || null);
       writeJson(STORAGE_KEYS.TRAINER_NOTES, Array.isArray(snap.trainerNotes) ? snap.trainerNotes : []);
+    } else if (hasAnyLocalWorkoutData()) {
+      // Preserve existing browser workout/cardio/sauna logs and migrate into user snapshot
+      const ctx = readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
+      writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...ctx });
+      saveUserCacheSnapshot(userId);
     } else {
-      // Fresh unseeded profile for newly signed-in user
       writeJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
       writeJson(STORAGE_KEYS.LOGS, []);
       writeJson(STORAGE_KEYS.CARDIO_LOGS, []);
@@ -183,6 +195,30 @@
     });
   }
 
+  async function _fetchRowsFromTable(client, tableName, userId) {
+    try {
+      const { data, error } = await client
+        .from(tableName)
+        .select('*')
+        .eq('user_id', userId);
+      if (error || !Array.isArray(data)) return [];
+      return data;
+    } catch (_e) {
+      return [];
+    }
+  }
+
+  function _normalizeLogEntries(rows) {
+    return rows
+      .map((r) => {
+        if (!r) return null;
+        if (r.entry && typeof r.entry === 'object') return r.entry;
+        if (r.payload && typeof r.payload === 'object') return r.payload;
+        return r;
+      })
+      .filter(Boolean);
+  }
+
   async function hydrateUserFromCloud(userId, force = false) {
     const client = getSupabaseClient();
     if (!client || !userId) return;
@@ -191,54 +227,70 @@
 
     _isHydrating = true;
     try {
-      const { data: ctxRow, error: ctxErr } = await client
-        .from('coach_contexts')
-        .select('payload')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (!ctxErr && ctxRow && ctxRow.payload) {
-        writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...ctxRow.payload });
+      // Check coach_contexts or legacy user_state
+      let cloudContext = null;
+      const ctxRows = await _fetchRowsFromTable(client, 'coach_contexts', userId);
+      if (ctxRows.length > 0 && ctxRows[0].payload) {
+        cloudContext = ctxRows[0].payload;
+      } else {
+        const legacyStateRows = await _fetchRowsFromTable(client, 'user_state', userId);
+        if (legacyStateRows.length > 0) {
+          const row = legacyStateRows[0];
+          cloudContext = row.payload || row.coach_context || row.state || null;
+        }
+      }
+      if (cloudContext) {
+        const localCtx = readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
+        writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...localCtx, ...cloudContext });
       }
 
-      const { data: logsRows } = await client
-        .from('workout_logs')
-        .select('entry')
-        .eq('user_id', userId);
-      if (Array.isArray(logsRows) && logsRows.length > 0) {
-        writeJson(STORAGE_KEYS.LOGS, logsRows.map((r) => r.entry).filter(Boolean));
+      // Check workout_logs or legacy strength_logs; do not wipe local logs if cloud table is empty
+      let strengthRows = await _fetchRowsFromTable(client, 'workout_logs', userId);
+      if (strengthRows.length === 0) {
+        strengthRows = await _fetchRowsFromTable(client, 'strength_logs', userId);
+      }
+      const cloudLogs = _normalizeLogEntries(strengthRows);
+      const localLogs = readJson(STORAGE_KEYS.LOGS, []);
+      if (cloudLogs.length > 0) {
+        writeJson(STORAGE_KEYS.LOGS, cloudLogs);
+      } else if (Array.isArray(localLogs) && localLogs.length > 0) {
+        writeJson(STORAGE_KEYS.LOGS, localLogs);
       }
 
-      const { data: cardioRows } = await client
-        .from('cardio_logs')
-        .select('entry')
-        .eq('user_id', userId);
-      if (Array.isArray(cardioRows) && cardioRows.length > 0) {
-        writeJson(STORAGE_KEYS.CARDIO_LOGS, cardioRows.map((r) => r.entry).filter(Boolean));
+      const cardioRows = await _fetchRowsFromTable(client, 'cardio_logs', userId);
+      const cloudCardio = _normalizeLogEntries(cardioRows);
+      const localCardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
+      if (cloudCardio.length > 0) {
+        writeJson(STORAGE_KEYS.CARDIO_LOGS, cloudCardio);
+      } else if (Array.isArray(localCardio) && localCardio.length > 0) {
+        writeJson(STORAGE_KEYS.CARDIO_LOGS, localCardio);
       }
 
-      const { data: saunaRows } = await client
-        .from('sauna_logs')
-        .select('entry')
-        .eq('user_id', userId);
-      if (Array.isArray(saunaRows) && saunaRows.length > 0) {
-        writeJson(STORAGE_KEYS.SAUNA_LOGS, saunaRows.map((r) => r.entry).filter(Boolean));
+      const saunaRows = await _fetchRowsFromTable(client, 'sauna_logs', userId);
+      const cloudSauna = _normalizeLogEntries(saunaRows);
+      const localSauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
+      if (cloudSauna.length > 0) {
+        writeJson(STORAGE_KEYS.SAUNA_LOGS, cloudSauna);
+      } else if (Array.isArray(localSauna) && localSauna.length > 0) {
+        writeJson(STORAGE_KEYS.SAUNA_LOGS, localSauna);
       }
 
       // Merge shared custom_catalog non-destructively
-      const { data: catalogRows } = await client
-        .from('custom_catalog')
-        .select('exercise_key, item');
-      if (Array.isArray(catalogRows) && catalogRows.length > 0) {
-        const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, {});
-        const merged = { ...localCat };
-        catalogRows.forEach((row) => {
-          if (row && row.item && row.item.id) {
-            merged[row.item.id] = { ...(merged[row.item.id] || {}), ...row.item };
-          }
-        });
-        writeJson(STORAGE_KEYS.CUSTOM_CATALOG, merged);
-      }
+      try {
+        const { data: catalogRows } = await client
+          .from('custom_catalog')
+          .select('exercise_key, item');
+        if (Array.isArray(catalogRows) && catalogRows.length > 0) {
+          const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, {});
+          const merged = { ...localCat };
+          catalogRows.forEach((row) => {
+            if (row && row.item && row.item.id) {
+              merged[row.item.id] = { ...(merged[row.item.id] || {}), ...row.item };
+            }
+          });
+          writeJson(STORAGE_KEYS.CUSTOM_CATALOG, merged);
+        }
+      } catch (_e) {}
 
       saveUserCacheSnapshot(userId);
       _hydratedUserId = userId;
@@ -373,8 +425,6 @@
     if (_session && _session.user) {
       restoreOrResetUserState(_session.user.id);
       await hydrateUserFromCloud(_session.user.id, false);
-    } else {
-      clearActiveUserLocalState();
     }
     _authReady = true;
     _emitAuth();
