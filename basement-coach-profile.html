@@ -143,7 +143,7 @@
             <div class="grid grid-cols-2 gap-2">
               <label class="text-[10px] text-slate-400 font-bold">
                 Weekly Target Sets
-                <input v-model.number="context.primaryGoal.weeklyTargetSets" type="number" min="6" max="120" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+                <input v-model.number="context.primaryGoal.weeklyTargetSets" type="number" min="6" max="40" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
               </label>
               <label class="text-[10px] text-slate-400 font-bold">
                 Block Duration (Weeks)
@@ -511,7 +511,7 @@
         <div class="grid grid-cols-3 gap-2">
           <label class="text-[10px] text-slate-400 font-bold">
             Days / Week
-            <input v-model.number="context.modalityPreferences.targetDaysPerWeek" @change="recalibrateGoalTargetFromSchedule(); saveContext(true)" type="number" min="2" max="7" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+            <input v-model.number="context.modalityPreferences.targetDaysPerWeek" @change="saveContext()" type="number" min="2" max="7" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
           </label>
           <label class="text-[10px] text-slate-400 font-bold">
             Min Window (m)
@@ -534,43 +534,24 @@
     <!-- ===================================================================== -->
     <section v-if="activeSubTab === 'sim'" class="space-y-3">
       <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="text-sm font-black text-white">Holistic AI Conflict &amp; Anti-Overload Simulator</h2>
-          <button
-            type="button"
-            @click="runLiveAiSimulation"
-            :disabled="simAiLoading"
-            class="px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black shrink-0 disabled:opacity-40"
-          >
-            {{ simAiLoading ? 'Simulating...' : '✨ Live AI Sim' }}
-          </button>
-        </div>
+        <h2 class="text-sm font-black text-white">Holistic AI Conflict &amp; Anti-Overload Simulator</h2>
         <div class="grid grid-cols-3 gap-1.5">
           <button
             v-for="sc in simScenarios"
             :key="sc.id"
             type="button"
-            @click="activeSimScenario = sc.id; liveSimResult = null"
+            @click="activeSimScenario = sc.id"
             class="py-2 px-2 rounded-xl text-[11px] font-bold border transition"
             :class="activeSimScenario === sc.id ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'"
           >
             {{ sc.label }}
           </button>
         </div>
-        <div class="flex gap-1.5">
-          <input
-            v-model="customSimPrompt"
-            @keyup.enter="runLiveAiSimulation"
-            type="text"
-            placeholder="What-if test (e.g., Ran 4 miles yesterday and calves are tight)..."
-            class="flex-1 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
-          />
-        </div>
         <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
-          <div class="font-bold text-emerald-400">{{ (liveSimResult || currentSimDetail).headline }}</div>
-          <p class="text-slate-300 leading-relaxed">{{ (liveSimResult || currentSimDetail).rationale }}</p>
+          <div class="font-bold text-emerald-400">{{ currentSimDetail.headline }}</div>
+          <p class="text-slate-300 leading-relaxed">{{ currentSimDetail.rationale }}</p>
           <div class="pt-1 space-y-1">
-            <div v-for="(st, idx) in (liveSimResult || currentSimDetail).stations" :key="idx" class="text-[11px] font-mono text-slate-200">
+            <div v-for="(st, idx) in currentSimDetail.stations" :key="idx" class="text-[11px] font-mono text-slate-200">
               {{ idx + 1 }}. {{ st }}
             </div>
           </div>
@@ -614,43 +595,6 @@
         const isListeningInterview = ref(false);
         const logs = ref([]);
         const activeSimScenario = ref('A');
-        const customSimPrompt = ref('');
-        const simAiLoading = ref(false);
-        const liveSimResult = ref(null);
-
-        async function runLiveAiSimulation() {
-          if (simAiLoading.value) return;
-          simAiLoading.value = true;
-          const scenarioText = customSimPrompt.value.trim() || simScenarios.find((s) => s.id === activeSimScenario.value)?.label || 'Tomorrow workout';
-          try {
-            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
-            if (apiKey) {
-              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [{ parts: [{ text: `Simulate a home-gym session (dumbbells <=50 lb, bands, bench, rower, treadmill) for goal "${context.value.primaryGoal?.title}", guardrails ${JSON.stringify(normalizedGuardrails.value.filter(g => g.active).map(g => g.label))}, recent logs count ${logs.value.length}. What-if condition: "${scenarioText}". Return ONLY JSON: {"headline": string, "rationale": string (2 sentences explaining how you adapted load, spacing, and joint protection), "stations": array of 6 concise strings with weight/reps}.` }] }],
-                  generationConfig: { responseMimeType: 'application/json' }
-                })
-              });
-              if (res.ok) {
-                const data = await res.json();
-                const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
-                if (parsed.headline && Array.isArray(parsed.stations)) {
-                  liveSimResult.value = parsed;
-                }
-              }
-            }
-          } catch (_e) {}
-          if (!liveSimResult.value) {
-            liveSimResult.value = {
-              headline: `Simulated Plan: ${scenarioText}`,
-              rationale: `Applied your "${context.value.primaryGoal?.title}" goal, ${activeGuardrailCount.value} active guardrails, and 50-lb dumbbell ceiling under "${scenarioText}".`,
-              stations: currentSimDetail.value.stations
-            };
-          }
-          simAiLoading.value = false;
-        }
 
         const defaultCtx = () => JSON.parse(JSON.stringify(window.BasementDB.DEFAULT_COACH_CONTEXT));
         const context = ref(defaultCtx());
@@ -663,10 +607,10 @@
         ];
 
         const goalPresets = [
-          { title: 'General Strength & Athletic Conditioning', weeklyTargetSets: 45, durationWeeks: 6, targetMuscleGroups: ['Lower', 'Upper Push', 'Upper Pull', 'Shoulders', 'Core'] },
-          { title: 'Calf, Shin & Ankle Running Armor', weeklyTargetSets: 18, durationWeeks: 6, targetMuscleGroups: ['Calves & Hips', 'Lower'] },
-          { title: 'Upper-Body V-Taper & Posture', weeklyTargetSets: 24, durationWeeks: 8, targetMuscleGroups: ['Upper Pull', 'Shoulders'] },
-          { title: 'Joint-Safe Hypertrophy & Core', weeklyTargetSets: 36, durationWeeks: 6, targetMuscleGroups: ['Upper Push', 'Upper Pull', 'Lower', 'Core'] }
+          { title: 'General Strength & Athletic Conditioning', weeklyTargetSets: 18, durationWeeks: 6 },
+          { title: 'Calf, Shin & Ankle Running Armor', weeklyTargetSets: 16, durationWeeks: 6 },
+          { title: 'Upper-Body V-Taper & Posture', weeklyTargetSets: 20, durationWeeks: 8 },
+          { title: 'Joint-Safe Hypertrophy & Core', weeklyTargetSets: 18, durationWeeks: 6 }
         ];
 
         const secondaryPresets = ['V-Taper Lats', 'Shin & Hip Armor', 'Rotator Cuff Health', 'Core Anti-Rotation'];
@@ -714,34 +658,7 @@
           const cutoff = new Date();
           cutoff.setDate(cutoff.getDate() - 7);
           const cutIso = cutoff.toISOString().slice(0, 10);
-          const weekLogs = logs.value.filter((l) => (l.date || '') >= cutIso);
-          const targetGroups = context.value.primaryGoal?.targetMuscleGroups;
-          if (!Array.isArray(targetGroups) || targetGroups.length === 0 || targetGroups.length >= 5) {
-            return weekLogs.length;
-          }
-          const catalogMap = {};
-          if (window.BasementExercises && Array.isArray(window.BasementExercises.BASE_EXERCISES)) {
-            window.BasementExercises.BASE_EXERCISES.forEach((ex) => { catalogMap[ex.name.toLowerCase()] = ex; });
-          }
-          try {
-            const custom = JSON.parse(localStorage.getItem('basement_custom_catalog') || '[]');
-            custom.forEach((ex) => { if (ex && ex.name) catalogMap[ex.name.toLowerCase()] = ex; });
-          } catch (e) {}
-          const groupTokens = targetGroups.map((g) => String(g).toLowerCase());
-          return weekLogs.filter((l) => {
-            const exName = String(l.exercise || '').toLowerCase();
-            const meta = catalogMap[exName];
-            const hay = `${exName} ${meta?.category || ''} ${meta?.muscles || ''}`.toLowerCase();
-            return groupTokens.some((tok) => {
-              if (tok.includes('calf') || tok.includes('shin') || tok.includes('hip')) return /calf|shin|tibialis|clam|abduct|lateral walk|ankle|soleus/.test(hay);
-              if (tok.includes('pull')) return /upper pull|row|pullover|pull-apart|lat|rhomboid/.test(hay);
-              if (tok.includes('push')) return /upper push|bench|press|fly|push-up|pec/.test(hay);
-              if (tok.includes('shoulder')) return /shoulder|delt|raise|face pull|rotation/.test(hay);
-              if (tok.includes('lower')) return /lower|squat|lunge|rdl|deadlift|bridge|thrust|step-up/.test(hay);
-              if (tok.includes('core')) return /core|plank|dead bug|carry|crunch|twist|bird dog/.test(hay);
-              return hay.includes(tok);
-            });
-          }).length;
+          return logs.value.filter((l) => (l.date || '') >= cutIso).length;
         });
 
         const goalProgressPct = computed(() => {
@@ -918,17 +835,6 @@
             chronicGuardrails: normalizeGuardrailList(loaded.chronicGuardrails)
           };
           context.value = merged;
-          // Auto-migrate legacy static 18-set default on existing saved goals that haven't been calibrated yet
-          if (
-            context.value.primaryGoal &&
-            (!Array.isArray(context.value.primaryGoal.targetMuscleGroups) || context.value.primaryGoal.targetMuscleGroups.length === 0) &&
-            Number(context.value.primaryGoal.weeklyTargetSets || 18) === 18
-          ) {
-            const inferred = inferGoalStimulusParams(context.value.primaryGoal.title || 'Strength & Conditioning');
-            context.value.primaryGoal.weeklyTargetSets = inferred.weeklyTargetSets;
-            context.value.primaryGoal.targetMuscleGroups = inferred.targetMuscleGroups;
-            saveContext(false);
-          }
           const rawLogs = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.LOGS, []);
           logs.value = Array.isArray(rawLogs) ? rawLogs : [];
         }
@@ -946,47 +852,12 @@
           }
         }
 
-        function recalibrateGoalTargetFromSchedule() {
-          if (!context.value.primaryGoal) return;
-          const inferred = inferGoalStimulusParams(context.value.primaryGoal.title || 'Strength & Conditioning');
-          context.value.primaryGoal.weeklyTargetSets = inferred.weeklyTargetSets;
-          if (!Array.isArray(context.value.primaryGoal.targetMuscleGroups) || context.value.primaryGoal.targetMuscleGroups.length === 0) {
-            context.value.primaryGoal.targetMuscleGroups = inferred.targetMuscleGroups;
-          }
-        }
-
-        function inferGoalStimulusParams(title) {
-          const low = title.toLowerCase();
-          const days = Number(context.value.modalityPreferences?.targetDaysPerWeek) || 5;
-          const hasSec = Boolean(context.value.secondaryGoal?.title);
-          const scale = hasSec ? 0.75 : 1.0;
-          if (/calf|shin|ankle|plantar|running armor/.test(low)) {
-            return { weeklyTargetSets: Math.max(12, Math.round(days * 3.5 * scale)), targetMuscleGroups: ['Calves & Hips', 'Lower'] };
-          }
-          if (/v-taper|back|lat|posture|pull/.test(low)) {
-            return { weeklyTargetSets: Math.max(14, Math.round(days * 4.5 * scale)), targetMuscleGroups: ['Upper Pull', 'Shoulders'] };
-          }
-          if (/chest|push|bench|upper/.test(low)) {
-            return { weeklyTargetSets: Math.max(14, Math.round(days * 4.5 * scale)), targetMuscleGroups: ['Upper Push', 'Upper Pull', 'Shoulders'] };
-          }
-          if (/leg|squat|glute|lower|hinge/.test(low)) {
-            return { weeklyTargetSets: Math.max(14, Math.round(days * 4.5 * scale)), targetMuscleGroups: ['Lower', 'Calves & Hips'] };
-          }
-          if (/core|abs|rotational|golf|athletic/.test(low)) {
-            return { weeklyTargetSets: Math.max(14, Math.round(days * 4.0 * scale)), targetMuscleGroups: ['Core', 'Lower', 'Shoulders'] };
-          }
-          return { weeklyTargetSets: Math.max(24, Math.round(days * 9 * scale)), targetMuscleGroups: ['Lower', 'Upper Push', 'Upper Pull', 'Shoulders', 'Core'] };
-        }
-
         function selectGoalPreset(preset) {
-          const days = Number(context.value.modalityPreferences?.targetDaysPerWeek) || 5;
-          const scaledSets = Math.max(12, Math.round((preset.weeklyTargetSets / 5) * days));
           context.value.primaryGoal = {
             ...context.value.primaryGoal,
             title: preset.title,
-            weeklyTargetSets: scaledSets,
+            weeklyTargetSets: preset.weeklyTargetSets,
             durationWeeks: preset.durationWeeks,
-            targetMuscleGroups: preset.targetMuscleGroups || ['Lower', 'Upper Push', 'Upper Pull', 'Shoulders', 'Core'],
             focusArea: 'dynamic_strength',
             primaryLifts: [],
             secondaryLifts: []
@@ -995,45 +866,12 @@
           saveContext(true);
         }
 
-        async function buildCustomGoalWithAi() {
+        function buildCustomGoalWithAi() {
           const title = customGoalPrompt.value.trim();
           if (!title) return;
-          const fallback = inferGoalStimulusParams(title);
-          let finalSets = fallback.weeklyTargetSets;
-          let finalGroups = fallback.targetMuscleGroups;
-          let finalWeeks = Number(context.value.primaryGoal?.durationWeeks) || 6;
-
-          try {
-            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
-            if (apiKey) {
-              const days = Number(context.value.modalityPreferences?.targetDaysPerWeek) || 5;
-              const minM = Number(context.value.targetDurationMin) || 25;
-              const maxM = Number(context.value.targetDurationMax) || 40;
-              const secTitle = context.value.secondaryGoal?.title || 'None';
-              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [{ parts: [{ text: `Calibrate a training block for goal: "${title}". User trains ${days} days/wk (${minM}-${maxM} min sessions, 3-round circuits). Secondary goal: "${secTitle}". Return ONLY JSON: {"weeklyTargetSets": number (realistic weekly goal-aligned working sets, e.g. 14-24 for focused muscle/joint goals or 36-54 for full-body conditioning), "durationWeeks": number (4-8), "targetMuscleGroups": array chosen from ["Lower", "Upper Push", "Upper Pull", "Shoulders", "Calves & Hips", "Core"]}.` }] }],
-                  generationConfig: { responseMimeType: 'application/json' }
-                })
-              });
-              if (res.ok) {
-                const data = await res.json();
-                const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
-                if (Number(parsed.weeklyTargetSets) >= 8) finalSets = Number(parsed.weeklyTargetSets);
-                if (Number(parsed.durationWeeks) >= 4) finalWeeks = Number(parsed.durationWeeks);
-                if (Array.isArray(parsed.targetMuscleGroups) && parsed.targetMuscleGroups.length > 0) finalGroups = parsed.targetMuscleGroups;
-              }
-            }
-          } catch (_e) {}
-
           context.value.primaryGoal = {
             ...context.value.primaryGoal,
             title,
-            weeklyTargetSets: finalSets,
-            durationWeeks: finalWeeks,
-            targetMuscleGroups: finalGroups,
             focusArea: 'dynamic_strength',
             primaryLifts: [],
             secondaryLifts: []
@@ -1339,41 +1177,7 @@
             }
           } catch (_e) {}
 
-          // Route exercise dislikes/likes to preferences instead of dumping non-injury preferences into chronicGuardrails
-          const lowText = text.toLowerCase();
-          if (lowText.match(/\b(hate|dislike|avoid|ban|no more|skip)\b/)) {
-            const prefs = context.value.preferences || { favorites: [], banned: [] };
-            if (window.BasementExercises && Array.isArray(window.BasementExercises.BASE_EXERCISES)) {
-              window.BasementExercises.BASE_EXERCISES.forEach((ex) => {
-                if (lowText.includes(ex.name.toLowerCase())) {
-                  prefs.favorites = (prefs.favorites || []).filter((n) => n !== ex.name);
-                  if (!prefs.banned.includes(ex.name)) {
-                    prefs.banned.push(ex.name);
-                    updatedFields.push(`Banned (${ex.name})`);
-                  }
-                }
-              });
-            }
-            context.value.preferences = prefs;
-            context.value.exercisePreferences = prefs;
-          }
-          if (lowText.match(/\b(love|favorite|prefer|enjoy)\b/)) {
-            const prefs = context.value.preferences || { favorites: [], banned: [] };
-            if (window.BasementExercises && Array.isArray(window.BasementExercises.BASE_EXERCISES)) {
-              window.BasementExercises.BASE_EXERCISES.forEach((ex) => {
-                if (lowText.includes(ex.name.toLowerCase())) {
-                  prefs.banned = (prefs.banned || []).filter((n) => n !== ex.name);
-                  if (!prefs.favorites.includes(ex.name)) {
-                    prefs.favorites.push(ex.name);
-                    updatedFields.push(`Favorite (${ex.name})`);
-                  }
-                }
-              });
-            }
-            context.value.preferences = prefs;
-            context.value.exercisePreferences = prefs;
-          }
-
+          // If the user stated a general preference/constraint that didn't match a numeric biometric, place it directly into Chronic Guardrails & Joint Rules in Life & DOMS (never into separate variable chips)
           if (updatedFields.length === 0) {
             if (appendChronicGuardrailLine(text)) {
               updatedFields.push('Chronic Guardrail (Life & DOMS)');
@@ -1429,7 +1233,7 @@
           lifeLoadPresets, toggleLifeLoad, normalizedGuardrails, activeGuardrailCount,
           newGuardrailText, addGuardrailRule, toggleGuardrailActive, removeGuardrailRule,
           editingGuardrailIdx, editingGuardrailDraft, startEditGuardrail, saveEditGuardrail,
-          simScenarios, activeSimScenario, currentSimDetail, customSimPrompt, simAiLoading, liveSimResult, runLiveAiSimulation,
+          simScenarios, activeSimScenario, currentSimDetail,
           interviewInput, interviewLoading, interviewStatusMsg, isListeningInterview, applyAiProfileInterview, removeCustomVariable, toggleInterviewMic, athleteAge,
           readinessScore, savedBanner, saveContext
         };
