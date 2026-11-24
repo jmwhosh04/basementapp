@@ -2424,7 +2424,7 @@ const getExercisePhoto = (name, stage = 'top') => {
           };
         });
 
-        const completePrescribedCardioSession = () => {
+        const completePrescribedCardioSession = async () => {
           const isRow = activeTodayModality.value === 'row';
           const mins = isRow ? (Number(todayRowDuration.value) || 30) : (Number(todayRunDuration.value) || 30);
           const meters = Number(todayRowMeters.value) || 6000;
@@ -2440,8 +2440,9 @@ const getExercisePhoto = (name, stage = 'top') => {
             rpe: Number(todayCardioRpe.value) || 7.5
           });
           allowAdditionalWorkoutToday.value = false;
-          saveLogsToStorage();
-          showToast(isRow ? `🚣 Logged ${mins}m Row (Res ${todayRowResistance.value} • ${meters}m)!` : `🏃 Logged ${mins}m Run (${todayRunMiles.value} mi)!`);
+          const res = await saveLogsToStorage(true);
+          const tag = res && res.ok ? ' • Synced ✓' : '';
+          showToast(isRow ? `🚣 Logged ${mins}m Row (Res ${todayRowResistance.value} • ${meters}m)!${tag}` : `🏃 Logged ${mins}m Run (${todayRunMiles.value} mi)!${tag}`);
         };
 
         const latestRecentSauna = computed(() => saunaLogs.value[0] || null);
@@ -4051,7 +4052,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           }
         };
 
-        const submitPostWorkoutSauna = () => {
+        const submitPostWorkoutSauna = async () => {
           const mins = Math.max(5, Math.min(60, Number(saunaDuration.value) || 20));
           saunaDuration.value = mins;
           saunaTiming.value = 'Post-Lift';
@@ -4064,8 +4065,9 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             timing: 'Post-Lift'
           });
           postWorkoutSaunaLogged.value = true;
-          saveLogsToStorage();
-          showToast(`🔥 Logged ${mins}m Traditional Sauna for ${todayIso.value}!`);
+          const res = await saveLogsToStorage(true);
+          const tag = res && res.ok ? ' • Synced ✓' : '';
+          showToast(`🔥 Logged ${mins}m Traditional Sauna for ${todayIso.value}!${tag}`);
         };
 
         const formatSeconds = (sec) => {
@@ -4170,7 +4172,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           }
         };
 
-        const logCardioEntry = () => {
+        const logCardioEntry = async () => {
           const isRow = cardioModality.value === 'Rowing';
           const mins = Math.max(5, Number(cardioDuration.value) || 30);
           const meters = Number(cardioMeters.value) || mins * 200;
@@ -4185,29 +4187,30 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             incline: isRow ? 0 : (Number(cardioIncline.value) || 1.0),
             rpe: Number(cardioRpe.value) || 7.5
           });
-          saveLogsToStorage();
+          const res = await saveLogsToStorage(true);
+          const tag = res && res.ok ? ' • Synced ✓' : '';
           synthesizeCoachedCircuit(false);
           showQuickCardioForm.value = false;
           if (isRow) {
-            showToast(`🚣 Logged ${mins}m Row (Resistance ${cardioResistance.value} • ${meters}m) on ${selectedCalendarDate.value}`);
+            showToast(`🚣 Logged ${mins}m Row (Resistance ${cardioResistance.value} • ${meters}m) on ${selectedCalendarDate.value}${tag}`);
           } else {
-            showToast(`🏃 Logged ${mins}m ${cardioModality.value} (${cardioDistance.value}mi) on ${selectedCalendarDate.value}`);
+            showToast(`🏃 Logged ${mins}m ${cardioModality.value} (${cardioDistance.value}mi) on ${selectedCalendarDate.value}${tag}`);
           }
         };
 
-        const deleteStrengthLog = (id) => {
+        const deleteStrengthLog = async (id) => {
           workoutLogs.value = workoutLogs.value.filter(l => l.id !== id);
-          saveLogsToStorage();
+          await saveLogsToStorage(true);
           synthesizeCoachedCircuit(false);
         };
 
-        const deleteCardioLog = (id) => {
+        const deleteCardioLog = async (id) => {
           cardioLogs.value = cardioLogs.value.filter(c => c.id !== id);
-          saveLogsToStorage();
+          await saveLogsToStorage(true);
           synthesizeCoachedCircuit(false);
         };
 
-        const logSaunaEntry = () => {
+        const logSaunaEntry = async () => {
           saunaLogs.value.unshift({
             id: 's-' + Date.now(),
             date: selectedCalendarDate.value,
@@ -4215,14 +4218,15 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             type: 'Traditional Dry Sauna',
             timing: saunaTiming.value
           });
-          saveLogsToStorage();
+          const res = await saveLogsToStorage(true);
+          const tag = res && res.ok ? ' • Synced ✓' : '';
           showQuickSaunaForm.value = false;
-          showToast(`🔥 Logged ${saunaDuration.value}m Traditional Sauna on ${selectedCalendarDate.value}`);
+          showToast(`🔥 Logged ${saunaDuration.value}m Traditional Sauna on ${selectedCalendarDate.value}${tag}`);
         };
 
-        const deleteSaunaLog = (id) => {
+        const deleteSaunaLog = async (id) => {
           saunaLogs.value = saunaLogs.value.filter(s => s.id !== id);
-          saveLogsToStorage();
+          await saveLogsToStorage(true);
         };
 
         const computeDynamicReadinessScore = (ctxObj) => {
@@ -4287,7 +4291,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           try {
             const db = window.BasementDB || (window.parent && window.parent.BasementDB);
             if (db && typeof db.syncLogsToCloud === 'function') {
-              const syncPromise = db.syncLogsToCloud(workoutLogs.value, cardioLogs.value, saunaLogs.value);
+              const syncPromise = db.syncLogsToCloud(workoutLogs.value, cardioLogs.value, saunaLogs.value, trainerNotesLogs.value);
               if (parsedCtx && typeof db.syncCoachContextToCloud === 'function') {
                 db.syncCoachContextToCloud(parsedCtx);
               }
@@ -4378,6 +4382,9 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           loadAllSharedLogs();
           loadSavedCircuitProgressForToday();
           reloadCoachContext(false);
+          if (workoutLogs.value.length > 0 || cardioLogs.value.length > 0 || saunaLogs.value.length > 0) {
+            saveLogsToStorage(true);
+          }
 
           // Automatic background cross-module sync whenever Module 2 or Module 3 updates photos, custom lifts, or guardrails
           window.addEventListener('storage', (e) => {

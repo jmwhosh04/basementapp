@@ -656,7 +656,7 @@
             if (hipSets < calfSets) autoInjectLifts.push('Banded Clamshell');
             if (tibialisSets < calfSets) autoInjectLifts.push('Weighted Wall Tibialis Raise');
           }
-          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.TRAINER_DIRECTIVES, {
+          const dirPayload = {
             updatedAt: new Date().toISOString(),
             hasLowerLegArmorFocus: hasLowerLegArmorFocus.value,
             calfSets,
@@ -665,7 +665,11 @@
             sevenDayAvgRpe: Number(rollup7d.value.avgRpe),
             targetRpe: Number(targetRpe.value),
             autoInjectLifts
-          });
+          };
+          window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.TRAINER_DIRECTIVES, dirPayload);
+          if (typeof window.BasementDB.syncTrainerDirectivesToCloud === 'function') {
+            window.BasementDB.syncTrainerDirectivesToCloud(dirPayload);
+          }
         }
 
         function refreshData(notify = false) {

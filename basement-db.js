@@ -1,4 +1,11 @@
 // Basement Lab Data Bus, Auth Gate & Supabase Cloud Sync (basement-db.js)
+// Enforces exact public table schemas & composite PKs:
+// - strength_logs (user_id, id)
+// - cardio_logs (user_id, id)
+// - sauna_logs (user_id, id)
+// - trainer_notes (user_id, id)
+// - custom_catalog (owner_id, id)
+// - user_state (user_id, key)
 (function (global) {
   'use strict';
 
@@ -58,6 +65,11 @@
   let _isHydrating = false;
   let _hydratedUserId = null;
   const _authListeners = new Set();
+
+  function _localTodayIso() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
 
   function _resolveConfig() {
     if (global.BASEMENT_SUPABASE_CONFIG && global.BASEMENT_SUPABASE_CONFIG.url && global.BASEMENT_SUPABASE_CONFIG.anonKey) {
@@ -223,33 +235,97 @@
     });
   }
 
-  async function _fetchRowsFromTable(client, tableName, userId) {
+  async function _fetchRowsByUserId(client, tableName, userId) {
     try {
       const { data, error } = await client
         .from(tableName)
         .select('*')
         .eq('user_id', userId);
-      if (error || !Array.isArray(data)) return [];
-      return data;
-    } catch (_e) {
+      if (error) {
+        console.warn(`${tableName} select error:`, error.message);
+        return [];
+      }
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.warn(`${tableName} fetch exception:`, e);
       return [];
     }
   }
 
-  function _normalizeLogEntries(rows) {
-    return rows
-      .map((r) => {
-        if (!r) return null;
-        if (r.entry && typeof r.entry === 'object') return r.entry;
-        if (r.payload && typeof r.payload === 'object') return r.payload;
-        return {
-          ...r,
-          bandLevel: r.bandLevel !== undefined ? r.bandLevel : (r.band_level || null),
-          durationSec: r.durationSec !== undefined ? r.durationSec : (r.duration_sec || null),
-          secPerRep: r.secPerRep !== undefined ? r.secPerRep : (r.sec_per_rep || null)
-        };
-      })
-      .filter(Boolean);
+  function _normalizeStrengthRow(r) {
+    if (!r) return null;
+    const extra = r.extra && typeof r.extra === 'object' ? r.extra : {};
+    return {
+      ...extra,
+      id: String(r.id),
+      date: r.date,
+      exercise: r.exercise,
+      weight: r.weight != null ? Number(r.weight) : 0,
+      bandLevel: r.band_level || extra.bandLevel || null,
+      reps: r.reps != null ? Number(r.reps) : 10,
+      rpe: r.rpe != null ? Number(r.rpe) : 8.0,
+      durationSec: r.duration_sec != null ? Number(r.duration_sec) : (extra.durationSec ?? null),
+      secPerRep: r.sec_per_rep != null ? Number(r.sec_per_rep) : (extra.secPerRep ?? null)
+    };
+  }
+
+  function _normalizeCardioRow(r) {
+    if (!r) return null;
+    const extra = r.extra && typeof r.extra === 'object' ? r.extra : {};
+    return {
+      ...extra,
+      id: String(r.id),
+      date: r.date,
+      modality: r.modality,
+      duration: r.duration != null ? Number(r.duration) : 30,
+      distance: r.distance != null ? Number(r.distance) : null,
+      incline: r.incline != null ? Number(r.incline) : 0,
+      resistance: r.resistance != null ? Number(r.resistance) : null,
+      meters: r.meters != null ? Number(r.meters) : null,
+      rpe: r.rpe != null ? Number(r.rpe) : 7.5
+    };
+  }
+
+  function _normalizeSaunaRow(r) {
+    if (!r) return null;
+    const extra = r.extra && typeof r.extra === 'object' ? r.extra : {};
+    return {
+      ...extra,
+      id: String(r.id),
+      date: r.date,
+      duration: r.duration != null ? Number(r.duration) : 20,
+      type: r.type || 'Traditional Dry Sauna',
+      timing: r.timing || 'Post-Lift'
+    };
+  }
+
+  function _normalizeTrainerNoteRow(r) {
+    if (!r) return null;
+    const extra = r.extra && typeof r.extra === 'object' ? r.extra : {};
+    return {
+      ...extra,
+      id: String(r.id),
+      date: r.date,
+      phase: r.note_type || extra.phase || 'pre_workout',
+      transcript: r.content || extra.transcript || '',
+      time: extra.time || '',
+      aiReply: extra.aiReply || ''
+    };
+  }
+
+  function _mergeById(cloudList, localList) {
+    const map = new Map();
+    cloudList.forEach((item) => {
+      if (item && item.id) map.set(String(item.id), item);
+    });
+    if (Array.isArray(localList)) {
+      localList.forEach((item) => {
+        if (item && item.id && !map.has(String(item.id))) {
+          map.set(String(item.id), item);
+        }
+      });
+    }
+    return Array.from(map.values()).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   }
 
   async function hydrateUserFromCloud(userId, force = false) {
@@ -260,71 +336,68 @@
 
     _isHydrating = true;
     try {
-      let cloudContext = null;
-      const ctxRows = await _fetchRowsFromTable(client, 'coach_contexts', userId);
-      if (ctxRows.length > 0 && ctxRows[0].payload) {
-        cloudContext = ctxRows[0].payload;
-      } else {
-        const legacyStateRows = await _fetchRowsFromTable(client, 'user_state', userId);
-        if (legacyStateRows.length > 0) {
-          const row = legacyStateRows[0];
-          cloudContext = row.payload || row.coach_context || row.state || null;
-        }
-      }
-      if (cloudContext) {
+      // 1. public.user_state (PK: user_id, key) -> key='coach_context' & key='trainer_directives'
+      const stateRows = await _fetchRowsByUserId(client, 'user_state', userId);
+      const ctxRow = stateRows.find((r) => r.key === 'coach_context');
+      if (ctxRow && ctxRow.value && typeof ctxRow.value === 'object') {
         const localCtx = readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
-        writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...localCtx, ...cloudContext });
+        writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...localCtx, ...ctxRow.value });
+      }
+      const dirRow = stateRows.find((r) => r.key === 'trainer_directives');
+      if (dirRow && dirRow.value && typeof dirRow.value === 'object') {
+        writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, dirRow.value);
       }
 
-      const strengthRows = await _fetchRowsFromTable(client, 'strength_logs', userId);
-      const cloudLogs = _normalizeLogEntries(strengthRows);
+      // 2. public.strength_logs (PK: user_id, id)
+      const strengthRows = await _fetchRowsByUserId(client, 'strength_logs', userId);
+      const cloudLogs = strengthRows.map(_normalizeStrengthRow).filter(Boolean);
       const localLogs = readJson(STORAGE_KEYS.LOGS, []);
-      if (cloudLogs.length > 0) {
-        const mergedMap = new Map();
-        cloudLogs.forEach((item) => { if (item && item.id) mergedMap.set(String(item.id), item); });
-        if (Array.isArray(localLogs)) {
-          localLogs.forEach((item) => { if (item && item.id && !mergedMap.has(String(item.id))) mergedMap.set(String(item.id), item); });
-        }
-        writeJson(STORAGE_KEYS.LOGS, Array.from(mergedMap.values()));
-      } else if (Array.isArray(localLogs) && localLogs.length > 0) {
-        writeJson(STORAGE_KEYS.LOGS, localLogs);
+      if (cloudLogs.length > 0 || (Array.isArray(localLogs) && localLogs.length > 0)) {
+        writeJson(STORAGE_KEYS.LOGS, _mergeById(cloudLogs, localLogs));
       }
 
-      const cardioRows = await _fetchRowsFromTable(client, 'cardio_logs', userId);
-      const cloudCardio = _normalizeLogEntries(cardioRows);
+      // 3. public.cardio_logs (PK: user_id, id)
+      const cardioRows = await _fetchRowsByUserId(client, 'cardio_logs', userId);
+      const cloudCardio = cardioRows.map(_normalizeCardioRow).filter(Boolean);
       const localCardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
-      if (cloudCardio.length > 0) {
-        writeJson(STORAGE_KEYS.CARDIO_LOGS, cloudCardio);
-      } else if (Array.isArray(localCardio) && localCardio.length > 0) {
-        writeJson(STORAGE_KEYS.CARDIO_LOGS, localCardio);
+      if (cloudCardio.length > 0 || (Array.isArray(localCardio) && localCardio.length > 0)) {
+        writeJson(STORAGE_KEYS.CARDIO_LOGS, _mergeById(cloudCardio, localCardio));
       }
 
-      const saunaRows = await _fetchRowsFromTable(client, 'sauna_logs', userId);
-      const cloudSauna = _normalizeLogEntries(saunaRows);
+      // 4. public.sauna_logs (PK: user_id, id)
+      const saunaRows = await _fetchRowsByUserId(client, 'sauna_logs', userId);
+      const cloudSauna = saunaRows.map(_normalizeSaunaRow).filter(Boolean);
       const localSauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
-      if (cloudSauna.length > 0) {
-        writeJson(STORAGE_KEYS.SAUNA_LOGS, cloudSauna);
-      } else if (Array.isArray(localSauna) && localSauna.length > 0) {
-        writeJson(STORAGE_KEYS.SAUNA_LOGS, localSauna);
+      if (cloudSauna.length > 0 || (Array.isArray(localSauna) && localSauna.length > 0)) {
+        writeJson(STORAGE_KEYS.SAUNA_LOGS, _mergeById(cloudSauna, localSauna));
       }
 
+      // 5. public.trainer_notes (PK: user_id, id)
+      const noteRows = await _fetchRowsByUserId(client, 'trainer_notes', userId);
+      const cloudNotes = noteRows.map(_normalizeTrainerNoteRow).filter(Boolean);
+      const localNotes = readJson(STORAGE_KEYS.TRAINER_NOTES, []);
+      if (cloudNotes.length > 0 || (Array.isArray(localNotes) && localNotes.length > 0)) {
+        writeJson(STORAGE_KEYS.TRAINER_NOTES, _mergeById(cloudNotes, localNotes));
+      }
+
+      // 6. public.custom_catalog (PK: owner_id, id) — shared or owned rows
       try {
-        const { data: catalogRows } = await client
+        const { data: catalogRows, error: catErr } = await client
           .from('custom_catalog')
-          .select('exercise_key, item');
-        if (Array.isArray(catalogRows) && catalogRows.length > 0) {
+          .select('id, owner_id, is_shared, data')
+          .or(`owner_id.eq.${userId},is_shared.eq.true`);
+        if (!catErr && Array.isArray(catalogRows) && catalogRows.length > 0) {
           const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, []);
-          if (Array.isArray(localCat)) {
-            const mergedArr = [...localCat];
-            catalogRows.forEach((row) => {
-              if (row && row.item && row.item.name) {
-                const idx = mergedArr.findIndex((x) => x.name === row.item.name);
-                if (idx >= 0) mergedArr[idx] = { ...mergedArr[idx], ...row.item };
-                else mergedArr.push(row.item);
-              }
-            });
-            writeJson(STORAGE_KEYS.CUSTOM_CATALOG, mergedArr);
-          }
+          const mergedArr = Array.isArray(localCat) ? [...localCat] : [];
+          catalogRows.forEach((row) => {
+            const item = row && row.data && typeof row.data === 'object' ? row.data : null;
+            if (item && item.name) {
+              const idx = mergedArr.findIndex((x) => x.name === item.name);
+              if (idx >= 0) mergedArr[idx] = { ...mergedArr[idx], ...item };
+              else mergedArr.push(item);
+            }
+          });
+          writeJson(STORAGE_KEYS.CUSTOM_CATALOG, mergedArr);
         }
       } catch (_e) {}
 
@@ -340,43 +413,74 @@
 
   async function syncCoachContextToCloud(contextObj) {
     const user = getCurrentUser();
-    if (!user || !user.id) return;
+    if (!user || !user.id) return { ok: false, reason: 'not_signed_in' };
     saveUserCacheSnapshot(user.id);
     const client = getSupabaseClient();
-    if (!client) return;
-    const { error } = await client.from('coach_contexts').upsert(
+    if (!client) return { ok: false, reason: 'no_client' };
+    const { error } = await client.from('user_state').upsert(
       {
         user_id: user.id,
-        payload: contextObj,
+        key: 'coach_context',
+        value: contextObj || {},
         updated_at: new Date().toISOString()
       },
-      { onConflict: 'user_id' }
+      { onConflict: 'user_id,key' }
     );
-    if (error) console.warn('coach_contexts upsert error:', error.message);
+    if (error) {
+      console.warn('user_state (coach_context) upsert error:', error.message);
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
+  }
+
+  async function syncTrainerDirectivesToCloud(directivesObj) {
+    const user = getCurrentUser();
+    if (!user || !user.id || !directivesObj) return { ok: false };
+    const client = getSupabaseClient();
+    if (!client) return { ok: false };
+    const { error } = await client.from('user_state').upsert(
+      {
+        user_id: user.id,
+        key: 'trainer_directives',
+        value: directivesObj,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id,key' }
+    );
+    if (error) {
+      console.warn('user_state (trainer_directives) upsert error:', error.message);
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
   }
 
   async function syncCustomCatalogItemToCloud(item) {
     const user = getCurrentUser();
-    if (!user || !user.id || !item) return;
+    if (!user || !user.id || !item) return { ok: false };
     const itemKey = item.id || item.name;
-    if (!itemKey) return;
+    if (!itemKey) return { ok: false };
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client) return { ok: false };
     const cleanId = String(itemKey).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const exerciseKey = `${user.id.slice(0, 8)}_${cleanId}`;
+    const rowId = `${user.id.slice(0, 8)}_${cleanId}`;
     const { error } = await client.from('custom_catalog').upsert(
       {
-        exercise_key: exerciseKey,
-        owner_user_id: user.id,
-        item,
+        id: rowId,
+        owner_id: user.id,
+        is_shared: true,
+        data: item,
         updated_at: new Date().toISOString()
       },
-      { onConflict: 'exercise_key' }
+      { onConflict: 'owner_id,id' }
     );
-    if (error) console.warn('custom_catalog upsert error:', error.message);
+    if (error) {
+      console.warn('custom_catalog upsert error:', error.message);
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
   }
 
-  async function syncLogsToCloud(logsArr, cardioArr, saunaArr) {
+  async function syncLogsToCloud(logsArr, cardioArr, saunaArr, trainerNotesArr) {
     const user = getCurrentUser();
     if (!user || !user.id) return { ok: false, reason: 'not_signed_in' };
     saveUserCacheSnapshot(user.id);
@@ -384,66 +488,90 @@
     if (!client) return { ok: false, reason: 'no_client' };
 
     const errors = [];
+    const fallbackDate = _localTodayIso();
 
+    // 1. public.strength_logs (PK: user_id, id)
     if (Array.isArray(logsArr)) {
-      const existingRows = await _fetchRowsFromTable(client, 'strength_logs', user.id);
+      const existingRows = await _fetchRowsByUserId(client, 'strength_logs', user.id);
       const keepIds = new Set(logsArr.map((x) => String(x.id)));
       const toDelete = existingRows
         .map((r) => String(r.id || ''))
         .filter((id) => id && !keepIds.has(id));
       if (toDelete.length > 0) {
-        await client.from('strength_logs').delete().eq('user_id', user.id).in('id', toDelete);
+        const { error: delErr } = await client
+          .from('strength_logs')
+          .delete()
+          .eq('user_id', user.id)
+          .in('id', toDelete);
+        if (delErr) {
+          console.warn('strength_logs delete error:', delErr.message);
+          errors.push(delErr.message);
+        }
       }
       if (logsArr.length > 0) {
-        const rows = logsArr.map((item) => ({
-          id: String(item.id || ('m-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
-          user_id: user.id,
-          date: item.date || new Date().toISOString().slice(0, 10),
-          exercise: String(item.exercise || 'Goblet Squat'),
-          weight: Number(item.weight) || 0,
-          band_level: item.bandLevel || item.band_level || null,
-          reps: Number(item.reps) || 10,
-          rpe: Number(item.rpe) || 8.0,
-          duration_sec: item.durationSec != null ? Number(item.durationSec) : null,
-          sec_per_rep: item.secPerRep != null ? Number(item.secPerRep) : null
-        }));
-        const { error } = await client.from('strength_logs').upsert(rows, { onConflict: 'id' });
+        const rows = logsArr.map((item) => {
+          const extra = {};
+          if (item.setNumber != null) extra.setNumber = item.setNumber;
+          if (item.totalSets != null) extra.totalSets = item.totalSets;
+          return {
+            id: String(item.id || ('m-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
+            user_id: user.id,
+            date: item.date || fallbackDate,
+            exercise: String(item.exercise || 'Goblet Squat'),
+            weight: item.weight != null ? Number(item.weight) : 0,
+            band_level: item.bandLevel || item.band_level || null,
+            reps: item.reps != null ? Math.round(Number(item.reps)) : 10,
+            rpe: item.rpe != null ? Number(item.rpe) : 8.0,
+            duration_sec: item.durationSec != null ? Math.round(Number(item.durationSec)) : null,
+            sec_per_rep: item.secPerRep != null ? Number(item.secPerRep) : null,
+            extra
+          };
+        });
+        const { error } = await client
+          .from('strength_logs')
+          .upsert(rows, { onConflict: 'user_id,id' });
         if (error) {
           console.warn('strength_logs upsert error:', error.message);
-          // Retry with core columns in case optional duration columns aren't in schema
-          const coreRows = rows.map(({ duration_sec, sec_per_rep, ...rest }) => rest);
-          const { error: err2 } = await client.from('strength_logs').upsert(coreRows, { onConflict: 'id' });
-          if (err2) {
-            console.warn('strength_logs core upsert error:', err2.message);
-            errors.push(err2.message);
-          }
+          errors.push(error.message);
         }
       }
     }
 
+    // 2. public.cardio_logs (PK: user_id, id)
     if (Array.isArray(cardioArr)) {
-      const existingC = await _fetchRowsFromTable(client, 'cardio_logs', user.id);
+      const existingC = await _fetchRowsByUserId(client, 'cardio_logs', user.id);
       const keepC = new Set(cardioArr.map((x) => String(x.id)));
       const delC = existingC
         .map((r) => String(r.id || ''))
         .filter((id) => id && !keepC.has(id));
       if (delC.length > 0) {
-        await client.from('cardio_logs').delete().eq('user_id', user.id).in('id', delC);
+        const { error: delCErr } = await client
+          .from('cardio_logs')
+          .delete()
+          .eq('user_id', user.id)
+          .in('id', delC);
+        if (delCErr) {
+          console.warn('cardio_logs delete error:', delCErr.message);
+          errors.push(delCErr.message);
+        }
       }
       if (cardioArr.length > 0) {
         const rowsC = cardioArr.map((item) => ({
           id: String(item.id || ('c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
           user_id: user.id,
-          date: item.date || new Date().toISOString().slice(0, 10),
+          date: item.date || fallbackDate,
           modality: String(item.modality || 'Rowing'),
-          duration: Number(item.duration) || 30,
+          duration: item.duration != null ? Number(item.duration) : 30,
           distance: item.distance != null ? Number(item.distance) : null,
           incline: item.incline != null ? Number(item.incline) : 0,
-          resistance: item.resistance != null ? Number(item.resistance) : null,
-          meters: item.meters != null ? Number(item.meters) : null,
-          rpe: Number(item.rpe) || 7.5
+          resistance: item.resistance != null ? Math.round(Number(item.resistance)) : null,
+          meters: item.meters != null ? Math.round(Number(item.meters)) : null,
+          rpe: item.rpe != null ? Number(item.rpe) : 7.5,
+          extra: {}
         }));
-        const { error } = await client.from('cardio_logs').upsert(rowsC, { onConflict: 'id' });
+        const { error } = await client
+          .from('cardio_logs')
+          .upsert(rowsC, { onConflict: 'user_id,id' });
         if (error) {
           console.warn('cardio_logs upsert error:', error.message);
           errors.push(error.message);
@@ -451,27 +579,79 @@
       }
     }
 
+    // 3. public.sauna_logs (PK: user_id, id)
     if (Array.isArray(saunaArr)) {
-      const existingS = await _fetchRowsFromTable(client, 'sauna_logs', user.id);
+      const existingS = await _fetchRowsByUserId(client, 'sauna_logs', user.id);
       const keepS = new Set(saunaArr.map((x) => String(x.id)));
       const delS = existingS
         .map((r) => String(r.id || ''))
         .filter((id) => id && !keepS.has(id));
       if (delS.length > 0) {
-        await client.from('sauna_logs').delete().eq('user_id', user.id).in('id', delS);
+        const { error: delSErr } = await client
+          .from('sauna_logs')
+          .delete()
+          .eq('user_id', user.id)
+          .in('id', delS);
+        if (delSErr) {
+          console.warn('sauna_logs delete error:', delSErr.message);
+          errors.push(delSErr.message);
+        }
       }
       if (saunaArr.length > 0) {
         const rowsS = saunaArr.map((item) => ({
           id: String(item.id || ('s-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
           user_id: user.id,
-          date: item.date || new Date().toISOString().slice(0, 10),
-          duration: Number(item.duration) || 20,
+          date: item.date || fallbackDate,
+          duration: item.duration != null ? Math.round(Number(item.duration)) : 20,
           type: String(item.type || 'Traditional Dry Sauna'),
-          timing: String(item.timing || 'Post-Lift')
+          timing: String(item.timing || 'Post-Lift'),
+          extra: {}
         }));
-        const { error } = await client.from('sauna_logs').upsert(rowsS, { onConflict: 'id' });
+        const { error } = await client
+          .from('sauna_logs')
+          .upsert(rowsS, { onConflict: 'user_id,id' });
         if (error) {
           console.warn('sauna_logs upsert error:', error.message);
+          errors.push(error.message);
+        }
+      }
+    }
+
+    // 4. public.trainer_notes (PK: user_id, id)
+    if (Array.isArray(trainerNotesArr)) {
+      const existingN = await _fetchRowsByUserId(client, 'trainer_notes', user.id);
+      const keepN = new Set(trainerNotesArr.map((x) => String(x.id)));
+      const delN = existingN
+        .map((r) => String(r.id || ''))
+        .filter((id) => id && !keepN.has(id));
+      if (delN.length > 0) {
+        const { error: delNErr } = await client
+          .from('trainer_notes')
+          .delete()
+          .eq('user_id', user.id)
+          .in('id', delN);
+        if (delNErr) {
+          console.warn('trainer_notes delete error:', delNErr.message);
+          errors.push(delNErr.message);
+        }
+      }
+      if (trainerNotesArr.length > 0) {
+        const rowsN = trainerNotesArr.map((item) => ({
+          id: String(item.id || ('note-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
+          user_id: user.id,
+          date: item.date || fallbackDate,
+          note_type: String(item.phase || item.note_type || 'pre_workout'),
+          content: String(item.transcript || item.content || ''),
+          extra: {
+            time: item.time || '',
+            aiReply: item.aiReply || ''
+          }
+        }));
+        const { error } = await client
+          .from('trainer_notes')
+          .upsert(rowsN, { onConflict: 'user_id,id' });
+        if (error) {
+          console.warn('trainer_notes upsert error:', error.message);
           errors.push(error.message);
         }
       }
@@ -482,19 +662,23 @@
 
   async function pushAllToCloud(userId) {
     const uid = userId || (getCurrentUser() && getCurrentUser().id);
-    if (!uid) return;
+    if (!uid) return { ok: false };
     const ctx = readJson(STORAGE_KEYS.COACH_CONTEXT, null);
     if (ctx) await syncCoachContextToCloud(ctx);
+    const dir = readJson(STORAGE_KEYS.TRAINER_DIRECTIVES, null);
+    if (dir) await syncTrainerDirectivesToCloud(dir);
     const logs = readJson(STORAGE_KEYS.LOGS, []);
     const cardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
     const sauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
-    await syncLogsToCloud(logs, cardio, sauna);
+    const notes = readJson(STORAGE_KEYS.TRAINER_NOTES, []);
+    const logRes = await syncLogsToCloud(logs, cardio, sauna, notes);
     const customCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, []);
     if (Array.isArray(customCat)) {
       for (const item of customCat) {
         await syncCustomCatalogItemToCloud(item);
       }
     }
+    return logRes;
   }
 
   async function uploadCatalogImage(userId, exerciseName, stage, dataUrl) {
@@ -642,6 +826,7 @@
     writeJson,
     hydrateUserFromCloud,
     syncCoachContextToCloud,
+    syncTrainerDirectivesToCloud,
     syncLogsToCloud,
     syncCustomCatalogItemToCloud,
     pushAllToCloud,
