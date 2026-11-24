@@ -6,7 +6,16 @@
   <title>Basement Lab · Module 1: Daily Hub &amp; Circuit Coach</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.BASEMENT_SUPABASE_CONFIG = window.BASEMENT_SUPABASE_CONFIG || {
+      url: 'https://flroxptovfxuzwpoyisf.supabase.co',
+      anonKey: 'sb_publishable_tsAgCyDK0xMchdMW4lH8BA_rys4KouJ'
+    };
+  </script>
+  <script src="basement-db.js"></script>
   <script src="basement-exercises.js"></script>
+  <script src="module-auth-guard.js"></script>
   <style>
     :root { color-scheme: dark; }
     body {
@@ -1046,23 +1055,27 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid gap-2" :class="getLiftMeta(manualLiftName).equipment !== 'Band' ? 'grid-cols-4' : 'grid-cols-3'">
               <div v-if="getLiftMeta(manualLiftName).equipment !== 'Band'">
                 <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Weight (lb)</label>
-                <input v-model.number="manualWeight" type="number" step="2.5" min="0" max="50" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono" />
+                <input v-model.number="manualWeight" type="number" step="2.5" min="0" max="50" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono" />
               </div>
               <div>
                 <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Reps</label>
-                <input v-model.number="manualReps" type="number" min="1" max="40" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono" />
+                <input v-model.number="manualReps" type="number" min="1" max="50" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono" />
               </div>
               <div>
-                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">Post-Set RPE</label>
-                <input v-model.number="manualRpe" type="number" step="0.5" min="6" max="10" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono" />
+                <label class="block text-[9px] font-bold uppercase text-emerald-300 mb-1">Sets</label>
+                <input v-model.number="manualSets" type="number" min="1" max="12" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-emerald-500/50 text-emerald-300 font-mono font-bold" />
+              </div>
+              <div>
+                <label class="block text-[9px] font-bold uppercase text-slate-400 mb-1">RPE Total</label>
+                <input v-model.number="manualRpe" type="number" step="0.5" min="5" max="10" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono" />
               </div>
             </div>
 
-            <button @click="logManualStrengthSet" class="w-full py-2 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs">
-              Save Set to {{ selectedCalendarDate }}
+            <button @click="logManualStrengthSet" :disabled="manualSaveBusy" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs disabled:opacity-50">
+              {{ manualSaveBusy ? 'Saving to Cloud...' : `Save ${Math.max(1, Number(manualSets) || 1)} Set${(Number(manualSets) || 1) === 1 ? '' : 's'} to ${selectedCalendarDate}` }}
             </button>
           </div>
 
@@ -4072,7 +4085,9 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const manualLiftName = ref('Goblet Squat');
         const manualWeight = ref(45);
         const manualReps = ref(10);
+        const manualSets = ref(3);
         const manualRpe = ref(8.0);
+        const manualSaveBusy = ref(false);
         const cardioModality = ref('Rowing');
         const cardioDuration = ref(30);
         const cardioResistance = ref(12);
@@ -4119,21 +4134,40 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const selectedDateCardioLogs = computed(() => cardioLogs.value.filter(c => c.date === selectedCalendarDate.value));
         const selectedDateSaunaLogs = computed(() => saunaLogs.value.filter(s => s.date === selectedCalendarDate.value));
 
-        const logManualStrengthSet = () => {
-          const meta = getLiftMeta(manualLiftName.value);
-          workoutLogs.value.unshift({
-            id: 'm-' + Date.now(),
-            date: selectedCalendarDate.value,
-            exercise: manualLiftName.value,
-            weight: meta.equipment === 'Band' ? 0 : Math.min(50, Number(manualWeight.value) || 0),
-            bandLevel: meta.equipment === 'Band' ? selectedManualBand.value.label : null,
-            reps: Number(manualReps.value) || 10,
-            rpe: Number(manualRpe.value) || 8.0
-          });
-          saveLogsToStorage();
-          synthesizeCoachedCircuit(false);
-          showQuickStrengthForm.value = false;
-          showToast(`Logged ${manualLiftName.value} on ${selectedCalendarDate.value}`);
+        const logManualStrengthSet = async () => {
+          if (manualSaveBusy.value) return;
+          manualSaveBusy.value = true;
+          try {
+            const meta = getLiftMeta(manualLiftName.value);
+            const setCount = Math.max(1, Math.min(12, Math.round(Number(manualSets.value) || 1)));
+            const repsVal = Math.max(1, Math.round(Number(manualReps.value) || 10));
+            const rpeVal = Number(manualRpe.value) || 8.0;
+            const weightVal = meta.equipment === 'Band' ? 0 : Math.min(50, Math.max(0, Number(manualWeight.value) || 0));
+            const bandVal = meta.equipment === 'Band' ? selectedManualBand.value.label : null;
+            const baseTs = Date.now();
+            const newEntries = [];
+            for (let sIdx = setCount; sIdx >= 1; sIdx--) {
+              newEntries.push({
+                id: `m-${baseTs}-${sIdx}`,
+                date: selectedCalendarDate.value,
+                exercise: manualLiftName.value,
+                weight: weightVal,
+                bandLevel: bandVal,
+                reps: repsVal,
+                setNumber: sIdx,
+                totalSets: setCount,
+                rpe: rpeVal
+              });
+            }
+            workoutLogs.value.unshift(...newEntries);
+            const cloudRes = await saveLogsToStorage(true);
+            synthesizeCoachedCircuit(false);
+            showQuickStrengthForm.value = false;
+            const cloudTag = cloudRes && cloudRes.ok ? ' • Synced to Supabase ✓' : '';
+            showToast(`Logged ${setCount} × ${repsVal} ${manualLiftName.value} @ RPE ${rpeVal} on ${selectedCalendarDate.value}${cloudTag}`);
+          } finally {
+            manualSaveBusy.value = false;
+          }
         };
 
         const logCardioEntry = () => {
@@ -4231,14 +4265,15 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           return Math.max(45, Math.min(100, Math.round(score)));
         };
 
-        const saveLogsToStorage = () => {
+        const saveLogsToStorage = async (awaitCloud = false) => {
+          let parsedCtx = null;
           try {
             localStorage.setItem('basement_logs', JSON.stringify(workoutLogs.value));
             localStorage.setItem('basement_cardio_logs', JSON.stringify(cardioLogs.value));
             localStorage.setItem('basement_sauna_logs', JSON.stringify(saunaLogs.value));
             localStorage.setItem('basement_trainer_notes', JSON.stringify(trainerNotesLogs.value));
             const rawCtx = localStorage.getItem('basement_coach_context');
-            const parsedCtx = rawCtx ? JSON.parse(rawCtx) : { ...coachCtx.value };
+            parsedCtx = rawCtx ? JSON.parse(rawCtx) : { ...coachCtx.value };
             parsedCtx.lastDailyCheckInDate = hasProvidedTodayUpdate.value ? todayIso.value : null;
             parsedCtx.sorenessMap = coachCtx.value.sorenessMap;
             if (Array.isArray(coachCtx.value.activeTemporaryInjuries)) {
@@ -4248,6 +4283,25 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             coachCtx.value.readinessScore = parsedCtx.readinessScore;
             localStorage.setItem('basement_coach_context', JSON.stringify(parsedCtx));
           } catch (e) {}
+
+          try {
+            const db = window.BasementDB || (window.parent && window.parent.BasementDB);
+            if (db && typeof db.syncLogsToCloud === 'function') {
+              const syncPromise = db.syncLogsToCloud(workoutLogs.value, cardioLogs.value, saunaLogs.value);
+              if (parsedCtx && typeof db.syncCoachContextToCloud === 'function') {
+                db.syncCoachContextToCloud(parsedCtx);
+              }
+              if (typeof db.notifyFrames === 'function') {
+                db.notifyFrames('storage');
+              }
+              if (awaitCloud) {
+                return await syncPromise;
+              }
+            }
+          } catch (e) {
+            console.warn('Cloud log sync error:', e);
+          }
+          return { ok: false };
         };
 
         const reloadCoachContext = (notify = false) => {
@@ -4315,7 +4369,12 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           } catch (e) {}
         };
 
-        onMounted(() => {
+        onMounted(async () => {
+          if (window.BasementAuthGuard) {
+            await window.BasementAuthGuard.requireAuthenticatedModule();
+          } else if (window.BasementDB && !window.BasementDB.isAuthReady()) {
+            await window.BasementDB.initAuth();
+          }
           loadAllSharedLogs();
           loadSavedCircuitProgressForToday();
           reloadCoachContext(false);
@@ -4393,7 +4452,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           adjustPlannedWeight, completeSetAndEnterRestRpe, adjustLastLoggedReps, updateLastLoggedRpe, advanceToNextStationAfterRest,
           formatSeconds, workoutLogs,
           calendarMonthLabel, calendarCells, monthlyWorkoutDaysCount, selectedCalendarDate, changeCalendarMonth,
-          showQuickStrengthForm, showQuickCardioForm, showQuickSaunaForm, manualLiftName, manualWeight, manualReps, manualRpe,
+          showQuickStrengthForm, showQuickCardioForm, showQuickSaunaForm, manualLiftName, manualWeight, manualReps, manualSets, manualRpe, manualSaveBusy,
           cardioModality, cardioDuration, cardioResistance, cardioMeters, cardioDistance, cardioIncline, cardioRpe,
           selectedDateStrengthLogs, selectedDateCardioLogs, selectedDateSaunaLogs, logManualStrengthSet, logCardioEntry, deleteStrengthLog, deleteCardioLog
         };

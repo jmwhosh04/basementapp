@@ -369,11 +369,107 @@
     if (error) console.warn('custom_catalog upsert error:', error.message);
   }
 
+  async function syncLogsToCloud(logsArr, cardioArr, saunaArr) {
+    const user = getCurrentUser();
+    if (!user || !user.id) return { ok: false, reason: 'not_signed_in' };
+    saveUserCacheSnapshot(user.id);
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, reason: 'no_client' };
+
+    const errors = [];
+
+    if (Array.isArray(logsArr)) {
+      const existingRows = await _fetchRowsFromTable(client, 'workout_logs', user.id);
+      const keepIds = new Set(logsArr.map((x) => String(x.id)));
+      const toDelete = existingRows
+        .map((r) => String((r.entry && r.entry.id) || r.id || ''))
+        .filter((id) => id && !keepIds.has(id));
+      if (toDelete.length > 0) {
+        await client.from('workout_logs').delete().eq('user_id', user.id).in('id', toDelete);
+      }
+      if (logsArr.length > 0) {
+        const rows = logsArr.map((item) => ({
+          id: String(item.id || ('w-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
+          user_id: user.id,
+          date: item.date || new Date().toISOString().slice(0, 10),
+          entry: item,
+          updated_at: new Date().toISOString()
+        }));
+        const { error } = await client.from('workout_logs').upsert(rows, { onConflict: 'id' });
+        if (error) {
+          console.warn('workout_logs upsert error:', error.message);
+          // Fallback to strength_logs table if workout_logs schema differs
+          const { error: err2 } = await client.from('strength_logs').upsert(rows, { onConflict: 'id' });
+          if (err2) {
+            console.warn('strength_logs upsert error:', err2.message);
+            errors.push(error.message);
+          }
+        }
+      }
+    }
+
+    if (Array.isArray(cardioArr)) {
+      const existingC = await _fetchRowsFromTable(client, 'cardio_logs', user.id);
+      const keepC = new Set(cardioArr.map((x) => String(x.id)));
+      const delC = existingC
+        .map((r) => String((r.entry && r.entry.id) || r.id || ''))
+        .filter((id) => id && !keepC.has(id));
+      if (delC.length > 0) {
+        await client.from('cardio_logs').delete().eq('user_id', user.id).in('id', delC);
+      }
+      if (cardioArr.length > 0) {
+        const rowsC = cardioArr.map((item) => ({
+          id: String(item.id || ('c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
+          user_id: user.id,
+          date: item.date || new Date().toISOString().slice(0, 10),
+          entry: item,
+          updated_at: new Date().toISOString()
+        }));
+        const { error } = await client.from('cardio_logs').upsert(rowsC, { onConflict: 'id' });
+        if (error) {
+          console.warn('cardio_logs upsert error:', error.message);
+          errors.push(error.message);
+        }
+      }
+    }
+
+    if (Array.isArray(saunaArr)) {
+      const existingS = await _fetchRowsFromTable(client, 'sauna_logs', user.id);
+      const keepS = new Set(saunaArr.map((x) => String(x.id)));
+      const delS = existingS
+        .map((r) => String((r.entry && r.entry.id) || r.id || ''))
+        .filter((id) => id && !keepS.has(id));
+      if (delS.length > 0) {
+        await client.from('sauna_logs').delete().eq('user_id', user.id).in('id', delS);
+      }
+      if (saunaArr.length > 0) {
+        const rowsS = saunaArr.map((item) => ({
+          id: String(item.id || ('s-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
+          user_id: user.id,
+          date: item.date || new Date().toISOString().slice(0, 10),
+          entry: item,
+          updated_at: new Date().toISOString()
+        }));
+        const { error } = await client.from('sauna_logs').upsert(rowsS, { onConflict: 'id' });
+        if (error) {
+          console.warn('sauna_logs upsert error:', error.message);
+          errors.push(error.message);
+        }
+      }
+    }
+
+    return { ok: errors.length === 0, errors };
+  }
+
   async function pushAllToCloud(userId) {
     const uid = userId || (getCurrentUser() && getCurrentUser().id);
     if (!uid) return;
     const ctx = readJson(STORAGE_KEYS.COACH_CONTEXT, null);
     if (ctx) await syncCoachContextToCloud(ctx);
+    const logs = readJson(STORAGE_KEYS.LOGS, []);
+    const cardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
+    const sauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
+    await syncLogsToCloud(logs, cardio, sauna);
     const customCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, []);
     if (Array.isArray(customCat)) {
       for (const item of customCat) {
@@ -527,6 +623,7 @@
     writeJson,
     hydrateUserFromCloud,
     syncCoachContextToCloud,
+    syncLogsToCloud,
     syncCustomCatalogItemToCloud,
     pushAllToCloud,
     uploadCatalogImage,
