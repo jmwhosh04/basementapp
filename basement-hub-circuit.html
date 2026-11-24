@@ -142,25 +142,16 @@
           <!-- Collapsible "Why This Workout?" Coach Adaptation Drawer (Expands Right Below the Button & Above Modality Pills) -->
           <div v-if="showWhyWorkoutDrawer" class="p-3 rounded-xl bg-slate-950 border border-indigo-500/40 space-y-2 text-xs">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400">✨ AI Pro Trainer Rationale &amp; Guardrail Check</span>
+              <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400">🏋️‍♂️ Why Today Matters</span>
               <div class="flex items-center gap-2">
                 <button type="button" @click="generateDynamicWhyWorkoutAi(true)" :disabled="whyWorkoutAiLoading" class="text-[10px] text-emerald-300 hover:text-white font-bold underline">
-                  {{ whyWorkoutAiLoading ? 'Thinking...' : '✨ Refresh AI Why' }}
+                  {{ whyWorkoutAiLoading ? 'Thinking...' : '✨ Refresh' }}
                 </button>
                 <button @click="showWhyWorkoutDrawer = false" class="text-[10px] text-slate-400 hover:text-white font-bold">Hide ▲</button>
               </div>
             </div>
-            <p class="text-[11px] text-slate-100 leading-relaxed">
+            <p class="text-[11px] text-slate-100 leading-relaxed whitespace-pre-line">
               {{ dynamicWhyWorkoutSummary }}
-            </p>
-            <div v-if="activeTodayModality === 'lift' && activeCircuitStations.length > 0" class="pt-1.5 border-t border-slate-900 space-y-1">
-              <div class="text-[9px] font-black uppercase tracking-wider text-emerald-400">Station-by-Station AI Picks:</div>
-              <div v-for="(st, sIdx) in activeCircuitStations" :key="'why-' + sIdx" class="text-[10px] text-slate-300 leading-snug">
-                <strong class="text-white">#{{ sIdx + 1 }} {{ st.name }}:</strong> {{ st.reason }}
-              </div>
-            </div>
-            <p class="text-[10px] text-slate-400 leading-snug pt-1 border-t border-slate-900">
-              <strong class="text-amber-300">Modality Call:</strong> {{ recommendedDailyModality.reason }} &bull; <strong class="text-indigo-300">{{ liveTrainerAuditSummary.summaryLine }}</strong>
             </p>
           </div>
 
@@ -630,12 +621,15 @@
             </div>
 
             <div
-              v-else-if="liftedYesterday"
-              class="p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/50 flex items-center justify-between gap-2 text-xs"
+              v-else-if="liftedYesterday && consecutivePriorLiftDays < 2"
+              class="px-3 py-2 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-[11px] text-indigo-100 space-y-0.5"
             >
-              <div class="text-indigo-100 leading-snug">
-                <strong class="text-indigo-300 block text-[10px] uppercase">💪 Pro Trainer Day-2 Split (2nd Consecutive Lift Day Allowed)</strong>
-                You've lifted on 1 of your recent days. Today's circuit evaluates your recent multi-day set volume, per-lift RPE trends, reported soreness, and active goals—or tap <strong>Run / Row</strong> above if you prefer cardio today.
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">💪 Day-2 Lift Focus</span>
+                <span v-if="day2ActionableNudge" class="text-[10px] font-mono text-amber-300 font-bold">{{ day2ActionableNudge }}</span>
+              </div>
+              <div class="leading-snug">
+                <strong class="text-slate-300">Yesterday:</strong> {{ yesterdayMusclesSummary }} &bull; <strong class="text-emerald-300">Today:</strong> {{ todayFocusMusclesSummary }}
               </div>
             </div>
 
@@ -3349,21 +3343,55 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const activeCircuitStations = ref([]);
         const customCircuitList = ref(['Dumbbell Sumo Squat', 'Incline Dumbbell Bench Press', 'Dumbbell Pullover', 'Banded Clamshell']);
 
+        const formatMuscleZoneLabel = (zoneKey) => {
+          const map = {
+            quads: 'Quads & Knees',
+            posterior: 'Hamstrings & Glutes',
+            calves: 'Calves, Shins & Hips',
+            chest: 'Chest & Front Push',
+            back: 'Lats & Upper Back',
+            shoulders_arms: 'Shoulders & Arms'
+          };
+          return map[zoneKey] || 'Full Body';
+        };
+
+        const yesterdayMusclesSummary = computed(() => {
+          const yLogs = workoutLogs.value.filter((l) => l.date === yesterdayIso.value);
+          if (!yLogs.length) return 'Light / no heavy lifts';
+          const zones = [...new Set(yLogs.map((l) => formatMuscleZoneLabel(getMuscleGroupForLift(l.exercise))))];
+          return zones.slice(0, 3).join(', ');
+        });
+
+        const todayFocusMusclesSummary = computed(() => {
+          if (!activeCircuitStations.value.length) return 'Balanced full-body circuit';
+          const zones = [...new Set(activeCircuitStations.value.map((s) => formatMuscleZoneLabel(getMuscleGroupForLift(s.name))))];
+          return zones.slice(0, 3).join(', ');
+        });
+
+        const day2ActionableNudge = computed(() => {
+          const yLogs = workoutLogs.value.filter((l) => l.date === yesterdayIso.value);
+          if (!yLogs.length) return '';
+          const avgY = yLogs.reduce((s, l) => s + (Number(l.rpe) || 8.0), 0) / yLogs.length;
+          if (avgY >= 8.5 || (coachCtx.value.readinessScore || 95) < 75) {
+            return '30m Row optional if fatigued';
+          }
+          return '';
+        });
+
         const whyWorkoutAiLoading = ref(false);
         const aiWhyWorkoutText = ref('');
 
         const dynamicWhyWorkoutSummary = computed(() => {
           if (aiWhyWorkoutText.value) return aiWhyWorkoutText.value;
           const goalTitle = coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning';
-          const phaseLabel = coachCtx.value.mesocyclePhase?.label || coachCtx.value.mesocyclePhase || 'Accumulation';
-          const notePart = todayPreWorkoutNoteObj.value?.transcript
-            ? ` Based on your check-in ("${todayPreWorkoutNoteObj.value.transcript}"),`
-            : ' Based on your recent logs and recovery state,';
-          if (activeTodayModality.value === 'lift') {
-            const firstFew = activeCircuitStations.value.slice(0, 3).map((s) => s.name).join(', ');
-            return `${notePart} I built a ${activeCircuitStations.value.length}-station ${phaseLabel} circuit (~${estimatedCircuitMinutes.value}m) targeting ${sessionEffortGameplan.value.headlineRpe} to advance "${goalTitle}" while protecting recovery—starting with ${firstFew || 'compound lifts'}.`;
-          }
-          return `${notePart} I prescribed a ${activeCardioPrescription.value.durationMins}-minute ${activeTodayModality.value.toUpperCase()} session (${activeCardioPrescription.value.targetRpe}) to support "${goalTitle}" while respecting your spacing rules.`;
+          const noteContext = todayPreWorkoutNoteObj.value?.transcript
+            ? `Since you noted "${todayPreWorkoutNoteObj.value.transcript}" today, `
+            : '';
+          const prevContext = liftedYesterday.value
+            ? `After yesterday's ${yesterdayMusclesSummary.value} work, today's session shifts attention toward ${todayFocusMusclesSummary.value} so fatigued tissue gets recovery room while keeping momentum toward ${goalTitle}.`
+            : `Coming off a breather from heavy lifting, today is a great day to build steady momentum toward ${goalTitle} across ${todayFocusMusclesSummary.value}.`;
+          const focusCue = ` Focus on controlled lowering, clean joint mechanics around ${sessionEffortGameplan.value.headlineRpe}, and steady breathing rather than chasing max weight—the exercise picks below are sequenced to hit your main movers first and support posture and stability without overloading what was recently taxed.`;
+          return `${noteContext}${prevContext}${focusCue}`;
         });
 
         const generateDynamicWhyWorkoutAi = async (force = false) => {
@@ -3373,15 +3401,17 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           if (!apiKey) return;
           whyWorkoutAiLoading.value = true;
           try {
-            const stationSummary = activeCircuitStations.value.map((s) => `${s.name} (${s.plannedWeight}lb x ${s.plannedReps}, ${s.restSeconds}s rest): ${s.reason}`).join(' | ');
-            const prompt = `You are a sharp personal trainer explaining in 2-3 natural, conversational sentences WHY today's workout was chosen.
-Modality: ${activeTodayModality.value} (~${activeTodayModality.value === 'lift' ? estimatedCircuitMinutes.value : activeCardioPrescription.value.durationMins} min).
-Goal: ${coachCtx.value.primaryGoal?.title || 'Strength & Conditioning'}.
-Target Effort: ${sessionEffortGameplan.value.headlineRpe}.
-Check-In Note: ${todayPreWorkoutNoteObj.value?.transcript || 'None'}.
-7-Day Audit: ${liveTrainerAuditSummary.value.summaryLine}.
-Stations: ${stationSummary}.
-Do not use bullet points or recite raw log counts; speak directly to the athlete about why this combination fits today.`;
+            const recent3d = workoutLogs.value
+              .filter((l) => l.date >= getLocalIsoDate(-3))
+              .slice(0, 12)
+              .map((l) => `${l.date}: ${l.exercise} (RPE ${l.rpe})`);
+            const selectionThemes = activeCircuitStations.value.map((s) => `${getLiftMeta(s.name).category} (${s.reason})`).join('; ');
+            const prompt = `You are a personal trainer talking conversationally to your client before today's workout.
+Explain in 3 short, natural sentences:
+1) Why today's workout matters right now and what they should focus on (effort/control/mindset),
+2) How it builds off or spaces out from the last few days of training (${JSON.stringify(recent3d)}), and
+3) Why the exercise lineup was chosen by movement/muscle balance and goal alignment (${selectionThemes}).
+CRITICAL RULE: Do NOT list individual exercise names or recite raw numbers/stats—the user already sees the exercise list right below.`;
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -4909,7 +4939,7 @@ Return ONLY valid JSON:
         });
 
         return {
-          todayIso, currentView, toast, showWhyWorkoutDrawer, whyWorkoutAiLoading, dynamicWhyWorkoutSummary, generateDynamicWhyWorkoutAi, builderCategoryFilter,
+          todayIso, currentView, toast, showWhyWorkoutDrawer, whyWorkoutAiLoading, dynamicWhyWorkoutSummary, generateDynamicWhyWorkoutAi, yesterdayMusclesSummary, todayFocusMusclesSummary, day2ActionableNudge, builderCategoryFilter,
           activeTtsSourceId, autoSpeakExerciseAi, stopCurrentAudioPlayback, speakTextOutLoud,
           trainerNotesLogs, hasProvidedTodayUpdate, showPreWorkoutUpdateBox, dailyUpdateTranscript,
           isListeningDailyUpdate, dailyUpdateProcessing, todayPreWorkoutNoteObj,
