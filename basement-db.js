@@ -35,7 +35,8 @@
       focusArea: 'dynamic_strength',
       durationWeeks: 6,
       currentWeek: 1,
-      weeklyTargetSets: 18,
+      weeklyTargetSets: 45,
+      targetMuscleGroups: ['Lower', 'Upper Push', 'Upper Pull', 'Shoulders', 'Core'],
       primaryLifts: [],
       secondaryLifts: []
     },

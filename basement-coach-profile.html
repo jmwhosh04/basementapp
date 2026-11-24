@@ -143,7 +143,7 @@
             <div class="grid grid-cols-2 gap-2">
               <label class="text-[10px] text-slate-400 font-bold">
                 Weekly Target Sets
-                <input v-model.number="context.primaryGoal.weeklyTargetSets" type="number" min="6" max="40" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+                <input v-model.number="context.primaryGoal.weeklyTargetSets" type="number" min="6" max="120" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
               </label>
               <label class="text-[10px] text-slate-400 font-bold">
                 Block Duration (Weeks)
@@ -511,7 +511,7 @@
         <div class="grid grid-cols-3 gap-2">
           <label class="text-[10px] text-slate-400 font-bold">
             Days / Week
-            <input v-model.number="context.modalityPreferences.targetDaysPerWeek" @change="saveContext()" type="number" min="2" max="7" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+            <input v-model.number="context.modalityPreferences.targetDaysPerWeek" @change="recalibrateGoalTargetFromSchedule(); saveContext(true)" type="number" min="2" max="7" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
           </label>
           <label class="text-[10px] text-slate-400 font-bold">
             Min Window (m)
@@ -918,6 +918,17 @@
             chronicGuardrails: normalizeGuardrailList(loaded.chronicGuardrails)
           };
           context.value = merged;
+          // Auto-migrate legacy static 18-set default on existing saved goals that haven't been calibrated yet
+          if (
+            context.value.primaryGoal &&
+            (!Array.isArray(context.value.primaryGoal.targetMuscleGroups) || context.value.primaryGoal.targetMuscleGroups.length === 0) &&
+            Number(context.value.primaryGoal.weeklyTargetSets || 18) === 18
+          ) {
+            const inferred = inferGoalStimulusParams(context.value.primaryGoal.title || 'Strength & Conditioning');
+            context.value.primaryGoal.weeklyTargetSets = inferred.weeklyTargetSets;
+            context.value.primaryGoal.targetMuscleGroups = inferred.targetMuscleGroups;
+            saveContext(false);
+          }
           const rawLogs = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.LOGS, []);
           logs.value = Array.isArray(rawLogs) ? rawLogs : [];
         }
@@ -932,6 +943,15 @@
           if (notify) {
             savedBanner.value = true;
             setTimeout(() => { savedBanner.value = false; }, 1800);
+          }
+        }
+
+        function recalibrateGoalTargetFromSchedule() {
+          if (!context.value.primaryGoal) return;
+          const inferred = inferGoalStimulusParams(context.value.primaryGoal.title || 'Strength & Conditioning');
+          context.value.primaryGoal.weeklyTargetSets = inferred.weeklyTargetSets;
+          if (!Array.isArray(context.value.primaryGoal.targetMuscleGroups) || context.value.primaryGoal.targetMuscleGroups.length === 0) {
+            context.value.primaryGoal.targetMuscleGroups = inferred.targetMuscleGroups;
           }
         }
 
