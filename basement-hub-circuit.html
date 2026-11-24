@@ -141,16 +141,26 @@
 
           <!-- Collapsible "Why This Workout?" Coach Adaptation Drawer (Expands Right Below the Button & Above Modality Pills) -->
           <div v-if="showWhyWorkoutDrawer" class="p-3 rounded-xl bg-slate-950 border border-indigo-500/40 space-y-2 text-xs">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400">Pro Trainer Modality &amp; Muscle-Activation Synthesis</span>
-              <button @click="showWhyWorkoutDrawer = false" class="text-[10px] text-slate-400 hover:text-white font-bold">Hide ▲</button>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400">✨ AI Pro Trainer Rationale &amp; Guardrail Check</span>
+              <div class="flex items-center gap-2">
+                <button type="button" @click="generateDynamicWhyWorkoutAi(true)" :disabled="whyWorkoutAiLoading" class="text-[10px] text-emerald-300 hover:text-white font-bold underline">
+                  {{ whyWorkoutAiLoading ? 'Thinking...' : '✨ Refresh AI Why' }}
+                </button>
+                <button @click="showWhyWorkoutDrawer = false" class="text-[10px] text-slate-400 hover:text-white font-bold">Hide ▲</button>
+              </div>
             </div>
-            <p class="text-[11px] text-slate-300 leading-relaxed">
-              &bull; <strong class="text-amber-300">Today's Pro Trainer Call:</strong> {{ recommendedDailyModality.reason }}<br/>
-              &bull; <strong class="text-rose-300">Hard Guardrails (Max 2 Lift Days / Max 1 Run Day):</strong> Never prescribes 3 consecutive strength days (currently {{ consecutivePriorLiftDays }} prior consecutive lift day{{ consecutivePriorLiftDays === 1 ? '' : 's' }}) and never prescribes 2 consecutive running days.<br/>
-              &bull; <strong class="text-sky-300">Why Rowing vs. Running:</strong> Running builds lower-leg elasticity and aerobic capacity, while <strong>Rowing recruits ~86% of skeletal muscle</strong> (lats, rhomboids, rear delts, glutes, hamstrings, and core) to counteract desk posture and V-taper gaps with zero tibial impact.<br/>
-              &bull; <strong class="text-emerald-400">25–40 Minute Target Window:</strong> Today's plan is paced for <strong>~{{ activeTodayModality === 'lift' ? estimatedCircuitMinutes : activeCardioPrescription.durationMins }} minutes</strong> total.<br/>
-              &bull; <strong class="text-indigo-300">🔗 Shared Pro Trainer Audit:</strong> {{ liveTrainerAuditSummary.summaryLine }}
+            <p class="text-[11px] text-slate-100 leading-relaxed">
+              {{ dynamicWhyWorkoutSummary }}
+            </p>
+            <div v-if="activeTodayModality === 'lift' && activeCircuitStations.length > 0" class="pt-1.5 border-t border-slate-900 space-y-1">
+              <div class="text-[9px] font-black uppercase tracking-wider text-emerald-400">Station-by-Station AI Picks:</div>
+              <div v-for="(st, sIdx) in activeCircuitStations" :key="'why-' + sIdx" class="text-[10px] text-slate-300 leading-snug">
+                <strong class="text-white">#{{ sIdx + 1 }} {{ st.name }}:</strong> {{ st.reason }}
+              </div>
+            </div>
+            <p class="text-[10px] text-slate-400 leading-snug pt-1 border-t border-slate-900">
+              <strong class="text-amber-300">Modality Call:</strong> {{ recommendedDailyModality.reason }} &bull; <strong class="text-indigo-300">{{ liveTrainerAuditSummary.summaryLine }}</strong>
             </p>
           </div>
 
@@ -3339,6 +3349,53 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const activeCircuitStations = ref([]);
         const customCircuitList = ref(['Dumbbell Sumo Squat', 'Incline Dumbbell Bench Press', 'Dumbbell Pullover', 'Banded Clamshell']);
 
+        const whyWorkoutAiLoading = ref(false);
+        const aiWhyWorkoutText = ref('');
+
+        const dynamicWhyWorkoutSummary = computed(() => {
+          if (aiWhyWorkoutText.value) return aiWhyWorkoutText.value;
+          const goalTitle = coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning';
+          const phaseLabel = coachCtx.value.mesocyclePhase?.label || coachCtx.value.mesocyclePhase || 'Accumulation';
+          const notePart = todayPreWorkoutNoteObj.value?.transcript
+            ? ` Based on your check-in ("${todayPreWorkoutNoteObj.value.transcript}"),`
+            : ' Based on your recent logs and recovery state,';
+          if (activeTodayModality.value === 'lift') {
+            const firstFew = activeCircuitStations.value.slice(0, 3).map((s) => s.name).join(', ');
+            return `${notePart} I built a ${activeCircuitStations.value.length}-station ${phaseLabel} circuit (~${estimatedCircuitMinutes.value}m) targeting ${sessionEffortGameplan.value.headlineRpe} to advance "${goalTitle}" while protecting recovery—starting with ${firstFew || 'compound lifts'}.`;
+          }
+          return `${notePart} I prescribed a ${activeCardioPrescription.value.durationMins}-minute ${activeTodayModality.value.toUpperCase()} session (${activeCardioPrescription.value.targetRpe}) to support "${goalTitle}" while respecting your spacing rules.`;
+        });
+
+        const generateDynamicWhyWorkoutAi = async (force = false) => {
+          if (whyWorkoutAiLoading.value) return;
+          if (!force && aiWhyWorkoutText.value) return;
+          const apiKey = getActiveApiKey();
+          if (!apiKey) return;
+          whyWorkoutAiLoading.value = true;
+          try {
+            const stationSummary = activeCircuitStations.value.map((s) => `${s.name} (${s.plannedWeight}lb x ${s.plannedReps}, ${s.restSeconds}s rest): ${s.reason}`).join(' | ');
+            const prompt = `You are a sharp personal trainer explaining in 2-3 natural, conversational sentences WHY today's workout was chosen.
+Modality: ${activeTodayModality.value} (~${activeTodayModality.value === 'lift' ? estimatedCircuitMinutes.value : activeCardioPrescription.value.durationMins} min).
+Goal: ${coachCtx.value.primaryGoal?.title || 'Strength & Conditioning'}.
+Target Effort: ${sessionEffortGameplan.value.headlineRpe}.
+Check-In Note: ${todayPreWorkoutNoteObj.value?.transcript || 'None'}.
+7-Day Audit: ${liveTrainerAuditSummary.value.summaryLine}.
+Stations: ${stationSummary}.
+Do not use bullet points or recite raw log counts; speak directly to the athlete about why this combination fits today.`;
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+              if (txt) aiWhyWorkoutText.value = txt;
+            }
+          } catch (_e) {}
+          finally { whyWorkoutAiLoading.value = false; }
+        };
+
         const synthesizeCoachedCircuit = (notify = false) => {
           const audit = liveTrainerAuditSummary.value;
           const doms = coachCtx.value.sorenessMap || {};
@@ -4852,7 +4909,7 @@ Return ONLY valid JSON:
         });
 
         return {
-          todayIso, currentView, toast, showWhyWorkoutDrawer, builderCategoryFilter,
+          todayIso, currentView, toast, showWhyWorkoutDrawer, whyWorkoutAiLoading, dynamicWhyWorkoutSummary, generateDynamicWhyWorkoutAi, builderCategoryFilter,
           activeTtsSourceId, autoSpeakExerciseAi, stopCurrentAudioPlayback, speakTextOutLoud,
           trainerNotesLogs, hasProvidedTodayUpdate, showPreWorkoutUpdateBox, dailyUpdateTranscript,
           isListeningDailyUpdate, dailyUpdateProcessing, todayPreWorkoutNoteObj,
