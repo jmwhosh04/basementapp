@@ -242,7 +242,12 @@
         if (!r) return null;
         if (r.entry && typeof r.entry === 'object') return r.entry;
         if (r.payload && typeof r.payload === 'object') return r.payload;
-        return r;
+        return {
+          ...r,
+          bandLevel: r.bandLevel !== undefined ? r.bandLevel : (r.band_level || null),
+          durationSec: r.durationSec !== undefined ? r.durationSec : (r.duration_sec || null),
+          secPerRep: r.secPerRep !== undefined ? r.secPerRep : (r.sec_per_rep || null)
+        };
       })
       .filter(Boolean);
   }
@@ -271,14 +276,16 @@
         writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...localCtx, ...cloudContext });
       }
 
-      let strengthRows = await _fetchRowsFromTable(client, 'workout_logs', userId);
-      if (strengthRows.length === 0) {
-        strengthRows = await _fetchRowsFromTable(client, 'strength_logs', userId);
-      }
+      const strengthRows = await _fetchRowsFromTable(client, 'strength_logs', userId);
       const cloudLogs = _normalizeLogEntries(strengthRows);
       const localLogs = readJson(STORAGE_KEYS.LOGS, []);
       if (cloudLogs.length > 0) {
-        writeJson(STORAGE_KEYS.LOGS, cloudLogs);
+        const mergedMap = new Map();
+        cloudLogs.forEach((item) => { if (item && item.id) mergedMap.set(String(item.id), item); });
+        if (Array.isArray(localLogs)) {
+          localLogs.forEach((item) => { if (item && item.id && !mergedMap.has(String(item.id))) mergedMap.set(String(item.id), item); });
+        }
+        writeJson(STORAGE_KEYS.LOGS, Array.from(mergedMap.values()));
       } else if (Array.isArray(localLogs) && localLogs.length > 0) {
         writeJson(STORAGE_KEYS.LOGS, localLogs);
       }
@@ -379,30 +386,36 @@
     const errors = [];
 
     if (Array.isArray(logsArr)) {
-      const existingRows = await _fetchRowsFromTable(client, 'workout_logs', user.id);
+      const existingRows = await _fetchRowsFromTable(client, 'strength_logs', user.id);
       const keepIds = new Set(logsArr.map((x) => String(x.id)));
       const toDelete = existingRows
-        .map((r) => String((r.entry && r.entry.id) || r.id || ''))
+        .map((r) => String(r.id || ''))
         .filter((id) => id && !keepIds.has(id));
       if (toDelete.length > 0) {
-        await client.from('workout_logs').delete().eq('user_id', user.id).in('id', toDelete);
+        await client.from('strength_logs').delete().eq('user_id', user.id).in('id', toDelete);
       }
       if (logsArr.length > 0) {
         const rows = logsArr.map((item) => ({
-          id: String(item.id || ('w-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
+          id: String(item.id || ('m-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
           user_id: user.id,
           date: item.date || new Date().toISOString().slice(0, 10),
-          entry: item,
-          updated_at: new Date().toISOString()
+          exercise: String(item.exercise || 'Goblet Squat'),
+          weight: Number(item.weight) || 0,
+          band_level: item.bandLevel || item.band_level || null,
+          reps: Number(item.reps) || 10,
+          rpe: Number(item.rpe) || 8.0,
+          duration_sec: item.durationSec != null ? Number(item.durationSec) : null,
+          sec_per_rep: item.secPerRep != null ? Number(item.secPerRep) : null
         }));
-        const { error } = await client.from('workout_logs').upsert(rows, { onConflict: 'id' });
+        const { error } = await client.from('strength_logs').upsert(rows, { onConflict: 'id' });
         if (error) {
-          console.warn('workout_logs upsert error:', error.message);
-          // Fallback to strength_logs table if workout_logs schema differs
-          const { error: err2 } = await client.from('strength_logs').upsert(rows, { onConflict: 'id' });
+          console.warn('strength_logs upsert error:', error.message);
+          // Retry with core columns in case optional duration columns aren't in schema
+          const coreRows = rows.map(({ duration_sec, sec_per_rep, ...rest }) => rest);
+          const { error: err2 } = await client.from('strength_logs').upsert(coreRows, { onConflict: 'id' });
           if (err2) {
-            console.warn('strength_logs upsert error:', err2.message);
-            errors.push(error.message);
+            console.warn('strength_logs core upsert error:', err2.message);
+            errors.push(err2.message);
           }
         }
       }
@@ -412,7 +425,7 @@
       const existingC = await _fetchRowsFromTable(client, 'cardio_logs', user.id);
       const keepC = new Set(cardioArr.map((x) => String(x.id)));
       const delC = existingC
-        .map((r) => String((r.entry && r.entry.id) || r.id || ''))
+        .map((r) => String(r.id || ''))
         .filter((id) => id && !keepC.has(id));
       if (delC.length > 0) {
         await client.from('cardio_logs').delete().eq('user_id', user.id).in('id', delC);
@@ -422,8 +435,13 @@
           id: String(item.id || ('c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
           user_id: user.id,
           date: item.date || new Date().toISOString().slice(0, 10),
-          entry: item,
-          updated_at: new Date().toISOString()
+          modality: String(item.modality || 'Rowing'),
+          duration: Number(item.duration) || 30,
+          distance: item.distance != null ? Number(item.distance) : null,
+          incline: item.incline != null ? Number(item.incline) : 0,
+          resistance: item.resistance != null ? Number(item.resistance) : null,
+          meters: item.meters != null ? Number(item.meters) : null,
+          rpe: Number(item.rpe) || 7.5
         }));
         const { error } = await client.from('cardio_logs').upsert(rowsC, { onConflict: 'id' });
         if (error) {
@@ -437,7 +455,7 @@
       const existingS = await _fetchRowsFromTable(client, 'sauna_logs', user.id);
       const keepS = new Set(saunaArr.map((x) => String(x.id)));
       const delS = existingS
-        .map((r) => String((r.entry && r.entry.id) || r.id || ''))
+        .map((r) => String(r.id || ''))
         .filter((id) => id && !keepS.has(id));
       if (delS.length > 0) {
         await client.from('sauna_logs').delete().eq('user_id', user.id).in('id', delS);
@@ -447,8 +465,9 @@
           id: String(item.id || ('s-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
           user_id: user.id,
           date: item.date || new Date().toISOString().slice(0, 10),
-          entry: item,
-          updated_at: new Date().toISOString()
+          duration: Number(item.duration) || 20,
+          type: String(item.type || 'Traditional Dry Sauna'),
+          timing: String(item.timing || 'Post-Lift')
         }));
         const { error } = await client.from('sauna_logs').upsert(rowsS, { onConflict: 'id' });
         if (error) {
