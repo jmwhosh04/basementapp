@@ -750,6 +750,77 @@
                   <p class="w-full text-[11px] font-semibold text-emerald-300 leading-snug">
                     &#9889; {{ getQuickHitReminder(st.name) }}
                   </p>
+
+                  <!-- Pro Trainer Swap Trigger Row -->
+                  <div class="pt-1 flex items-center justify-between gap-2">
+                    <span class="text-[10px] text-slate-400 truncate">{{ st.reason }}</span>
+                    <button
+                      type="button"
+                      @click="openStationSwapDrawer(idx, st)"
+                      class="px-2.5 py-1 rounded-lg border text-[10px] font-black transition shrink-0"
+                      :class="swappingStationIdx === idx ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-slate-900 hover:bg-slate-800 text-indigo-300 border-indigo-500/40'"
+                    >
+                      {{ swappingStationIdx === idx ? 'Close Swap ▲' : '🔄 Swap Exercise' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pro Trainer Alternative Swap Drawer -->
+              <div v-if="swappingStationIdx === idx" class="p-3 rounded-xl bg-slate-900/95 border border-indigo-500/50 space-y-2 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">
+                    🧠 Pro Trainer Alternatives for {{ st.name }} ({{ getLiftMeta(st.name).category }})
+                  </span>
+                  <span v-if="swapAlternativesLoading" class="text-[10px] font-mono text-emerald-300 animate-pulse">Finding best fits...</span>
+                </div>
+
+                <!-- Optional quick reason pill (No equipment vs Too tough today) -->
+                <div class="flex gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    @click="requestTrainerSwapAlternatives(idx, st, 'missing_equipment')"
+                    class="px-2 py-1 rounded-lg text-[10px] font-bold border transition"
+                    :class="swapReasonMode === 'missing_equipment' ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'"
+                  >
+                    🚫 Don't Have Equipment (DB / Bodyweight Only)
+                  </button>
+                  <button
+                    type="button"
+                    @click="requestTrainerSwapAlternatives(idx, st, 'easier_variation')"
+                    class="px-2 py-1 rounded-lg text-[10px] font-bold border transition"
+                    :class="swapReasonMode === 'easier_variation' ? 'bg-sky-500/20 border-sky-400 text-sky-200' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'"
+                  >
+                    🌿 Easier / Joint-Friendly Same-Muscle Option
+                  </button>
+                </div>
+
+                <div class="space-y-1.5">
+                  <div
+                    v-for="alt in activeSwapAlternatives"
+                    :key="alt.name"
+                    class="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex items-center justify-between gap-2"
+                  >
+                    <div class="flex items-center gap-2 min-w-0">
+                      <img :src="getExercisePhoto(alt.name, 'top')" class="w-10 h-10 rounded-lg object-cover border border-slate-700 shrink-0" />
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          <span class="text-xs font-black text-white truncate">{{ alt.name }}</span>
+                          <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-900 border border-slate-700 text-emerald-300">
+                            {{ alt.equipment }}
+                          </span>
+                        </div>
+                        <p class="text-[10px] text-slate-300 leading-snug mt-0.5">{{ alt.whyFit }}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      @click="applyStationSwapChoice(idx, st.name, alt)"
+                      class="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] shrink-0"
+                    >
+                      Use This
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -3466,6 +3537,147 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           startGuidedWorkout();
         };
 
+        const swappingStationIdx = ref(-1);
+        const swapReasonMode = ref('all'); // 'all' | 'missing_equipment' | 'easier_variation'
+        const swapAlternativesLoading = ref(false);
+        const activeSwapAlternatives = ref([]);
+
+        const buildLocalSameMuscleAlternatives = (st, mode = 'all') => {
+          const meta = getLiftMeta(st.name);
+          const bannedSet = new Set(coachCtx.value.exercisePreferences?.banned || []);
+          const activeNames = new Set(activeCircuitStations.value.map((s) => s.name));
+          const targetCat = meta.category;
+          const targetMuscles = String(meta.muscles || '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4);
+
+          const candidates = allCatalogLiftNames.value
+            .filter((name) => name !== st.name && !bannedSet.has(name) && !activeNames.has(name))
+            .map((name) => {
+              const m = getLiftMeta(name);
+              if (mode === 'missing_equipment' && m.equipment === 'Band') return null;
+              if (mode === 'missing_equipment' && st.equipment !== 'Bodyweight' && m.equipment === st.equipment && st.name.toLowerCase().includes('band')) return null;
+
+              let score = 0;
+              if (m.category === targetCat) score += 50;
+              const mWords = String(m.muscles || '').toLowerCase();
+              targetMuscles.forEach((w) => { if (mWords.includes(w)) score += 15; });
+              if (mode === 'missing_equipment' && (m.equipment === 'Dumbbell' || m.equipment === 'Bodyweight')) score += 25;
+              if (mode === 'easier_variation' && (m.equipment === 'Bodyweight' || Number(m.weight || 0) <= Number(st.plannedWeight || 25))) score += 25;
+              if (evaluateExerciseConflicts(name).length > 0) score -= 40;
+
+              let whyFit = `Targets ${m.muscles} using ${m.equipment}`;
+              if (mode === 'missing_equipment') whyFit = `No bands needed (${m.equipment}) • hits ${m.muscles}`;
+              else if (mode === 'easier_variation') whyFit = `Controlled, joint-friendly variation • ${m.muscles}`;
+              return { name, equipment: m.equipment, whyFit, score };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.score - a.score);
+
+          return candidates.slice(0, 3);
+        };
+
+        const requestTrainerSwapAlternatives = async (idx, st, mode = 'all') => {
+          swapReasonMode.value = mode;
+          activeSwapAlternatives.value = buildLocalSameMuscleAlternatives(st, mode);
+
+          const apiKey = getActiveApiKey();
+          if (!apiKey) return;
+
+          swapAlternativesLoading.value = true;
+          try {
+            const bannedSet = new Set(coachCtx.value.exercisePreferences?.banned || []);
+            const activeNames = activeCircuitStations.value.map((s) => s.name);
+            const meta = getLiftMeta(st.name);
+            const modeInstruction = mode === 'missing_equipment'
+              ? 'The user does NOT have the equipment for this lift (e.g., no resistance bands)—ONLY suggest Dumbbell (<=50 lb) or Bodyweight alternatives.'
+              : mode === 'easier_variation'
+              ? 'The user wants an easier, lower-fatigue, or more joint-friendly exercise that still trains the same target muscles today.'
+              : 'Suggest 3 smart same-muscle alternatives (including at least 1 Dumbbell/Bodyweight option in case they lack bands, and 1 joint-friendly/easier option).';
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `You are an expert home-gym personal trainer. The user wants to swap out "${st.name}" (Category: ${meta.category}, Target Muscles: ${meta.muscles}, Equipment: ${st.equipment}) before starting today's circuit.
+${modeInstruction}
+Available home-gym gear: Dumbbells (max 50 lb), Resistance Bands, Adjustable Bench, Bodyweight.
+Already in today's circuit (do NOT duplicate): ${JSON.stringify(activeNames)}.
+Banned lifts (never suggest): ${JSON.stringify([...bannedSet])}.
+Active soreness: ${JSON.stringify(coachCtx.value.sorenessMap || {})}.
+Return ONLY valid JSON:
+{
+  "alternatives": [
+    {
+      "name": "Exact Exercise Name",
+      "equipment": "Dumbbell" | "Band" | "Bodyweight",
+      "whyFit": "1 short sentence explaining why this hits the same muscle group and fits their request"
+    }
+  ]
+}` }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+              if (Array.isArray(parsed.alternatives) && parsed.alternatives.length > 0) {
+                const resolvedList = [];
+                for (const alt of parsed.alternatives.slice(0, 3)) {
+                  const clean = String(alt.name || '').trim();
+                  if (!clean || bannedSet.has(clean) || activeNames.includes(clean)) continue;
+                  if (!LIFT_DB[clean] && window.BasementExercises && typeof window.BasementExercises.resolveExerciseAsync === 'function') {
+                    const resolved = await window.BasementExercises.resolveExerciseAsync(clean, alt.equipment || 'Dumbbell');
+                    if (resolved) {
+                      LIFT_DB[resolved.name] = { ...resolved, isCustom: true };
+                      customCatalogVersion.value++;
+                    }
+                  }
+                  const m = getLiftMeta(clean);
+                  resolvedList.push({
+                    name: clean,
+                    equipment: m.equipment || alt.equipment || 'Dumbbell',
+                    whyFit: alt.whyFit || `Trains ${m.muscles}`
+                  });
+                }
+                if (resolvedList.length > 0 && swappingStationIdx.value === idx) {
+                  activeSwapAlternatives.value = resolvedList;
+                }
+              }
+            }
+          } catch (_e) {
+          } finally {
+            swapAlternativesLoading.value = false;
+          }
+        };
+
+        const openStationSwapDrawer = (idx, st) => {
+          if (swappingStationIdx.value === idx) {
+            swappingStationIdx.value = -1;
+            return;
+          }
+          swappingStationIdx.value = idx;
+          requestTrainerSwapAlternatives(idx, st, 'all');
+        };
+
+        const applyStationSwapChoice = (idx, oldName, altObj) => {
+          const oldSt = activeCircuitStations.value[idx];
+          const newSt = makeStationObj(
+            altObj.name,
+            `Pro Trainer Swap from ${oldName}: ${altObj.whyFit}`,
+            Boolean(oldSt?.isGoalFocus),
+            oldSt?.goalBadge || ''
+          );
+          activeCircuitStations.value[idx] = newSt;
+          swappingStationIdx.value = -1;
+          try {
+            localStorage.setItem(getAiCircuitCacheKey(), JSON.stringify({
+              stations: activeCircuitStations.value,
+              blindSpots: discoveryExercises.value
+            }));
+          } catch (_e) {}
+          showToast(`Swapped ${oldName} → ${altObj.name}`);
+        };
+
         const swapStationWithSafeAlternative = (idx, oldName) => {
           const safeName = getSafeAlternativeFor(oldName);
           if (!safeName) return;
@@ -4664,7 +4876,7 @@ Return ONLY valid JSON:
           activeCircuitStations, synthesizeCoachedCircuit, generateAiCircuitAndBlindSpots, aiCircuitGenerating, aiCircuitSourceTag,
           customCircuitList, openManualBuildPage, toggleCustomBuilderExercise, addSafeAlternativeToCustom, moveCustomStation, launchCustomBuiltCircuit,
           allCatalogLiftNames, filteredBuilderLifts,
-          evaluateExerciseConflicts, getSafeAlternativeFor, swapStationWithSafeAlternative,
+          evaluateExerciseConflicts, getSafeAlternativeFor, swapStationWithSafeAlternative, swappingStationIdx, swapReasonMode, swapAlternativesLoading, activeSwapAlternatives, openStationSwapDrawer, requestTrainerSwapAlternatives, applyStationSwapChoice,
           muscleGapCategories, selectedGapFilter, filteredDiscoveryExercises, adoptDiscoveryExercise,
           aiDiscoveryLoading, generateAiDiscoverySuggestion,
           activeFormModalLift, openFormCardByName, getLiftMeta, getMaxAllowedWeightForLift, getExercisePhoto, getQuickHitReminder,
