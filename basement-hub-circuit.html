@@ -1316,7 +1316,7 @@
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
                 <button @click="skipStepZeroToMainCircuit" class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-bold text-teal-300 hover:text-white">
-                  {{ isCardioWarmupMode ? `Done → Go ${activeTodayModality === 'row' ? 'Row' : 'Run'} & Log` : 'Skip to Round 1 →' }}
+                  {{ isCardioWarmupMode ? (activeTodayModality === 'row' ? 'Done → Go Row & Log' : 'Done → Go Run & Log') : 'Skip to Round 1 →' }}
                 </button>
                 <button v-if="!isCardioWarmupMode" @click="quitActiveCircuit('today')" class="px-2 py-0.5 rounded-lg bg-rose-950/70 border border-rose-500/50 text-[10px] font-black text-rose-300 hover:bg-rose-500 hover:text-white transition">
                   ✕ Quit
@@ -1403,7 +1403,7 @@
                 &#9209; FINISH DRILL ({{ formatSeconds(setDurationSeconds) }}) &mdash; NEXT
               </span>
               <span class="text-[11px] font-mono font-bold opacity-90 mt-0.5">
-                Tap to advance to {{ currentPrimerIndex + 1 < activeWarmupDrillsList.length ? 'next mobility drill' : (isCardioWarmupMode ? `finish warm-up & go ${activeTodayModality}` : 'Round 1, Station 1') }}
+                Tap to advance to {{ currentPrimerIndex + 1 < activeWarmupDrillsList.length ? 'next mobility drill' : (isCardioWarmupMode ? 'finish warm-up & go to log' : 'Round 1, Station 1') }}
               </span>
             </button>
 
@@ -1412,7 +1412,7 @@
                 ⏱️ TEMPO: Controlled 2s Hold
               </span>
               <button @click="completeCurrentPrimerDrill" class="font-bold text-slate-300 hover:text-teal-300 underline text-[11px]">
-                {{ currentPrimerIndex + 1 < activeWarmupDrillsList.length ? 'Next Drill →' : (isCardioWarmupMode ? `Finish Warm-Up & Go ${activeTodayModality === 'row' ? 'Row' : 'Run'} →` : 'Skip Drill →') }}
+                {{ currentPrimerIndex + 1 < activeWarmupDrillsList.length ? 'Next Drill →' : (isCardioWarmupMode ? (activeTodayModality === 'row' ? 'Finish Warm-Up & Go Row →' : 'Finish Warm-Up & Go Run →') : 'Skip Drill →') }}
               </button>
             </div>
           </div>
@@ -3907,10 +3907,21 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
 
         const startGuidedWorkout = () => {
           stopTimer();
+          if (!Array.isArray(activeCircuitStations.value) || activeCircuitStations.value.length === 0) {
+            synthesizeCoachedCircuit(false);
+          }
+          if (!Array.isArray(activeCircuitStations.value) || activeCircuitStations.value.length === 0) {
+            activeCircuitStations.value = [
+              makeStationObj('Goblet Squat', 'Default strength station', false, ''),
+              makeStationObj('Incline Dumbbell Bench Press', 'Default push station', false, ''),
+              makeStationObj('Single-Arm Dumbbell Row', 'Default pull station', false, ''),
+              makeStationObj('Seated Calf Raise', 'Default lower-leg station', true, '1° GOAL')
+            ];
+          }
           isCardioWarmupMode.value = false;
           currentView.value = 'guided';
-          guidedStage.value = 'step0';
-          persistActiveCircuitProgress('step0');
+          guidedStage.value = (Array.isArray(activeWarmupDrillsList.value) && activeWarmupDrillsList.value.length > 0) ? 'step0' : 'circuit';
+          persistActiveCircuitProgress(guidedStage.value);
           postWorkoutSaunaLogged.value = false;
           currentPrimerIndex.value = 0;
           currentRound.value = 1;
