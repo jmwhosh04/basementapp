@@ -1068,19 +1068,36 @@
         const isFavorite = (name) => favoriteLifts.value.includes(name);
         const isBanned = (name) => bannedLifts.value.includes(name);
 
+        const matchesGoalGroups = (name, goalObj) => {
+          if (!goalObj) return false;
+          if ((goalObj.primaryLifts || []).includes(name) || (goalObj.secondaryLifts || []).includes(name) || goalObj.lift === name) return true;
+          const groups = goalObj.targetMuscleGroups;
+          if (!Array.isArray(groups) || groups.length === 0) return false;
+          const ex = allExercises.value.find((item) => item.name === name);
+          const hay = `${name} ${ex?.category || ''} ${ex?.muscles || ''}`.toLowerCase();
+          return groups.some((g) => {
+            const tok = String(g).toLowerCase();
+            if (tok.includes('calf') || tok.includes('shin') || tok.includes('hip')) return /calf|shin|tibialis|clam|abduct|lateral walk|ankle|soleus/.test(hay);
+            if (tok.includes('pull')) return /upper pull|row|pullover|pull-apart|lat|rhomboid/.test(hay);
+            if (tok.includes('push')) return /upper push|bench|press|fly|push-up|pec/.test(hay);
+            if (tok.includes('shoulder')) return /shoulder|delt|raise|face pull|rotation/.test(hay);
+            if (tok.includes('lower')) return /lower|squat|lunge|rdl|deadlift|bridge|thrust|step-up/.test(hay);
+            if (tok.includes('core')) return /core|plank|dead bug|carry|crunch|twist|bird dog/.test(hay);
+            return hay.includes(tok);
+          });
+        };
+
         const isGoalLift = (name) => {
-          const g = coachCtx.value.activeGoal || {};
+          const g = coachCtx.value.primaryGoal || coachCtx.value.activeGoal || {};
           const sec = coachCtx.value.secondaryGoal || {};
-          return (g.primaryLifts || []).includes(name) ||
-            (g.secondaryLifts || []).includes(name) ||
-            sec.lift === name;
+          return matchesGoalGroups(name, g) || matchesGoalGroups(name, sec);
         };
 
         const getGoalBadge = (name) => {
-          const g = coachCtx.value.activeGoal || {};
-          if ((g.primaryLifts || []).includes(name)) return '1° GOAL DRIVER';
-          if ((g.secondaryLifts || []).includes(name)) return '1° GOAL SUPPORT';
-          if (coachCtx.value.secondaryGoal?.lift === name) return '2° GOAL';
+          const g = coachCtx.value.primaryGoal || coachCtx.value.activeGoal || {};
+          const sec = coachCtx.value.secondaryGoal || {};
+          if (matchesGoalGroups(name, g)) return '1° GOAL DRIVER';
+          if (matchesGoalGroups(name, sec)) return '2° GOAL';
           return '';
         };
 

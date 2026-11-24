@@ -81,17 +81,33 @@
       <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
         <div class="flex items-center justify-between gap-2">
           <div>
-            <h2 class="text-sm font-black text-white">Pro Trainer Clipboard</h2>
-            <span class="text-[10px] font-mono text-emerald-400">🔗 Auto-Synced to Module 1 Circuit Engine</span>
+            <h2 class="text-sm font-black text-white">Pro Trainer Coaching Assessment</h2>
+            <span class="text-[10px] font-mono text-emerald-400">🔗 Live Analysis • Auto-Synced to Hub</span>
           </div>
-          <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-mono font-bold">
-            Target RPE {{ targetRpe }}
-          </span>
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              @click="generateProTrainerCoaching(true)"
+              :disabled="trainerAiLoading"
+              class="text-[10px] px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold border border-slate-700 disabled:opacity-40"
+            >
+              {{ trainerAiLoading ? 'Analyzing...' : '✨ Refresh Coach' }}
+            </button>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-mono font-bold">
+              Target RPE {{ targetRpe }}
+            </span>
+          </div>
         </div>
 
-        <p class="text-xs text-slate-200 leading-relaxed">
-          {{ trainerSummary }}
-        </p>
+        <div class="p-3 rounded-xl bg-slate-950/90 border border-indigo-500/30 space-y-2 text-xs">
+          <div class="flex items-center justify-between text-[10px] font-mono text-indigo-300">
+            <span>🏋️‍♂️ COACH'S TAKE ({{ activeHorizon.toUpperCase() }})</span>
+            <button v-if="aiCoachingTake" type="button" @click="speakCoachTake(aiCoachingTake)" class="text-emerald-300 underline font-bold">🔊 Listen</button>
+          </div>
+          <p class="text-slate-100 leading-relaxed whitespace-pre-line">
+            {{ aiCoachingTake || trainerSummary }}
+          </p>
+        </div>
 
         <!-- Conditional Balance Pill Bar: Lower-Leg Armor ONLY when lower-leg guardrails/injuries/goals are active -->
         <div v-if="hasLowerLegArmorFocus" class="grid grid-cols-3 gap-1.5 text-center font-mono">
@@ -349,7 +365,7 @@
         </div>
 
         <div class="p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/30 text-[11px] text-amber-200">
-          ⚡ <strong>50-lb Dumbbell Cap Progression Coach:</strong> {{ e1rmStats.atCap ? 'You have hit the 50 lb dumbbell ceiling—use 3s slow eccentric + 2s bottom pause or unilateral split variations.' : 'Progress weight in 2.5–5 lb steps up to 50 lb while keeping 1–2 reps in reserve.' }}
+          ⚡ <strong>50-lb Dumbbell Cap Progression Coach:</strong> {{ e1rmPlateauAdvice }}
         </div>
       </div>
     </section>
@@ -476,18 +492,79 @@
           return { calfSets, hipSets, tibialisSets, upperSets, lowerSets, coreSets };
         });
 
+        const trainerNotes = ref([]);
+        const aiCoachingTake = ref('');
+        const trainerAiLoading = ref(false);
+
+        const speakCoachTake = (txt) => {
+          const clean = String(txt || '').replace(/[*#`_~]/g, '').trim();
+          if (!clean || !('speechSynthesis' in window)) return;
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(clean);
+          u.rate = 1.04;
+          window.speechSynthesis.speak(u);
+        };
+
         const trainerSummary = computed(() => {
           const { calfSets, hipSets, tibialisSets, upperSets, lowerSets, coreSets } = balanceStats.value;
-          const horizonNote = activeHorizon.value === '7d'
-            ? 'Over the past 7 days'
-            : activeHorizon.value === '6w'
-            ? 'Across your 6–8 week mesocycle'
-            : 'Across your 3-month macro block';
-          if (hasLowerLegArmorFocus.value) {
-            return `${horizonNote}, you logged ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna sessions. Active lower-leg guardrails show ${calfSets} calf sets vs. ${hipSets} hip-stability sets and ${tibialisSets} tibialis sets—auto-calibrating next circuit target RPE to ${targetRpe.value}.`;
+          const r7 = rollup7d.value;
+          const avgR = Number(r7.avgRpe) || 8.0;
+          const latestNote = trainerNotes.value[0]?.transcript ? ` You also mentioned "${trainerNotes.value[0].transcript}" in your recent check-in, so I'm keeping joint stress controlled.` : '';
+          if (strengthLogs.value.length === 0) {
+            return `You haven't logged any lifts yet—once you knock out your first session, I'll track your effort drift, recovery spacing, and strength progression here.`;
           }
-          return `${horizonNote}, you logged ${strengthLogs.value.length} strength sets (${upperSets} upper, ${lowerSets} lower, ${coreSets} core), ${cardioLogs.value.length} cardio sessions, and ${saunaLogs.value.length} sauna sessions—auto-calibrating next circuit target RPE to ${targetRpe.value}.`;
+          if (avgR >= 8.9) {
+            return `You've been pushing near redline effort lately (averaging RPE ${avgR} across ${r7.sets} sets this week). Instead of grinding harder, pull back to RPE ${targetRpe.value} over the next couple sessions with strict 3-second lowering so your tendons and nervous system supercompensate.${latestNote}`;
+          }
+          if (avgR < 7.4) {
+            return `Your recent sessions look very manageable at an average RPE of ${avgR}—you've got plenty left in the tank. Let's step up to RPE ${targetRpe.value} on your next circuit by slowing down the eccentric to 3 seconds or bumping dumbbell weight by 2.5–5 lb.${latestNote}`;
+          }
+          if (hasLowerLegArmorFocus.value && (hipSets < calfSets || tibialisSets < 2)) {
+            return `Your effort is right in the sweet spot (RPE ${avgR}), and consistency is solid (${r7.sets} sets, ${r7.runMiles} mi run, ${r7.rowMins}m row this week). One thing to watch: your calf work (${calfSets} sets) is outpacing your hip stabilizers (${hipSets} sets) and front-shin tibialis work (${tibialisSets} sets)—I've queued extra clamshells and tibialis raises into your next circuit to keep your lower legs bullet-proof.${latestNote}`;
+          }
+          const weakestGroup = upperSets <= lowerSets && upperSets <= coreSets ? 'upper-body' : (lowerSets <= coreSets ? 'lower-body' : 'core stability');
+          return `You're right in the productive sweet spot—averaging RPE ${avgR} across ${r7.sets} sets this week with ${r7.saunaMins} minutes of sauna recovery. Your split is balanced (${upperSets} upper / ${lowerSets} lower / ${coreSets} core), though ${weakestGroup} volume is slightly lighter, so I'll give that extra priority in your upcoming circuit.${latestNote}`;
         });
+
+        async function generateProTrainerCoaching(force = false) {
+          if (trainerAiLoading.value) return;
+          const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+          if (!apiKey) {
+            aiCoachingTake.value = trainerSummary.value;
+            return;
+          }
+          trainerAiLoading.value = true;
+          try {
+            const r7 = rollup7d.value;
+            const r42 = rollup42d.value;
+            const recentNotes = trainerNotes.value.slice(0, 3).map((n) => `[${n.date} ${n.phase}]: ${n.transcript}`).join(' | ') || 'None';
+            const recentLifts = strengthLogs.value.slice(0, 12).map((l) => `${l.date}: ${l.exercise} ${l.weight}lb x ${l.reps} @ RPE ${l.rpe}`).join('; ');
+            const prompt = `You are a sharp, encouraging personal trainer talking directly to your athlete (do NOT just recite raw stats—interpret what is going well, spot hidden fatigue or imbalances, and give 2 concrete coaching adjustments for this week).
+Horizon selected: ${activeHorizon.value}
+Primary Goal: ${coachCtx.value.primaryGoal?.title || 'Strength & Conditioning'} (Week ${coachCtx.value.primaryGoal?.currentWeek || 1}/${coachCtx.value.primaryGoal?.durationWeeks || 6}, Phase: ${coachCtx.value.mesocyclePhase || 'Accumulation'})
+7-Day Summary: ${r7.sets} sets, ${r7.tonnage} lb tonnage, Avg RPE ${r7.avgRpe}, ${r7.runMiles} mi run, ${r7.rowMins} min row, ${r7.saunaMins} min sauna.
+42-Day Summary: ${r42.sets} sets, Avg RPE ${r42.avgRpe}, ${r42.runMiles} mi run, ${r42.rowMins} min row.
+Recent Lifts: ${recentLifts}
+Recent Check-In / Post-Workout Notes: ${recentNotes}
+Active Guardrails: ${JSON.stringify(coachCtx.value.chronicGuardrails || [])}
+Write 3-4 conversational sentences of genuine coaching feedback (what's working, what to watch out for, and what we're adjusting next).`;
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+              if (txt) aiCoachingTake.value = txt;
+            }
+          } catch (_e) {
+            aiCoachingTake.value = trainerSummary.value;
+          } finally {
+            trainerAiLoading.value = false;
+          }
+        }
 
         function computeWindowRollup(days) {
           const cut = new Date();
@@ -529,11 +606,24 @@
 
         const e1rmStats = computed(() => {
           const pts = e1rmPoints.value;
-          if (!pts.length) return { peak: 0, latest: 0, atCap: false };
+          if (!pts.length) return { peak: 0, latest: 0, delta: 0, atCap: false };
           const peak = Math.max(...pts.map((p) => p.e1rm));
           const latest = pts[pts.length - 1].e1rm;
+          const first = pts[0].e1rm;
           const atCap = pts.some((p) => p.weight >= 50);
-          return { peak, latest, atCap };
+          return { peak, latest, delta: latest - first, atCap };
+        });
+
+        const e1rmPlateauAdvice = computed(() => {
+          const st = e1rmStats.value;
+          if (!st.latest) return 'Log a few sessions of this exercise to unlock E1RM slope and 50-lb cap progression coaching.';
+          if (st.atCap) {
+            return `You've maxed out the 50 lb dumbbell ceiling on ${selectedE1rmExercise.value} (E1RM ${st.latest} lb). Keep progressing by slowing the lowering phase to 3–4 seconds, holding a 2-second bottom stretch, or upgrading to a single-leg/single-arm variation.`;
+          }
+          if (st.delta <= 0 && e1rmPoints.value.length >= 3) {
+            return `Your ${selectedE1rmExercise.value} E1RM has plateaued around ${st.latest} lb. Bump weight by 2.5–5 lb next session for 8–10 crisp reps at RPE 8.0–8.5 to break through.`;
+          }
+          return `Strong upward trend (+${st.delta} lb E1RM to ${st.latest} lb). Keep adding 2.5–5 lb whenever you hit top reps at RPE ≤ 7.5.`;
         });
 
         const e1rmSvgCoords = computed(() => {
@@ -551,97 +641,157 @@
         const e1rmSvgPolyline = computed(() => e1rmSvgCoords.value.map((p) => `${p.x},${p.y}`).join(' '));
 
         const allHypotheses = computed(() => {
-          const saunaDates = [...new Set(saunaLogs.value.map((s) => s.date))];
-          const cardioDates = [...new Set(cardioLogs.value.map((c) => c.date))];
-          const liftDates = [...new Set(strengthLogs.value.map((l) => l.date))];
+          const prevDayIso = (iso) => {
+            const d = new Date(iso + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            return d.toISOString().slice(0, 10);
+          };
+          const avgOf = (arr, fn) => arr.length ? (arr.reduce((s, x) => s + fn(x), 0) / arr.length) : null;
+          const saunaDateSet = new Set(saunaLogs.value.map((s) => s.date));
+          const runDateSet = new Set(cardioLogs.value.filter((c) => (c.modality || '').toLowerCase().includes('run')).map((c) => c.date));
+          const rowDateSet = new Set(cardioLogs.value.filter((c) => (c.modality || '').toLowerCase().includes('row')).map((c) => c.date));
+          const liftDateSet = new Set(strengthLogs.value.map((l) => l.date));
+
+          // 1. Prior-day sauna vs next-day strength RPE
+          const postSaunaSets = strengthLogs.value.filter((l) => saunaDateSet.has(prevDayIso(l.date)));
+          const noSaunaSets = strengthLogs.value.filter((l) => !saunaDateSet.has(prevDayIso(l.date)));
+          const rpePostSauna = avgOf(postSaunaSets, (x) => Number(x.rpe) || 8.0);
+          const rpeNoSauna = avgOf(noSaunaSets, (x) => Number(x.rpe) || 8.0);
+          const saunaMatched = [...new Set(postSaunaSets.map((x) => x.date))];
+
+          // 2. Prior-day run vs next-day strength RPE
+          const postRunSets = strengthLogs.value.filter((l) => runDateSet.has(prevDayIso(l.date)));
+          const noRunSets = strengthLogs.value.filter((l) => !runDateSet.has(prevDayIso(l.date)));
+          const rpePostRun = avgOf(postRunSets, (x) => Number(x.rpe) || 8.0);
+          const rpeNoRun = avgOf(noRunSets, (x) => Number(x.rpe) || 8.0);
+          const runMatched = [...new Set(postRunSets.map((x) => x.date))];
+
+          // 3. 48h rested vs back-to-back lift days
+          const b2bSets = strengthLogs.value.filter((l) => liftDateSet.has(prevDayIso(l.date)));
+          const restedSets = strengthLogs.value.filter((l) => !liftDateSet.has(prevDayIso(l.date)));
+          const rpeB2b = avgOf(b2bSets, (x) => Number(x.rpe) || 8.0);
+          const rpeRested = avgOf(restedSets, (x) => Number(x.rpe) || 8.0);
+
+          // 4. Prior-day Row vs Prior-day Run
+          const postRowSets = strengthLogs.value.filter((l) => rowDateSet.has(prevDayIso(l.date)));
+          const rpePostRow = avgOf(postRowSets, (x) => Number(x.rpe) || 8.0);
+
+          // 5. Weekend vs Workweek output
+          const wkndSets = strengthLogs.value.filter((l) => { const day = new Date(l.date + 'T12:00:00').getDay(); return day === 0 || day === 6; });
+          const wkdySets = strengthLogs.value.filter((l) => { const day = new Date(l.date + 'T12:00:00').getDay(); return day >= 1 && day <= 5; });
+          const avgRepsWknd = avgOf(wkndSets, (x) => Number(x.reps) || 10);
+          const avgRepsWkdy = avgOf(wkdySets, (x) => Number(x.reps) || 10);
+
+          // 6. Lower vs Upper RPE
+          const lowerSets = strengthLogs.value.filter((l) => /squat|lunge|rdl|deadlift|bridge|calf/.test((l.exercise || '').toLowerCase()));
+          const upperSets = strengthLogs.value.filter((l) => !/squat|lunge|rdl|deadlift|bridge|calf/.test((l.exercise || '').toLowerCase()));
+          const rpeLower = avgOf(lowerSets, (x) => Number(x.rpe) || 8.0);
+          const rpeUpper = avgOf(upperSets, (x) => Number(x.rpe) || 8.0);
+
+          // 7. Heavy (>=45 lb) vs Moderate (<45 lb) RPE
+          const heavySets = strengthLogs.value.filter((l) => Number(l.weight) >= 45);
+          const modSets = strengthLogs.value.filter((l) => Number(l.weight) > 0 && Number(l.weight) < 45);
+          const rpeHeavy = avgOf(heavySets, (x) => Number(x.rpe) || 8.0);
+          const rpeMod = avgOf(modSets, (x) => Number(x.rpe) || 8.0);
+
+          // 8. Rowing sessions count & avg RPE
+          const rowLogs = cardioLogs.value.filter((c) => (c.modality || '').toLowerCase().includes('row'));
+          const runLogs = cardioLogs.value.filter((c) => (c.modality || '').toLowerCase().includes('run'));
+          const rpeRowCardio = avgOf(rowLogs, (x) => Number(x.rpe) || 7.5);
+          const rpeRunCardio = avgOf(runLogs, (x) => Number(x.rpe) || 7.5);
+
           return [
             {
               id: 'prior-sauna',
-              effectScore: saunaDates.length ? 88 : 42,
-              headline: 'Prior-Day Traditional Sauna Improves Next-Day Strength RPE',
-              detail: 'Sessions following 15–25 min post-workout sauna show smoother perceived effort and lower DOMS carryover.',
-              groupALabel: 'Post-Sauna Next Day',
-              groupAVal: 'Avg RPE 7.8',
-              groupBLabel: 'No Prior Sauna',
-              groupBVal: 'Avg RPE 8.3',
-              matchedDates: saunaDates
+              effectScore: saunaMatched.length ? Math.min(96, 70 + saunaMatched.length * 6) : 35,
+              headline: 'Prior-Day Traditional Sauna vs. Next-Day Strength Effort',
+              detail: saunaMatched.length
+                ? `Across ${saunaMatched.length} post-sauna training day(s), your average lifting RPE was ${rpePostSauna.toFixed(1)} vs. ${rpeNoSauna ? rpeNoSauna.toFixed(1) : '8.0'} without prior sauna.`
+                : 'Log post-workout sauna sessions to measure how heat recovery affects next-day strength RPE.',
+              groupALabel: `Post-Sauna (${postSaunaSets.length} sets)`,
+              groupAVal: rpePostSauna ? `Avg RPE ${rpePostSauna.toFixed(1)}` : 'No data yet',
+              groupBLabel: `No Sauna (${noSaunaSets.length} sets)`,
+              groupBVal: rpeNoSauna ? `Avg RPE ${rpeNoSauna.toFixed(1)}` : 'No data yet',
+              matchedDates: saunaMatched
             },
             {
               id: 'run-lower-spacing',
-              effectScore: cardioDates.length ? 84 : 40,
-              headline: '48h Spacing Between Runs & Heavy Lower-Body Circuits',
-              detail: 'Separating treadmill runs from heavy squat/RDL circuits keeps shin and Achilles strain low.',
-              groupALabel: '48h Cleared',
-              groupAVal: '0 Flare-Ups',
-              groupBLabel: 'Within 24h',
-              groupBVal: '+0.6 RPE Strain',
-              matchedDates: cardioDates
+              effectScore: runMatched.length ? Math.min(94, 68 + runMatched.length * 6) : 38,
+              headline: '48h Spacing Between Runs & Strength Circuits',
+              detail: runMatched.length
+                ? `Lifting the day after a run averaged RPE ${rpePostRun.toFixed(1)} vs. RPE ${rpeNoRun ? rpeNoRun.toFixed(1) : '8.0'} when separated from running.`
+                : 'Keeping 48h clearance between runs and lower-body circuits protects shins and Achilles tendons.',
+              groupALabel: `48h Cleared (${noRunSets.length} sets)`,
+              groupAVal: rpeNoRun ? `Avg RPE ${rpeNoRun.toFixed(1)}` : 'Baseline',
+              groupBLabel: `Day After Run (${postRunSets.length} sets)`,
+              groupBVal: rpePostRun ? `Avg RPE ${rpePostRun.toFixed(1)}` : '0 overlap',
+              matchedDates: runMatched
             },
             {
               id: 'lift-48h-spacing',
-              effectScore: 76,
-              headline: '48h vs. 24h Lift Spacing Tonnage Efficiency',
-              detail: 'Alternating upper/lower splits or inserting a 30m row between 2-day lift blocks preserves peak set velocity.',
-              groupALabel: 'Split / Rested',
-              groupAVal: '100% Target Reps',
-              groupBLabel: 'Back-to-Back',
-              groupBVal: '92% Target Reps',
-              matchedDates: liftDates
+              effectScore: b2bSets.length ? 80 : 52,
+              headline: 'Rested vs. Back-to-Back Lifting Effort',
+              detail: `Compares perceived exertion on Day 2 of back-to-back lifting against sessions with a rest or cardio buffer day.`,
+              groupALabel: `Rested / Split (${restedSets.length} sets)`,
+              groupAVal: rpeRested ? `Avg RPE ${rpeRested.toFixed(1)}` : 'No data',
+              groupBLabel: `Back-to-Back (${b2bSets.length} sets)`,
+              groupBVal: rpeB2b ? `Avg RPE ${rpeB2b.toFixed(1)}` : '0 back-to-back',
+              matchedDates: [...new Set(b2bSets.map((x) => x.date))]
             },
             {
               id: 'row-vs-run',
-              effectScore: 72,
-              headline: 'Prior-Day Row vs. Run Lower-Body Freshness',
-              detail: '30-min rowing builds aerobic base with zero eccentric foot-strike impact.',
-              groupALabel: 'Post-Row Day',
-              groupAVal: 'Fresh Calves/Shins',
-              groupBLabel: 'Post-Run Day',
-              groupBVal: '48h Tibial Guard',
-              matchedDates: cardioDates
-            },
-            {
-              id: 'session-density',
-              effectScore: 68,
-              headline: '25–40 Min Circuit Window Completion Rate',
-              detail: '6-station circuits across 3 rounds hit optimal stimulus without CNS burnout.',
-              groupALabel: '25–40m Window',
-              groupAVal: '96% Completion',
-              groupBLabel: '>45m Sessions',
-              groupBVal: 'RPE Drift +0.7',
-              matchedDates: liftDates
-            },
-            {
-              id: 'weekend-vs-workweek',
-              effectScore: 64,
-              headline: 'Weekend vs. Workweek Lifting Output',
-              detail: 'Lower desk-sitting stiffness on weekend mornings improves hip hinge depth.',
-              groupALabel: 'Weekend',
-              groupAVal: '+4% Tonnage',
-              groupBLabel: 'Workweek',
-              groupBVal: 'Baseline',
-              matchedDates: liftDates
+              effectScore: postRowSets.length ? 78 : 48,
+              headline: 'Next-Day Freshness: Prior-Day Row vs. Run',
+              detail: `Measures how well you recover for strength circuits the day after rowing vs. running.`,
+              groupALabel: `Post-Row (${postRowSets.length} sets)`,
+              groupAVal: rpePostRow ? `Avg RPE ${rpePostRow.toFixed(1)}` : 'No data',
+              groupBLabel: `Post-Run (${postRunSets.length} sets)`,
+              groupBVal: rpePostRun ? `Avg RPE ${rpePostRun.toFixed(1)}` : 'No data',
+              matchedDates: [...new Set(postRowSets.map((x) => x.date))]
             },
             {
               id: 'lower-vs-upper-rpe',
-              effectScore: 61,
-              headline: 'Lower-Body vs. Upper-Body RPE Profile',
-              detail: 'Unilateral lower-body lifts generate higher cardiovascular RPE than upper-body presses.',
-              groupALabel: 'Lower Stations',
-              groupAVal: 'Avg RPE 8.2',
-              groupBLabel: 'Upper Stations',
-              groupBVal: 'Avg RPE 7.8',
-              matchedDates: liftDates
+              effectScore: (lowerSets.length && upperSets.length) ? 74 : 44,
+              headline: 'Lower-Body vs. Upper-Body Effort Profile',
+              detail: `Tracks whether lower-body compound stations drive higher cardiovascular RPE than upper-body work.`,
+              groupALabel: `Lower (${lowerSets.length} sets)`,
+              groupAVal: rpeLower ? `Avg RPE ${rpeLower.toFixed(1)}` : 'No data',
+              groupBLabel: `Upper (${upperSets.length} sets)`,
+              groupBVal: rpeUpper ? `Avg RPE ${rpeUpper.toFixed(1)}` : 'No data',
+              matchedDates: [...liftDateSet]
             },
             {
-              id: 'row-resistance',
-              effectScore: 59,
-              headline: 'Rowing Resistance (12–18) Aerobic Efficiency',
-              detail: 'Moderate resistance maintains steady stroke power without lower-back fatigue.',
-              groupALabel: 'Res 12–18',
-              groupAVal: 'Steady Pace',
-              groupBLabel: 'Res >22',
-              groupBVal: 'Forearm Fatigue',
-              matchedDates: cardioDates
+              id: 'heavy-vs-moderate',
+              effectScore: (heavySets.length && modSets.length) ? 70 : 42,
+              headline: '45–50 lb Ceiling Lifts vs. Moderate Dumbbell Load',
+              detail: `Compares RPE when working near your 50 lb dumbbell cap vs. sub-45 lb accessory work.`,
+              groupALabel: `45–50 lb (${heavySets.length} sets)`,
+              groupAVal: rpeHeavy ? `Avg RPE ${rpeHeavy.toFixed(1)}` : 'No data',
+              groupBLabel: `<45 lb (${modSets.length} sets)`,
+              groupBVal: rpeMod ? `Avg RPE ${rpeMod.toFixed(1)}` : 'No data',
+              matchedDates: [...new Set(heavySets.map((x) => x.date))]
+            },
+            {
+              id: 'weekend-vs-workweek',
+              effectScore: (wkndSets.length && wkdySets.length) ? 66 : 40,
+              headline: 'Weekend vs. Workweek Rep Output',
+              detail: `Checks if lower desk-sitting stiffness on weekends translates into higher average reps per set.`,
+              groupALabel: `Weekend (${wkndSets.length} sets)`,
+              groupAVal: avgRepsWknd ? `${avgRepsWknd.toFixed(1)} avg reps` : 'No data',
+              groupBLabel: `Workweek (${wkdySets.length} sets)`,
+              groupBVal: avgRepsWkdy ? `${avgRepsWkdy.toFixed(1)} avg reps` : 'No data',
+              matchedDates: [...new Set(wkndSets.map((x) => x.date))]
+            },
+            {
+              id: 'cardio-modality-rpe',
+              effectScore: (rowLogs.length || runLogs.length) ? 62 : 35,
+              headline: 'Rowing vs. Running Cardio Exertion',
+              detail: `Compares your average session RPE between Rowing and Treadmill/Outdoor Running.`,
+              groupALabel: `Rowing (${rowLogs.length})`,
+              groupAVal: rpeRowCardio ? `Avg RPE ${rpeRowCardio.toFixed(1)}` : 'No logs',
+              groupBLabel: `Running (${runLogs.length})`,
+              groupBVal: rpeRunCardio ? `Avg RPE ${rpeRunCardio.toFixed(1)}` : 'No logs',
+              matchedDates: [...new Set(cardioLogs.value.map((c) => c.date))]
             }
           ].sort((a, b) => b.effectScore - a.effectScore);
         });
@@ -677,27 +827,61 @@
           strengthLogs.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.LOGS, []);
           cardioLogs.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.CARDIO_LOGS, []);
           saunaLogs.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.SAUNA_LOGS, []);
+          trainerNotes.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.TRAINER_NOTES, []);
           coachCtx.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, window.BasementDB.DEFAULT_COACH_CONTEXT);
           if (availableE1rmExercises.value.length && !availableE1rmExercises.value.includes(selectedE1rmExercise.value)) {
             selectedE1rmExercise.value = availableE1rmExercises.value[0];
           }
           autoUpdateMesocycle(true);
           publishDirectives();
+          if (notify || !aiCoachingTake.value) generateProTrainerCoaching(notify);
           if (notify) {
             syncToast.value = '✓ Synced Analytics & Trainer Directives';
             setTimeout(() => { syncToast.value = ''; }, 1800);
           }
         }
 
-        function submitFollowUp() {
+        async function submitFollowUp() {
           const q = followUpQuestion.value.trim();
           if (!q) return;
+          followUpQuestion.value = '';
           const { calfSets, hipSets, tibialisSets, upperSets, lowerSets, coreSets } = balanceStats.value;
           const splitNote = hasLowerLegArmorFocus.value
             ? `Calf ${calfSets} vs. Hip ${hipSets} / Tibialis ${tibialisSets}`
             : `Upper ${upperSets} / Lower ${lowerSets} / Core ${coreSets}`;
-          followUpAnswer.value = `Based on ${strengthLogs.value.length} strength sets, ${cardioLogs.value.length} cardio logs, and ${saunaLogs.value.length} sauna logs (${splitNote}), keep target RPE at ${targetRpe.value} and honor your active recovery spacing.`;
-          followUpQuestion.value = '';
+          const fallback = `Looking at your recent sessions (${splitNote}, 7-day avg RPE ${rollup7d.value.avgRpe}), keep target effort around RPE ${targetRpe.value} so you keep progressing without flaring up joints.`;
+          followUpAnswer.value = 'Analyzing your logs...';
+
+          try {
+            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            if (apiKey) {
+              const recentLifts = strengthLogs.value.slice(0, 15).map((l) => `${l.date}: ${l.exercise} ${l.weight}lb x ${l.reps} @ RPE ${l.rpe}`).join('; ');
+              const recentCardio = cardioLogs.value.slice(0, 6).map((c) => `${c.date}: ${c.modality} ${c.duration}m @ RPE ${c.rpe}`).join('; ');
+              const recentNotes = trainerNotes.value.slice(0, 3).map((n) => `${n.date}: ${n.transcript}`).join('; ');
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: `You are an experienced personal trainer answering your client's question based on their actual training data. Speak directly, insightfully, and practically (2-4 sentences—do not just dump a list of stats).
+Client Question: "${q}"
+Goal: ${coachCtx.value.primaryGoal?.title || 'Strength & Conditioning'} (Phase: ${coachCtx.value.mesocyclePhase || 'Accumulation'})
+7d Rollup: ${rollup7d.value.sets} sets, Avg RPE ${rollup7d.value.avgRpe}, ${rollup7d.value.runMiles} mi run, ${rollup7d.value.rowMins}m row, ${rollup7d.value.saunaMins}m sauna.
+Recent Lifts: ${recentLifts}
+Recent Cardio: ${recentCardio}
+Trainer Notes: ${recentNotes}` }] }]
+                })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                const ans = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                if (ans) {
+                  followUpAnswer.value = ans;
+                  return;
+                }
+              }
+            }
+          } catch (_e) {}
+          followUpAnswer.value = fallback;
         }
 
         function toggleQaMic() {
@@ -883,13 +1067,13 @@
 
         return {
           activeSubTab, subTabs, activeHorizon, horizons, todayIso,
-          targetRpe, hasLowerLegArmorFocus, balanceStats, trainerSummary,
+          targetRpe, hasLowerLegArmorFocus, balanceStats, trainerSummary, aiCoachingTake, trainerAiLoading, generateProTrainerCoaching, speakCoachTake,
           strengthLogs, cardioLogs, saunaLogs, coachCtx,
           followUpQuestion, followUpAnswer, isListeningQa, submitFollowUp, toggleQaMic,
           stepBlockWeek, showGraduateDrawer, nextPrimaryGoalInput, openGraduatePicker, confirmGraduateGoal,
           mesocycleReason, roadmapPillars, aiRecommendedNextGoal,
           rollup7d, rollup42d, availableE1rmExercises, selectedE1rmExercise,
-          e1rmPoints, e1rmStats, e1rmSvgCoords, e1rmSvgPolyline,
+          e1rmPoints, e1rmStats, e1rmPlateauAdvice, e1rmSvgCoords, e1rmSvgPolyline,
           displayedHypotheses, showAllHypotheses,
           seedDemoLogs, refreshData, syncToast
         };
