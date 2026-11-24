@@ -690,11 +690,14 @@
         <section v-if="activeTodayModality === 'lift' && hasProvidedTodayUpdate && (!hasCompletedSessionToday || allowAdditionalWorkoutToday)" class="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-slate-900 to-slate-900 border border-emerald-500/40 space-y-3 shadow-lg">
           <div class="flex items-center justify-between gap-2">
             <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Today's Suggested Circuit &bull; {{ coachCtx.mesocyclePhase.rounds }} Rounds</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">
+                Today's Suggested Circuit &bull; {{ coachCtx.mesocyclePhase.rounds }} Rounds
+                <span v-if="aiCircuitSourceTag" class="ml-1 px-1.5 py-0.2 rounded bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 font-mono text-[8px]">{{ aiCircuitSourceTag }}</span>
+              </span>
               <h2 class="text-sm font-black text-white">{{ activeCircuitStations.length }}-Station Anti-Overload Lineup (~{{ estimatedCircuitMinutes }} Min)</h2>
             </div>
-            <button @click="synthesizeCoachedCircuit(true)" class="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-[10px] font-bold text-emerald-400 hover:border-emerald-500/40">
-              &#8635; Reset AI Lineup
+            <button @click="generateAiCircuitAndBlindSpots(true)" :disabled="aiCircuitGenerating" class="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-[10px] font-bold text-emerald-400 hover:border-emerald-500/40 disabled:opacity-40">
+              {{ aiCircuitGenerating ? '✨ Building...' : '↻ Reset AI Lineup' }}
             </button>
           </div>
 
@@ -727,6 +730,7 @@
                       <span class="text-[10px] font-mono font-black text-emerald-400">#{{ idx + 1 }}</span>
                       <span class="text-xs font-black text-white underline decoration-dotted leading-snug">{{ st.name }}</span>
                       <span v-if="st.goalBadge" class="px-1.5 py-0.2 rounded bg-indigo-500/20 border border-indigo-500/40 text-[8px] font-mono font-bold text-indigo-300">{{ st.goalBadge }}</span>
+                      <span v-if="st.isAiNew" class="px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-400/50 text-[8px] font-mono font-black text-amber-300">✨ AI NEW</span>
                     </div>
                     <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-emerald-400 shrink-0">
                       {{ st.equipment === 'Band' ? st.bandLevelLabel.split(' ')[0] + ' Band' : (st.plannedWeight > 0 ? st.plannedWeight + ' lb' : 'Bodyweight') }} &times; {{ st.plannedReps }}
@@ -746,6 +750,77 @@
                   <p class="w-full text-[11px] font-semibold text-emerald-300 leading-snug">
                     &#9889; {{ getQuickHitReminder(st.name) }}
                   </p>
+
+                  <!-- Pro Trainer Swap Trigger Row -->
+                  <div class="pt-1 flex items-center justify-between gap-2">
+                    <span class="text-[10px] text-slate-400 truncate">{{ st.reason }}</span>
+                    <button
+                      type="button"
+                      @click="openStationSwapDrawer(idx, st)"
+                      class="px-2.5 py-1 rounded-lg border text-[10px] font-black transition shrink-0"
+                      :class="swappingStationIdx === idx ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-slate-900 hover:bg-slate-800 text-indigo-300 border-indigo-500/40'"
+                    >
+                      {{ swappingStationIdx === idx ? 'Close Swap ▲' : '🔄 Swap Exercise' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pro Trainer Alternative Swap Drawer -->
+              <div v-if="swappingStationIdx === idx" class="p-3 rounded-xl bg-slate-900/95 border border-indigo-500/50 space-y-2 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">
+                    🧠 Pro Trainer Alternatives for {{ st.name }} ({{ getLiftMeta(st.name).category }})
+                  </span>
+                  <span v-if="swapAlternativesLoading" class="text-[10px] font-mono text-emerald-300 animate-pulse">Finding best fits...</span>
+                </div>
+
+                <!-- Optional quick reason pill (No equipment vs Too tough today) -->
+                <div class="flex gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    @click="requestTrainerSwapAlternatives(idx, st, 'missing_equipment')"
+                    class="px-2 py-1 rounded-lg text-[10px] font-bold border transition"
+                    :class="swapReasonMode === 'missing_equipment' ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'"
+                  >
+                    🚫 Don't Have Equipment (DB / Bodyweight Only)
+                  </button>
+                  <button
+                    type="button"
+                    @click="requestTrainerSwapAlternatives(idx, st, 'easier_variation')"
+                    class="px-2 py-1 rounded-lg text-[10px] font-bold border transition"
+                    :class="swapReasonMode === 'easier_variation' ? 'bg-sky-500/20 border-sky-400 text-sky-200' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'"
+                  >
+                    🌿 Easier / Joint-Friendly Same-Muscle Option
+                  </button>
+                </div>
+
+                <div class="space-y-1.5">
+                  <div
+                    v-for="alt in activeSwapAlternatives"
+                    :key="alt.name"
+                    class="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex items-center justify-between gap-2"
+                  >
+                    <div class="flex items-center gap-2 min-w-0">
+                      <img :src="getExercisePhoto(alt.name, 'top')" class="w-10 h-10 rounded-lg object-cover border border-slate-700 shrink-0" />
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          <span class="text-xs font-black text-white truncate">{{ alt.name }}</span>
+                          <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-900 border border-slate-700 text-emerald-300">
+                            {{ alt.equipment }}
+                          </span>
+                        </div>
+                        <p class="text-[10px] text-slate-300 leading-snug mt-0.5">{{ alt.whyFit }}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      @click="applyStationSwapChoice(idx, st.name, alt)"
+                      class="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] shrink-0"
+                    >
+                      Use This
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2712,9 +2787,8 @@ const getExercisePhoto = (name, stage = 'top') => {
         const confirmNothingToUpdateAndBuild = () => {
           hasProvidedTodayUpdate.value = true;
           showPreWorkoutUpdateBox.value = false;
-          synthesizeCoachedCircuit(false);
+          generateAiCircuitAndBlindSpots(true);
           saveLogsToStorage();
-          showToast('✓ All systems fresh — Today\'s Circuit generated!');
         };
 
         const submitDailyUpdateAndGenerateWorkout = async () => {
@@ -2826,7 +2900,7 @@ const getExercisePhoto = (name, stage = 'top') => {
           dailyUpdateProcessing.value = false;
           hasProvidedTodayUpdate.value = true;
           showPreWorkoutUpdateBox.value = false;
-          synthesizeCoachedCircuit(false);
+          await generateAiCircuitAndBlindSpots(false);
           saveLogsToStorage();
           if (autoSpeakExerciseAi.value) {
             speakTextOutLoud(aiReply, 'pre-checkin');
@@ -3463,6 +3537,147 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           startGuidedWorkout();
         };
 
+        const swappingStationIdx = ref(-1);
+        const swapReasonMode = ref('all'); // 'all' | 'missing_equipment' | 'easier_variation'
+        const swapAlternativesLoading = ref(false);
+        const activeSwapAlternatives = ref([]);
+
+        const buildLocalSameMuscleAlternatives = (st, mode = 'all') => {
+          const meta = getLiftMeta(st.name);
+          const bannedSet = new Set(coachCtx.value.exercisePreferences?.banned || []);
+          const activeNames = new Set(activeCircuitStations.value.map((s) => s.name));
+          const targetCat = meta.category;
+          const targetMuscles = String(meta.muscles || '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4);
+
+          const candidates = allCatalogLiftNames.value
+            .filter((name) => name !== st.name && !bannedSet.has(name) && !activeNames.has(name))
+            .map((name) => {
+              const m = getLiftMeta(name);
+              if (mode === 'missing_equipment' && m.equipment === 'Band') return null;
+              if (mode === 'missing_equipment' && st.equipment !== 'Bodyweight' && m.equipment === st.equipment && st.name.toLowerCase().includes('band')) return null;
+
+              let score = 0;
+              if (m.category === targetCat) score += 50;
+              const mWords = String(m.muscles || '').toLowerCase();
+              targetMuscles.forEach((w) => { if (mWords.includes(w)) score += 15; });
+              if (mode === 'missing_equipment' && (m.equipment === 'Dumbbell' || m.equipment === 'Bodyweight')) score += 25;
+              if (mode === 'easier_variation' && (m.equipment === 'Bodyweight' || Number(m.weight || 0) <= Number(st.plannedWeight || 25))) score += 25;
+              if (evaluateExerciseConflicts(name).length > 0) score -= 40;
+
+              let whyFit = `Targets ${m.muscles} using ${m.equipment}`;
+              if (mode === 'missing_equipment') whyFit = `No bands needed (${m.equipment}) • hits ${m.muscles}`;
+              else if (mode === 'easier_variation') whyFit = `Controlled, joint-friendly variation • ${m.muscles}`;
+              return { name, equipment: m.equipment, whyFit, score };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.score - a.score);
+
+          return candidates.slice(0, 3);
+        };
+
+        const requestTrainerSwapAlternatives = async (idx, st, mode = 'all') => {
+          swapReasonMode.value = mode;
+          activeSwapAlternatives.value = buildLocalSameMuscleAlternatives(st, mode);
+
+          const apiKey = getActiveApiKey();
+          if (!apiKey) return;
+
+          swapAlternativesLoading.value = true;
+          try {
+            const bannedSet = new Set(coachCtx.value.exercisePreferences?.banned || []);
+            const activeNames = activeCircuitStations.value.map((s) => s.name);
+            const meta = getLiftMeta(st.name);
+            const modeInstruction = mode === 'missing_equipment'
+              ? 'The user does NOT have the equipment for this lift (e.g., no resistance bands)—ONLY suggest Dumbbell (<=50 lb) or Bodyweight alternatives.'
+              : mode === 'easier_variation'
+              ? 'The user wants an easier, lower-fatigue, or more joint-friendly exercise that still trains the same target muscles today.'
+              : 'Suggest 3 smart same-muscle alternatives (including at least 1 Dumbbell/Bodyweight option in case they lack bands, and 1 joint-friendly/easier option).';
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `You are an expert home-gym personal trainer. The user wants to swap out "${st.name}" (Category: ${meta.category}, Target Muscles: ${meta.muscles}, Equipment: ${st.equipment}) before starting today's circuit.
+${modeInstruction}
+Available home-gym gear: Dumbbells (max 50 lb), Resistance Bands, Adjustable Bench, Bodyweight.
+Already in today's circuit (do NOT duplicate): ${JSON.stringify(activeNames)}.
+Banned lifts (never suggest): ${JSON.stringify([...bannedSet])}.
+Active soreness: ${JSON.stringify(coachCtx.value.sorenessMap || {})}.
+Return ONLY valid JSON:
+{
+  "alternatives": [
+    {
+      "name": "Exact Exercise Name",
+      "equipment": "Dumbbell" | "Band" | "Bodyweight",
+      "whyFit": "1 short sentence explaining why this hits the same muscle group and fits their request"
+    }
+  ]
+}` }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+              if (Array.isArray(parsed.alternatives) && parsed.alternatives.length > 0) {
+                const resolvedList = [];
+                for (const alt of parsed.alternatives.slice(0, 3)) {
+                  const clean = String(alt.name || '').trim();
+                  if (!clean || bannedSet.has(clean) || activeNames.includes(clean)) continue;
+                  if (!LIFT_DB[clean] && window.BasementExercises && typeof window.BasementExercises.resolveExerciseAsync === 'function') {
+                    const resolved = await window.BasementExercises.resolveExerciseAsync(clean, alt.equipment || 'Dumbbell');
+                    if (resolved) {
+                      LIFT_DB[resolved.name] = { ...resolved, isCustom: true };
+                      customCatalogVersion.value++;
+                    }
+                  }
+                  const m = getLiftMeta(clean);
+                  resolvedList.push({
+                    name: clean,
+                    equipment: m.equipment || alt.equipment || 'Dumbbell',
+                    whyFit: alt.whyFit || `Trains ${m.muscles}`
+                  });
+                }
+                if (resolvedList.length > 0 && swappingStationIdx.value === idx) {
+                  activeSwapAlternatives.value = resolvedList;
+                }
+              }
+            }
+          } catch (_e) {
+          } finally {
+            swapAlternativesLoading.value = false;
+          }
+        };
+
+        const openStationSwapDrawer = (idx, st) => {
+          if (swappingStationIdx.value === idx) {
+            swappingStationIdx.value = -1;
+            return;
+          }
+          swappingStationIdx.value = idx;
+          requestTrainerSwapAlternatives(idx, st, 'all');
+        };
+
+        const applyStationSwapChoice = (idx, oldName, altObj) => {
+          const oldSt = activeCircuitStations.value[idx];
+          const newSt = makeStationObj(
+            altObj.name,
+            `Pro Trainer Swap from ${oldName}: ${altObj.whyFit}`,
+            Boolean(oldSt?.isGoalFocus),
+            oldSt?.goalBadge || ''
+          );
+          activeCircuitStations.value[idx] = newSt;
+          swappingStationIdx.value = -1;
+          try {
+            localStorage.setItem(getAiCircuitCacheKey(), JSON.stringify({
+              stations: activeCircuitStations.value,
+              blindSpots: discoveryExercises.value
+            }));
+          } catch (_e) {}
+          showToast(`Swapped ${oldName} → ${altObj.name}`);
+        };
+
         const swapStationWithSafeAlternative = (idx, oldName) => {
           const safeName = getSafeAlternativeFor(oldName);
           if (!safeName) return;
@@ -3537,13 +3752,222 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           showToast(`Added "${item.name}" to Today's Circuit & saved to Catalog!`);
         };
 
-        const generateAiDiscoverySuggestion = () => {
+        const aiCircuitGenerating = ref(false);
+        const aiCircuitSourceTag = ref('');
+
+        const getAiCircuitCacheKey = () => {
+          const gTitle = coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || '';
+          const domsStr = JSON.stringify(coachCtx.value.sorenessMap || {});
+          const noteStr = todayPreWorkoutNoteObj.value?.transcript || '';
+          return `basement_ai_circuit_${todayIso.value}_${gTitle}_${domsStr}_${noteStr}`;
+        };
+
+        const generateAiCircuitAndBlindSpots = async (forceRefresh = false) => {
+          // Always compute deterministic baseline first so UI is immediately valid and safe
+          synthesizeCoachedCircuit(false);
+
+          const cacheKey = getAiCircuitCacheKey();
+          if (!forceRefresh) {
+            try {
+              const cachedRaw = localStorage.getItem(cacheKey);
+              if (cachedRaw) {
+                const cached = JSON.parse(cachedRaw);
+                if (Array.isArray(cached.stations) && cached.stations.length >= 4) {
+                  activeCircuitStations.value = cached.stations;
+                  if (Array.isArray(cached.blindSpots) && cached.blindSpots.length > 0) {
+                    discoveryExercises.value = cached.blindSpots;
+                  }
+                  aiCircuitSourceTag.value = '✨ AI COACHED';
+                  return;
+                }
+              }
+            } catch (_e) {}
+          }
+
+          const apiKey = getActiveApiKey();
+          if (!apiKey) {
+            if (forceRefresh) showToast('Recalculated circuit from multi-day history, RPE trends, soreness & goals.');
+            return;
+          }
+
+          aiCircuitGenerating.value = true;
           aiDiscoveryLoading.value = true;
-          setTimeout(() => {
+          try {
+            const bannedSet = new Set(coachCtx.value.exercisePreferences?.banned || []);
+            const favList = coachCtx.value.exercisePreferences?.favorites || [];
+            const validCatalogNames = allCatalogLiftNames.value.filter((n) => !bannedSet.has(n));
+            const recent7dLogs = workoutLogs.value
+              .filter((l) => l.date >= getLocalIsoDate(-7))
+              .slice(0, 24)
+              .map((l) => `${l.date}: ${l.exercise} (${l.weight}lb x ${l.reps} @ RPE ${l.rpe}${l.durationSec ? ', ' + l.durationSec + 's TUT' : ''})`);
+            const recentCardio = cardioLogs.value
+              .filter((c) => c.date >= getLocalIsoDate(-5))
+              .map((c) => `${c.date}: ${c.modality} ${c.duration}m @ RPE ${c.rpe}`);
+            const activeGuards = (coachCtx.value.chronicGuardrails || [])
+              .filter((g) => (typeof g === 'string' ? true : g.active !== false))
+              .map((g) => (typeof g === 'string' ? g : g.label));
+            const activeInjs = (coachCtx.value.activeTemporaryInjuries || [])
+              .filter((i) => !i.expiresAt || i.expiresAt >= todayIso.value)
+              .map((i) => `${i.name} (${i.region})`);
+            const checkInNote = todayPreWorkoutNoteObj.value?.transcript || 'None';
+
+            const prompt = `You are an elite home-gym personal trainer designing today's 6-station circuit (performed for ${coachCtx.value.mesocyclePhase?.rounds || 3} rounds) and auditing missing muscle blind spots.
+STRICT CONSTRAINTS:
+- Equipment available: Dumbbells (MAX 50 lb), Resistance Bands, Adjustable Weight Bench, Bodyweight.
+- Never include banned lifts: ${JSON.stringify([...bannedSet])}.
+- Favorites to favor when appropriate: ${JSON.stringify(favList)}.
+- Active Primary Goal: "${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning'}" (Phase: ${coachCtx.value.mesocyclePhase?.label || coachCtx.value.mesocyclePhase || 'Accumulation'}, Target RPE: ${sessionEffortGameplan.value.baseRpe}).
+- Secondary Goal: "${coachCtx.value.secondaryGoal?.title || 'None'}".
+- Active Chronic Guardrails: ${JSON.stringify(activeGuards)}.
+- Active Temporary Injuries: ${JSON.stringify(activeInjs)}.
+- Today's Soreness Map: ${JSON.stringify(coachCtx.value.sorenessMap || {})}.
+- Today's Check-In Note: "${checkInNote}".
+- Past 7 Days Strength Logs (with RPE & TUT): ${JSON.stringify(recent7dLogs)}.
+- Recent Cardio Logs: ${JSON.stringify(recentCardio)}.
+
+CATALOG PREFERENCE & NEW EXERCISES:
+Choose primarily from this catalog: ${JSON.stringify(validCatalogNames.slice(0, 90))}.
+HOWEVER, if a brand-new exercise (using Dumbbells <=50 lb, Bands, Bench, or Bodyweight) is biomechanically superior for the user's goal or guardrails, you MAY introduce 1-2 new exercises and set "isNewExercise": true.
+
+PRESCRIPTION & ORDERING RULES:
+- Order stations intelligently (e.g., compound lower/push/pull first, smaller stabilizers/core later).
+- Calibrate plannedWeight (0 to 50 lb, 0 for Band/Bodyweight), plannedReps (6-20), restSeconds (30 to 75s based on station fatigue, exercise order, and recovery), and tempoPrescription based on recent RPE, TUT, and intra-workout fatigue.
+- Also identify 4 genuine missing muscle / stabilizer blind spots based on what the user has NOT trained recently in their 7-day logs + their active goals.
+
+Return ONLY valid JSON:
+{
+  "stations": [
+    {
+      "name": "Exact Exercise Name",
+      "equipment": "Dumbbell" | "Band" | "Bodyweight",
+      "isNewExercise": boolean,
+      "plannedWeight": number,
+      "plannedReps": number,
+      "restSeconds": number,
+      "tempoPrescription": "string",
+      "goalBadge": "1° GOAL" | "2° GOAL" | "",
+      "reason": "1 concise sentence explaining why this lift, weight, and rest time were chosen"
+    }
+  ],
+  "blindSpots": [
+    {
+      "name": "Exercise Name",
+      "gapId": "abductors" | "tibialis" | "adductors" | "cuff" | "ql_core",
+      "gapBadge": "GAP: SHORT LABEL",
+      "gapReason": "1-2 sentences citing their recent workout history and why this fills a blind spot"
+    }
+  ]
+}`;
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+              if (Array.isArray(parsed.stations) && parsed.stations.length >= 4) {
+                const resolvedStations = [];
+                for (const rawSt of parsed.stations.slice(0, 7)) {
+                  const cleanName = String(rawSt.name || '').trim();
+                  if (!cleanName || bannedSet.has(cleanName)) continue;
+                  let isAiNew = false;
+                  if (!LIFT_DB[cleanName]) {
+                    if (window.BasementExercises && typeof window.BasementExercises.resolveExerciseAsync === 'function') {
+                      const resolved = await window.BasementExercises.resolveExerciseAsync(cleanName, rawSt.equipment || 'Dumbbell');
+                      if (resolved) {
+                        LIFT_DB[resolved.name] = { ...resolved, isCustom: true };
+                        customCatalogVersion.value++;
+                        const db = window.BasementDB || window.parent?.BasementDB;
+                        if (db && typeof db.syncCustomCatalogItemToCloud === 'function') {
+                          db.syncCustomCatalogItemToCloud(LIFT_DB[resolved.name]);
+                        }
+                      }
+                    }
+                    isAiNew = true;
+                  }
+                  const meta = getLiftMeta(cleanName);
+                  const maxCap = getMaxAllowedWeightForLift(cleanName);
+                  const clampedWeight = meta.equipment === 'Dumbbell'
+                    ? Math.max(0, Math.min(maxCap, Math.round((Number(rawSt.plannedWeight) || meta.weight || 25) / 2.5) * 2.5))
+                    : 0;
+                  const clampedReps = Math.max(5, Math.min(30, Math.round(Number(rawSt.plannedReps) || meta.reps || 10)));
+                  const clampedRest = Math.max(25, Math.min(90, Math.round(Number(rawSt.restSeconds) || 45)));
+
+                  resolvedStations.push({
+                    name: cleanName,
+                    category: meta.category,
+                    equipment: meta.equipment,
+                    weight: clampedWeight,
+                    plannedWeight: clampedWeight,
+                    plannedReps: clampedReps,
+                    restSeconds: clampedRest,
+                    bandLevelLabel: selectedBandLevel.value.label,
+                    tempoPrescription: rawSt.tempoPrescription || (meta.equipment === 'Band' ? '2s Peak Hold + 3s Return' : '3s Lower + 2s Pause'),
+                    reason: rawSt.reason || 'AI-tailored for your current recovery and goal block.',
+                    isGoalFocus: Boolean(rawSt.goalBadge),
+                    goalBadge: rawSt.goalBadge || '',
+                    isAiNew
+                  });
+                }
+
+                if (resolvedStations.length >= 4) {
+                  activeCircuitStations.value = resolvedStations;
+                  aiCircuitSourceTag.value = '✨ AI COACHED';
+                }
+
+                if (Array.isArray(parsed.blindSpots) && parsed.blindSpots.length > 0) {
+                  const resolvedGaps = [];
+                  for (const gItem of parsed.blindSpots.slice(0, 5)) {
+                    const gName = String(gItem.name || '').trim();
+                    if (!gName) continue;
+                    if (!LIFT_DB[gName] && window.BasementExercises && typeof window.BasementExercises.resolveExerciseAsync === 'function') {
+                      const resEx = await window.BasementExercises.resolveExerciseAsync(gName, 'Dumbbell');
+                      if (resEx) {
+                        LIFT_DB[resEx.name] = { ...resEx, isCustom: true };
+                        customCatalogVersion.value++;
+                      }
+                    }
+                    resolvedGaps.push({
+                      name: gName,
+                      gapId: ['abductors', 'tibialis', 'adductors', 'cuff', 'ql_core'].includes(gItem.gapId) ? gItem.gapId : 'abductors',
+                      gapBadge: gItem.gapBadge || 'GAP: AI DETECTED',
+                      gapReason: gItem.gapReason || 'Identified from your recent training balance.'
+                    });
+                  }
+                  if (resolvedGaps.length > 0) {
+                    discoveryExercises.value = resolvedGaps;
+                    selectedGapFilter.value = 'all';
+                  }
+                }
+
+                try {
+                  localStorage.setItem(cacheKey, JSON.stringify({
+                    stations: activeCircuitStations.value,
+                    blindSpots: discoveryExercises.value
+                  }));
+                } catch (_e) {}
+
+                if (forceRefresh) {
+                  showToast('✨ AI rebuilt today\'s circuit, weights, rest intervals & muscle blind spots!');
+                }
+              }
+            }
+          } catch (_e) {
+            if (forceRefresh) showToast('Updated circuit using local anti-overload rules.');
+          } finally {
+            aiCircuitGenerating.value = false;
             aiDiscoveryLoading.value = false;
-            selectedGapFilter.value = 'abductors';
-            showToast('AI highlighted Hip Abductors & Tibialis as top priorities for your Calf & Shin Armor block.');
-          }, 400);
+          }
+        };
+
+        const generateAiDiscoverySuggestion = () => {
+          generateAiCircuitAndBlindSpots(true);
         };
 
         const openFormCardByName = (name, customReason = '') => {
@@ -4393,6 +4817,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           loadAllSharedLogs();
           loadSavedCircuitProgressForToday();
           reloadCoachContext(false);
+          if (hasProvidedTodayUpdate.value && !hasCompletedSessionToday.value) generateAiCircuitAndBlindSpots(false);
           if (workoutLogs.value.length > 0 || cardioLogs.value.length > 0 || saunaLogs.value.length > 0) {
             saveLogsToStorage(true);
           }
@@ -4448,10 +4873,10 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           saunaLogs, saunaDuration, saunaType, saunaTiming, postWorkoutSaunaLogged,
           latestRecentSauna, recentSaunaMinutes36h, saunaTodayAdvisory, submitPostWorkoutSauna, logSaunaEntry, deleteSaunaLog,
           stepZeroPrimerList, cardioStepZeroDrills, activeWarmupDrillsList, isCardioWarmupMode, cardioWarmupCompletedToday, startGuidedCardioWarmup,
-          activeCircuitStations, synthesizeCoachedCircuit,
+          activeCircuitStations, synthesizeCoachedCircuit, generateAiCircuitAndBlindSpots, aiCircuitGenerating, aiCircuitSourceTag,
           customCircuitList, openManualBuildPage, toggleCustomBuilderExercise, addSafeAlternativeToCustom, moveCustomStation, launchCustomBuiltCircuit,
           allCatalogLiftNames, filteredBuilderLifts,
-          evaluateExerciseConflicts, getSafeAlternativeFor, swapStationWithSafeAlternative,
+          evaluateExerciseConflicts, getSafeAlternativeFor, swapStationWithSafeAlternative, swappingStationIdx, swapReasonMode, swapAlternativesLoading, activeSwapAlternatives, openStationSwapDrawer, requestTrainerSwapAlternatives, applyStationSwapChoice,
           muscleGapCategories, selectedGapFilter, filteredDiscoveryExercises, adoptDiscoveryExercise,
           aiDiscoveryLoading, generateAiDiscoverySuggestion,
           activeFormModalLift, openFormCardByName, getLiftMeta, getMaxAllowedWeightForLift, getExercisePhoto, getQuickHitReminder,

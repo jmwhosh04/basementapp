@@ -1,7 +1,5 @@
 # Basement Lab · Builder Rules (System Architecture, UI Layout & Guardrails — v3)
 
-> **Companion Coaching Philosophy:** See `AI_COACHING_BLUEPRINT.md` for the overarching longevity & injury-prevention coaching strategy and the division between live Gemini AI synthesis and deterministic safety rails.
-
 **Agent Directive:** Read this entire specification before writing, editing, or refactoring any code. Every `localStorage` key, module filename, mobile layout constraint, sub-tab structure, and biomechanical guardrail below is a hard invariant. Never overwrite existing functionality, regress interactive timers/charts, or break cross-module sync to solve a localized prompt.
 
 ---
