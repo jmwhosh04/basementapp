@@ -80,7 +80,7 @@ Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coa
 ## B. Top Gameplan Card & `🧠 Why This Workout?` Placement
 
 - **Top Bar:** Displays `Today's Gameplan • 25–40 Min Window` on the left, and two action buttons on the right: `🧠 Why This Workout?` and `🛠️ Manual Build`.  
-- **`🧠 Why This Workout?` Expansion Position:** Clicking `🧠 Why This Workout?` expands the explanation drawer **immediately below the top action row and directly above** the `🏋️ Lift Circuit | 🏃 Run (30m) | 🚣 Row (30m)` switcher pills.
+- **`🧠 Why This Workout?` Expansion Position & Conversational Style:** Clicking `🧠 Why This Workout?` expands a conversational trainer rationale drawer (`dynamicWhyWorkoutSummary` / `generateDynamicWhyWorkoutAi`) **immediately below the top action row and directly above** the `🏋️ Lift Circuit | 🏃 Run (30m) | 🚣 Row (30m)` switcher pills—explaining why today matters, what to focus on, and how it builds off recent days without listing individual station exercises or raw stat dumps. When lifting on Day 2 (`liftedYesterday && consecutivePriorLiftDays < 2`), a compact `💪 Day-2 Lift Focus` banner shows `Yesterday` vs. `Today` muscle zones (and an optional fatigue nudge only when needed).
 
 ## C. Post-Workout Completion Lock & Anti-Double-Submit Guard
 

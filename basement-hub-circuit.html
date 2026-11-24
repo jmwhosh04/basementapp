@@ -3385,13 +3385,27 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           if (aiWhyWorkoutText.value) return aiWhyWorkoutText.value;
           const goalTitle = coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning';
           const noteContext = todayPreWorkoutNoteObj.value?.transcript
-            ? `Since you noted "${todayPreWorkoutNoteObj.value.transcript}" today, `
+            ? `Given that you mentioned "${todayPreWorkoutNoteObj.value.transcript}" today, `
             : '';
-          const prevContext = liftedYesterday.value
-            ? `After yesterday's ${yesterdayMusclesSummary.value} work, today's session shifts attention toward ${todayFocusMusclesSummary.value} so fatigued tissue gets recovery room while keeping momentum toward ${goalTitle}.`
-            : `Coming off a breather from heavy lifting, today is a great day to build steady momentum toward ${goalTitle} across ${todayFocusMusclesSummary.value}.`;
-          const focusCue = ` Focus on controlled lowering, clean joint mechanics around ${sessionEffortGameplan.value.headlineRpe}, and steady breathing rather than chasing max weight—the exercise picks below are sequenced to hit your main movers first and support posture and stability without overloading what was recently taxed.`;
-          return `${noteContext}${prevContext}${focusCue}`;
+          const yLogs = workoutLogs.value.filter((l) => l.date === yesterdayIso.value);
+          const yZones = [...new Set(yLogs.map((l) => formatMuscleZoneLabel(getMuscleGroupForLift(l.exercise))))];
+          const tZones = [...new Set(activeCircuitStations.value.map((s) => formatMuscleZoneLabel(getMuscleGroupForLift(s.name))))];
+          const overlapping = yZones.filter((z) => tZones.includes(z));
+          const freshToday = tZones.filter((z) => !yZones.includes(z));
+
+          let arcLine = '';
+          if (yZones.length > 0 && overlapping.length > 0 && freshToday.length > 0) {
+            arcLine = `You put solid work into ${yZones.slice(0, 2).join(' and ')} yesterday—today we're continuing to build on ${overlapping.slice(0, 2).join(' and ')} while bringing in ${freshToday.slice(0, 2).join(' and ')} to keep your body moving forward toward ${goalTitle} without overdoing any one area.`;
+          } else if (yZones.length > 0 && freshToday.length > 0) {
+            arcLine = `Since you trained ${yZones.slice(0, 2).join(' and ')} yesterday, today gives those areas breathing room and focuses on ${freshToday.slice(0, 2).join(' and ')} to keep your progress toward ${goalTitle} rolling.`;
+          } else if (yZones.length > 0) {
+            arcLine = `You hit ${yZones.slice(0, 2).join(' and ')} yesterday, and today we're continuing to build on that foundation for ${goalTitle} with smart pacing so your joints stay fresh.`;
+          } else {
+            arcLine = `With a clean slate on heavy lifting, today is all about building steady momentum toward ${goalTitle} with crisp, controlled reps.`;
+          }
+
+          const focusLine = ` Keep your head in the game around ${sessionEffortGameplan.value.headlineRpe}—own the lowering phase, stay smooth through each rep, and let quality movement drive the session rather than forcing heavy weight.`;
+          return `${noteContext}${arcLine}${focusLine}`;
         });
 
         const generateDynamicWhyWorkoutAi = async (force = false) => {
