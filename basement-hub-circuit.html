@@ -3064,7 +3064,7 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
           const guardText = activeGuards.join(' | ');
           const activeInjs = (coachCtx.value.activeTemporaryInjuries || [])
             .filter(i => i && (!i.expiresAt || i.expiresAt >= todayIso.value));
-          const injText = activeInjs.map(i => `${i.name || ''} ${i.region || ''}`).toLowerCase()).join(' | ');
+          const injText = activeInjs.map(i => `${i.name || ''} ${i.region || ''}`.toLowerCase()).join(' | ');
           const lifeText = (coachCtx.value.externalLifeLoads || []).join(' | ').toLowerCase();
           const checkInText = (todayPreWorkoutNoteObj.value?.transcript || '').toLowerCase();
           const combined = `${goalLow} ${guardText} ${injText} ${lifeText} ${checkInText}`;
