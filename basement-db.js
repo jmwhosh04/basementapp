@@ -266,7 +266,12 @@
       reps: r.reps != null ? Number(r.reps) : 10,
       rpe: r.rpe != null ? Number(r.rpe) : 8.0,
       durationSec: r.duration_sec != null ? Number(r.duration_sec) : (extra.durationSec ?? null),
-      secPerRep: r.sec_per_rep != null ? Number(r.sec_per_rep) : (extra.secPerRep ?? null)
+      secPerRep: r.sec_per_rep != null ? Number(r.sec_per_rep) : (extra.secPerRep ?? null),
+      selectionSource: extra.selectionSource || 'legacy',
+      prescribedWeight: extra.prescribedWeight != null ? Number(extra.prescribedWeight) : null,
+      prescribedReps: extra.prescribedReps != null ? Number(extra.prescribedReps) : null,
+      prescribedRpe: extra.prescribedRpe != null ? Number(extra.prescribedRpe) : null,
+      prescribedRestSec: extra.prescribedRestSec != null ? Number(extra.prescribedRestSec) : null
     };
   }
 
@@ -514,6 +519,11 @@
           const extra = {};
           if (item.setNumber != null) extra.setNumber = item.setNumber;
           if (item.totalSets != null) extra.totalSets = item.totalSets;
+          if (item.selectionSource != null) extra.selectionSource = String(item.selectionSource);
+          if (item.prescribedWeight != null) extra.prescribedWeight = Number(item.prescribedWeight);
+          if (item.prescribedReps != null) extra.prescribedReps = Number(item.prescribedReps);
+          if (item.prescribedRpe != null) extra.prescribedRpe = Number(item.prescribedRpe);
+          if (item.prescribedRestSec != null) extra.prescribedRestSec = Number(item.prescribedRestSec);
           return {
             id: String(item.id || ('m-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
             user_id: user.id,

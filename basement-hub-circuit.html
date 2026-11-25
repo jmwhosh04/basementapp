@@ -3276,13 +3276,23 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             restSeconds = 50;
           }
 
-          if (meta.equipment === 'Dumbbell' && baseWeight > 0 && recentSets.length >= 2) {
+          if (meta.equipment === 'Dumbbell' && baseWeight > 0 && recentSets.length >= 1) {
             const repsList = recentSets.map(x => Number(x.reps) || baseReps);
             const isDropping = repsList.length >= 3 && repsList[0] >= repsList[1] && repsList[1] > repsList[2] && repsList[2] < baseReps;
+            const latestSet = recentSets[recentSets.length - 1];
             const lastReps = repsList[repsList.length - 1];
-            const lastWeight = Math.min(maxCapForLift, Number(recentSets[recentSets.length - 1].weight) || baseWeight);
+            const lastWeight = Math.min(maxCapForLift, Number(latestSet.weight) || baseWeight);
+            const wasDialedDownByUser = (
+              latestSet.prescribedWeight != null &&
+              Number(latestSet.prescribedWeight) > 0 &&
+              lastWeight < Number(latestSet.prescribedWeight) &&
+              (Number(latestSet.rpe) || 8.0) >= ((Number(latestSet.prescribedRpe) || baseRpe) - 0.5)
+            );
 
-            if (isDropping) {
+            if (wasDialedDownByUser) {
+              suggestedWeight = lastWeight;
+              suggestedReps = baseReps;
+            } else if (isDropping) {
               if (lastWeight >= 45) {
                 suggestedWeight = lastWeight;
                 suggestedReps = Math.max(6, lastReps);
@@ -3294,7 +3304,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             } else if (lastReps < baseReps - 1 && lastWeight > 0) {
               suggestedWeight = Math.max(5, Number((lastWeight - 2.5).toFixed(1)));
               suggestedReps = baseReps;
-            } else if (lastReps >= baseReps && (Number(recentSets[recentSets.length - 1].rpe) || 8.0) <= 7.5 && lastWeight < maxCapForLift) {
+            } else if (recentSets.length >= 2 && lastReps >= baseReps && (Number(latestSet.rpe) || 8.0) <= 7.5 && lastWeight < maxCapForLift) {
               suggestedWeight = Math.min(maxCapForLift, Number((lastWeight + 2.5).toFixed(1)));
               suggestedReps = baseReps;
             } else {
@@ -3310,11 +3320,12 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           return { suggestedWeight, suggestedReps, restSeconds };
         };
 
-        const makeStationObj = (name, reason, isGoalFocus = false, goalBadge = '') => {
+        const makeStationObj = (name, reason, isGoalFocus = false, goalBadge = '', selectionSource = 'ai_circuit') => {
           const meta = getLiftMeta(name);
           const isBand = meta.equipment === 'Band';
           const trend = getExerciseHistoryTrend(name);
           const rx = computeDynamicPrescription(name);
+          const targetRpeNum = Number(sessionEffortGameplan.value.baseRpe) || 8.0;
           const capMode = coachCtx.value.capProgressionMode || 'tempo_pause';
           let tempoPrescription = isBand ? '2s Peak Hold + 3s Return' : '3s Lower + 2s Pause';
           if (!isBand && Number(rx.suggestedWeight) >= 45) {
@@ -3328,6 +3339,11 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             name,
             category: meta.category,
             equipment: meta.equipment,
+            selectionSource,
+            prescribedWeight: isBand ? 0 : rx.suggestedWeight,
+            prescribedReps: rx.suggestedReps,
+            prescribedRpe: targetRpeNum,
+            prescribedRestSec: rx.restSeconds,
             weight: rx.suggestedWeight,
             plannedWeight: rx.suggestedWeight,
             plannedReps: rx.suggestedReps,
@@ -3645,7 +3661,7 @@ CRITICAL RULE: Do NOT list individual exercise names or recite raw numbers/stats
             const reason = conflicts.length > 0
               ? `Custom selection (⚠️ Advisory: ${conflicts[0]})`
               : 'Hand-picked in Build Your Own Circuit.';
-            return makeStationObj(name, reason, false, 'CUSTOM');
+            return makeStationObj(name, reason, false, 'CUSTOM', 'manual_build');
           });
           showToast('Loaded your custom circuit into Guided Player!');
           startGuidedWorkout();
@@ -3779,7 +3795,8 @@ Return ONLY valid JSON:
             altObj.name,
             `Pro Trainer Swap from ${oldName}: ${altObj.whyFit}`,
             Boolean(oldSt?.isGoalFocus),
-            oldSt?.goalBadge || ''
+            oldSt?.goalBadge || '',
+            'ai_swap'
           );
           activeCircuitStations.value[idx] = newSt;
           swappingStationIdx.value = -1;
@@ -3795,7 +3812,7 @@ Return ONLY valid JSON:
         const swapStationWithSafeAlternative = (idx, oldName) => {
           const safeName = getSafeAlternativeFor(oldName);
           if (!safeName) return;
-          activeCircuitStations.value[idx] = makeStationObj(safeName, `Auto-Fixed from ${oldName} to protect 48h recovery & active guardrails.`, true, 'SAFE SWAP');
+          activeCircuitStations.value[idx] = makeStationObj(safeName, `Auto-Fixed from ${oldName} to protect 48h recovery & active guardrails.`, true, 'SAFE SWAP', 'ai_swap');
           showToast(`Swapped ${oldName} → ${safeName}`);
         };
 
@@ -3851,7 +3868,7 @@ Return ONLY valid JSON:
 
         const adoptDiscoveryExercise = (item) => {
           if (!activeCircuitStations.value.some(s => s.name === item.name)) {
-            activeCircuitStations.value.push(makeStationObj(item.name, `AI Discovery (${item.gapBadge}): ${item.gapReason}`, true, item.gapBadge));
+            activeCircuitStations.value.push(makeStationObj(item.name, `AI Discovery (${item.gapBadge}): ${item.gapReason}`, true, item.gapBadge, 'user_discovery_add'));
           }
           if (!customCircuitList.value.includes(item.name)) {
             customCircuitList.value.push(item.name);
@@ -3916,7 +3933,13 @@ Return ONLY valid JSON:
             const recent7dLogs = workoutLogs.value
               .filter((l) => l.date >= getLocalIsoDate(-7))
               .slice(0, 24)
-              .map((l) => `${l.date}: ${l.exercise} (${l.weight}lb x ${l.reps} @ RPE ${l.rpe}${l.durationSec ? ', ' + l.durationSec + 's TUT' : ''})`);
+              .map((l) => {
+                const srcTag = l.selectionSource && l.selectionSource !== 'legacy' ? ` [picked by ${l.selectionSource}]` : '';
+                const rxTag = (l.prescribedWeight != null && Number(l.prescribedWeight) !== Number(l.weight))
+                  ? ` (prescribed ${l.prescribedWeight}lb x ${l.prescribedReps || l.reps} @ RPE ${l.prescribedRpe || l.rpe} -> user adjusted to ${l.weight}lb)`
+                  : '';
+                return `${l.date}: ${l.exercise}${srcTag} ${l.weight}lb x ${l.reps} @ RPE ${l.rpe}${rxTag}${l.durationSec ? ', ' + l.durationSec + 's TUT' : ''}`;
+              });
             const recentCardio = cardioLogs.value
               .filter((c) => c.date >= getLocalIsoDate(-5))
               .map((c) => `${c.date}: ${c.modality} ${c.duration}m @ RPE ${c.rpe}`);
@@ -4010,16 +4033,34 @@ Return ONLY valid JSON:
                   }
                   const meta = getLiftMeta(cleanName);
                   const maxCap = getMaxAllowedWeightForLift(cleanName);
+                  const localRx = computeDynamicPrescription(cleanName);
+                  const trend = getExerciseHistoryTrend(cleanName);
+                  const latestLog = trend.lastLog;
+                  const userOverrodeDown = Boolean(
+                    latestLog &&
+                    latestLog.prescribedWeight != null &&
+                    Number(latestLog.weight) < Number(latestLog.prescribedWeight) &&
+                    (Number(latestLog.rpe) || 8.0) >= ((Number(latestLog.prescribedRpe) || 8.0) - 0.5)
+                  );
+                  const rawOrCalibratedWeight = userOverrodeDown
+                    ? localRx.suggestedWeight
+                    : (Number(rawSt.plannedWeight) || localRx.suggestedWeight || meta.weight || 25);
                   const clampedWeight = meta.equipment === 'Dumbbell'
-                    ? Math.max(0, Math.min(maxCap, Math.round((Number(rawSt.plannedWeight) || meta.weight || 25) / 2.5) * 2.5))
+                    ? Math.max(0, Math.min(maxCap, Math.round(rawOrCalibratedWeight / 2.5) * 2.5))
                     : 0;
                   const clampedReps = Math.max(5, Math.min(30, Math.round(Number(rawSt.plannedReps) || meta.reps || 10)));
                   const clampedRest = Math.max(25, Math.min(90, Math.round(Number(rawSt.restSeconds) || 45)));
+                  const targetRpeNum = Number(sessionEffortGameplan.value.baseRpe) || 8.0;
 
                   resolvedStations.push({
                     name: cleanName,
                     category: meta.category,
                     equipment: meta.equipment,
+                    selectionSource: 'ai_circuit',
+                    prescribedWeight: clampedWeight,
+                    prescribedReps: clampedReps,
+                    prescribedRpe: targetRpeNum,
+                    prescribedRestSec: clampedRest,
                     weight: clampedWeight,
                     plannedWeight: clampedWeight,
                     plannedReps: clampedReps,
@@ -4552,6 +4593,11 @@ Return ONLY valid JSON:
             id: entryId,
             date: todayIso.value,
             exercise: st.name,
+            selectionSource: st.selectionSource || 'ai_circuit',
+            prescribedWeight: st.equipment === 'Band' ? 0 : (st.prescribedWeight != null ? Number(st.prescribedWeight) : Number(st.plannedWeight)),
+            prescribedReps: st.prescribedReps != null ? Number(st.prescribedReps) : repsVal,
+            prescribedRpe: st.prescribedRpe != null ? Number(st.prescribedRpe) : (Number(effort.targetRpe) || 8.0),
+            prescribedRestSec: st.prescribedRestSec != null ? Number(st.prescribedRestSec) : (Number(st.restSeconds) || 45),
             weight: st.equipment === 'Band' ? 0 : st.plannedWeight,
             bandLevel: st.equipment === 'Band' ? selectedBandLevel.value.label : null,
             reps: lastCompletedReps.value,
@@ -4706,6 +4752,10 @@ Return ONLY valid JSON:
                 id: `m-${baseTs}-${sIdx}`,
                 date: selectedCalendarDate.value,
                 exercise: manualLiftName.value,
+                selectionSource: 'calendar_manual',
+                prescribedWeight: weightVal,
+                prescribedReps: repsVal,
+                prescribedRpe: rpeVal,
                 weight: weightVal,
                 bandLevel: bandVal,
                 reps: repsVal,
