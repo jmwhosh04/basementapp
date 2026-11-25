@@ -2440,6 +2440,9 @@ const getExercisePhoto = (name, stage = 'top') => {
         });
 
         const selectedTodayModality = ref(null);
+        Vue.watch(selectedTodayModality, () => {
+          aiWhyWorkoutText.value = '';
+        });
         const activeTrainingPrefsList = computed(() => {
           const raw = coachCtx.value.trainingPreferences;
           if (!Array.isArray(raw)) return [];
@@ -3456,31 +3459,75 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
         const whyWorkoutAiLoading = ref(false);
         const aiWhyWorkoutText = ref('');
 
+        const describeActiveModalityChoice = () => {
+          const curMod = activeTodayModality.value;
+          const rec = recommendedDailyModality.value || { mode: 'lift', reason: '' };
+          if (curMod === 'run') {
+            return {
+              label: '30-minute Run',
+              isAiPick: rec.mode === 'run',
+              context: rec.mode === 'run'
+                ? `Today's AI pick is a 30-minute Run (${rec.reason || 'aerobic conditioning with lower-body spacing'})`
+                : `You selected a 30-minute Run today (AI pick is ${rec.mode === 'row' ? '30-minute Row' : 'Strength Circuit'}: ${rec.reason || ''})`
+            };
+          }
+          if (curMod === 'row') {
+            return {
+              label: '30-minute Row',
+              isAiPick: rec.mode === 'row',
+              context: rec.mode === 'row'
+                ? `Today's AI pick is a 30-minute Row (${rec.reason || 'low-impact full-body conditioning and recovery'})`
+                : `You selected a 30-minute Row today (AI pick is ${rec.mode === 'run' ? '30-minute Run' : 'Strength Circuit'}: ${rec.reason || ''})`
+            };
+          }
+          return {
+            label: 'Strength Circuit',
+            isAiPick: rec.mode === 'lift',
+            context: rec.mode === 'lift'
+              ? `Today's AI pick is a Strength Circuit (${rec.reason || 'anti-overload resistance training'})`
+              : `You selected a Strength Circuit today (AI pick is ${rec.mode === 'run' ? '30-minute Run' : '30-minute Row'}: ${rec.reason || ''})`
+          };
+        };
+
         const dynamicWhyWorkoutSummary = computed(() => {
           if (aiWhyWorkoutText.value) return aiWhyWorkoutText.value;
           const goalTitle = coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning';
           const noteContext = todayPreWorkoutNoteObj.value?.transcript
             ? `Given that you mentioned "${todayPreWorkoutNoteObj.value.transcript}" today, `
             : '';
+          const modInfo = describeActiveModalityChoice();
+          const rec = recommendedDailyModality.value || { mode: 'lift', reason: '' };
           const yLogs = workoutLogs.value.filter((l) => l.date === yesterdayIso.value);
           const yZones = [...new Set(yLogs.map((l) => formatMuscleZoneLabel(getMuscleGroupForLift(l.exercise))))];
           const tZones = [...new Set(activeCircuitStations.value.map((s) => formatMuscleZoneLabel(getMuscleGroupForLift(s.name))))];
           const overlapping = yZones.filter((z) => tZones.includes(z));
           const freshToday = tZones.filter((z) => !yZones.includes(z));
 
-          let arcLine = '';
-          if (yZones.length > 0 && overlapping.length > 0 && freshToday.length > 0) {
-            arcLine = `You put solid work into ${yZones.slice(0, 2).join(' and ')} yesterday—today we're continuing to build on ${overlapping.slice(0, 2).join(' and ')} while bringing in ${freshToday.slice(0, 2).join(' and ')} to keep your body moving forward toward ${goalTitle} without overdoing any one area.`;
-          } else if (yZones.length > 0 && freshToday.length > 0) {
-            arcLine = `Since you trained ${yZones.slice(0, 2).join(' and ')} yesterday, today gives those areas breathing room and focuses on ${freshToday.slice(0, 2).join(' and ')} to keep your progress toward ${goalTitle} rolling.`;
-          } else if (yZones.length > 0) {
-            arcLine = `You hit ${yZones.slice(0, 2).join(' and ')} yesterday, and today we're continuing to build on that foundation for ${goalTitle} with smart pacing so your joints stay fresh.`;
+          let modalityLine = '';
+          if (activeTodayModality.value === 'run') {
+            modalityLine = rec.mode === 'run'
+              ? `Today's recommendation is a 30-minute Run—${rec.reason || 'it fits your cardio preference and current recovery window while building aerobic endurance for ' + goalTitle}.'}`
+              : `You're looking at a 30-minute Run today, while the trainer's top pick is ${rec.mode === 'row' ? '30-minute Rowing' : 'a Strength Circuit'} (${rec.reason || 'matching your current spacing and recovery'}). If you do run, keep effort smooth and respect any joint spacing rules.`;
+          } else if (activeTodayModality.value === 'row') {
+            modalityLine = rec.mode === 'row'
+              ? `Today's recommendation is 30-minute Rowing—${rec.reason || 'it gives you full-body conditioning and recovery support without extra impact stress.'}`
+              : `You're looking at 30-minute Rowing today, while the trainer's top pick is ${rec.mode === 'run' ? 'a 30-minute Run' : 'a Strength Circuit'} (${rec.reason || 'matching your current recovery and preferences'}). Rowing keeps impact low while supporting ${goalTitle}.`;
           } else {
-            arcLine = `With a clean slate on heavy lifting, today is all about building steady momentum toward ${goalTitle} with crisp, controlled reps.`;
+            if (rec.mode !== 'lift') {
+              modalityLine = `The trainer is recommending ${rec.mode === 'row' ? '30-minute Rowing' : 'a 30-minute Run'} today (${rec.reason || 'protecting your consecutive-day lifting spacing'}), though you have Strength Circuit selected.`;
+            } else if (yZones.length > 0 && overlapping.length > 0 && freshToday.length > 0) {
+              modalityLine = `Today's pick is a Strength Circuit building on ${overlapping.slice(0, 2).join(' and ')} from yesterday while bringing in ${freshToday.slice(0, 2).join(' and ')} toward ${goalTitle}.`;
+            } else if (yZones.length > 0 && freshToday.length > 0) {
+              modalityLine = `Today's pick is a Strength Circuit giving ${yZones.slice(0, 2).join(' and ')} from yesterday breathing room while focusing on ${freshToday.slice(0, 2).join(' and ')} toward ${goalTitle}.`;
+            } else if (yZones.length > 0) {
+              modalityLine = `Today's pick is a Strength Circuit continuing your work in ${yZones.slice(0, 2).join(' and ')} toward ${goalTitle}.`;
+            } else {
+              modalityLine = `Today's pick is a Strength Circuit to build steady momentum toward ${goalTitle} with crisp, controlled reps.`;
+            }
           }
 
-          const focusLine = ` Keep your head in the game around ${sessionEffortGameplan.value.headlineRpe}—own the lowering phase, stay smooth through each rep, and let quality movement drive the session rather than forcing heavy weight.`;
-          return `${noteContext}${arcLine}${focusLine}`;
+          const focusLine = ` Aim for ${sessionEffortGameplan.value.headlineRpe}—stay controlled, breathe smoothly, and keep quality execution front and center.`;
+          return `${noteContext}${modalityLine}${focusLine}`;
         });
 
         const generateDynamicWhyWorkoutAi = async (force = false) => {
@@ -3494,13 +3541,33 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
               .filter((l) => l.date >= getLocalIsoDate(-3))
               .slice(0, 12)
               .map((l) => `${l.date}: ${l.exercise} (RPE ${l.rpe})`);
-            const selectionThemes = activeCircuitStations.value.map((s) => `${getLiftMeta(s.name).category} (${s.reason})`).join('; ');
+            const recentCardio3d = cardioLogs.value
+              .filter((c) => c.date >= getLocalIsoDate(-3))
+              .map((c) => `${c.date}: ${c.modality} ${c.duration}m`);
+            const modInfo = describeActiveModalityChoice();
+            const selectionThemes = activeTodayModality.value === 'lift'
+              ? activeCircuitStations.value.map((s) => `${getLiftMeta(s.name).category} (${s.reason})`).join('; ')
+              : `30-minute ${activeTodayModality.value === 'row' ? 'Rowing' : 'Running'} session (${activeCardioPrescription.value.targetRpe})`;
+            const activePrefs = activeTrainingPrefsList.value.join('; ') || 'None';
+            const activeGuards = (coachCtx.value.chronicGuardrails || [])
+              .filter((g) => (typeof g === 'string' ? true : g.active !== false))
+              .map((g) => (typeof g === 'string' ? g : g.label))
+              .join('; ') || 'None';
             const prompt = `You are a personal trainer talking conversationally to your client before today's workout.
+Make sure your explanation is 100% consistent with what the trainer is recommending today:
+- Modality Recommendation & Selection: ${modInfo.context}.
+- Primary Goal: "${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning'}".
+- Active Training Preferences & Cadence Rules: ${activePrefs}.
+- Active Chronic Guardrails: ${activeGuards}.
+- Recent Strength Logs (last 3 days): ${JSON.stringify(recent3d)}.
+- Recent Cardio Logs (last 3 days): ${JSON.stringify(recentCardio3d)}.
+- Today's Focus / Lineup Themes: ${selectionThemes}.
+
 Explain in 3 short, natural sentences:
-1) Why today's workout matters right now and what they should focus on (effort/control/mindset),
-2) How it builds off or spaces out from the last few days of training (${JSON.stringify(recent3d)}), and
-3) Why the exercise lineup was chosen by movement/muscle balance and goal alignment (${selectionThemes}).
-CRITICAL RULE: Do NOT list individual exercise names or recite raw numbers/stats—the user already sees the exercise list right below.`;
+1) Why today's recommended modality (${modInfo.label}) fits right now and how it connects to recent days (${JSON.stringify(recent3d)} and ${JSON.stringify(recentCardio3d)}),
+2) What to focus on today (effort/pacing/control around ${sessionEffortGameplan.value.headlineRpe}), and
+3) How it aligns with their goal and cadence/guardrail rules without contradicting the trainer's recommendation.
+CRITICAL RULE: Do NOT mention unrelated muscle groups not part of today's plan, do NOT list individual exercise names, and do NOT recite raw numbers/stats.`;
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
