@@ -24,6 +24,8 @@
     TRAINER_NOTES: 'basement_trainer_notes'
   };
 
+  const TOMBSTONE_KEY = 'basement_deleted_ids_v1';
+
   const DEFAULT_COACH_CONTEXT = {
     birthDate: null,
     heightFeet: null,
@@ -63,7 +65,7 @@
   let _supabase = null;
   let _session = null;
   let _authReady = false;
-  let _isHydrating = false;
+  let _hydratePromise = null;
   let _hydratedUserId = null;
   const _authListeners = new Set();
 
@@ -161,10 +163,61 @@
   }
 
   function writeJson(key, value) {
+    const serialized = JSON.stringify(value);
     try {
-      global.localStorage.setItem(key, JSON.stringify(value));
+      global.localStorage.setItem(key, serialized);
+      return true;
     } catch (e) {
       console.warn('localStorage write error for', key, e);
+      // Evict stale per-user cache snapshots if quota is tight and retry once
+      try {
+        const currentUid = getCurrentUser() && getCurrentUser().id;
+        Object.keys(global.localStorage).forEach((k) => {
+          if (k.startsWith('basement_user_cache_') && (!currentUid || !k.endsWith(currentUid))) {
+            global.localStorage.removeItem(k);
+          }
+        });
+        global.localStorage.setItem(key, serialized);
+        return true;
+      } catch (_retryErr) {
+        return false;
+      }
+    }
+  }
+
+  // Explicit deletion tombstones so partial local state never wipes cloud rows on other devices
+  function _readTombstones() {
+    return readJson(TOMBSTONE_KEY, {
+      strength_logs: [],
+      cardio_logs: [],
+      sauna_logs: [],
+      trainer_notes: []
+    });
+  }
+
+  function _writeTombstones(obj) {
+    writeJson(TOMBSTONE_KEY, obj);
+  }
+
+  function markRecordDeleted(tableName, id) {
+    if (!tableName || !id) return;
+    const map = _readTombstones();
+    const list = Array.isArray(map[tableName]) ? map[tableName] : [];
+    const strId = String(id);
+    if (!list.includes(strId)) {
+      list.push(strId);
+      map[tableName] = list.slice(-500);
+      _writeTombstones(map);
+    }
+  }
+
+  function _clearTombstones(tableName, deletedIds) {
+    if (!tableName || !Array.isArray(deletedIds) || deletedIds.length === 0) return;
+    const dropSet = new Set(deletedIds.map(String));
+    const map = _readTombstones();
+    if (Array.isArray(map[tableName])) {
+      map[tableName] = map[tableName].filter((id) => !dropSet.has(String(id)));
+      _writeTombstones(map);
     }
   }
 
@@ -228,7 +281,8 @@
       STORAGE_KEYS.CARDIO_LOGS,
       STORAGE_KEYS.SAUNA_LOGS,
       STORAGE_KEYS.TRAINER_DIRECTIVES,
-      STORAGE_KEYS.TRAINER_NOTES
+      STORAGE_KEYS.TRAINER_NOTES,
+      TOMBSTONE_KEY
     ].forEach((k) => {
       try {
         global.localStorage.removeItem(k);
@@ -319,14 +373,17 @@
     };
   }
 
-  function _mergeById(cloudList, localList) {
+  function _mergeById(cloudList, localList, tombstoneIds = []) {
+    const deletedSet = new Set((tombstoneIds || []).map(String));
     const map = new Map();
     cloudList.forEach((item) => {
-      if (item && item.id) map.set(String(item.id), item);
+      if (item && item.id && !deletedSet.has(String(item.id))) {
+        map.set(String(item.id), item);
+      }
     });
     if (Array.isArray(localList)) {
       localList.forEach((item) => {
-        if (item && item.id && !map.has(String(item.id))) {
+        if (item && item.id && !deletedSet.has(String(item.id)) && !map.has(String(item.id))) {
           map.set(String(item.id), item);
         }
       });
@@ -337,84 +394,92 @@
   async function hydrateUserFromCloud(userId, force = false) {
     const client = getSupabaseClient();
     if (!client || !userId) return;
-    if (_isHydrating) return;
     if (!force && _hydratedUserId === userId) return;
-
-    _isHydrating = true;
-    try {
-      // 1. public.user_state (PK: user_id, key) -> key='coach_context' & key='trainer_directives'
-      const stateRows = await _fetchRowsByUserId(client, 'user_state', userId);
-      const ctxRow = stateRows.find((r) => r.key === 'coach_context');
-      if (ctxRow && ctxRow.value && typeof ctxRow.value === 'object') {
-        const localCtx = readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
-        writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...localCtx, ...ctxRow.value });
-      }
-      const dirRow = stateRows.find((r) => r.key === 'trainer_directives');
-      if (dirRow && dirRow.value && typeof dirRow.value === 'object') {
-        writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, dirRow.value);
-      }
-
-      // 2. public.strength_logs (PK: user_id, id)
-      const strengthRows = await _fetchRowsByUserId(client, 'strength_logs', userId);
-      const cloudLogs = strengthRows.map(_normalizeStrengthRow).filter(Boolean);
-      const localLogs = readJson(STORAGE_KEYS.LOGS, []);
-      if (cloudLogs.length > 0 || (Array.isArray(localLogs) && localLogs.length > 0)) {
-        writeJson(STORAGE_KEYS.LOGS, _mergeById(cloudLogs, localLogs));
-      }
-
-      // 3. public.cardio_logs (PK: user_id, id)
-      const cardioRows = await _fetchRowsByUserId(client, 'cardio_logs', userId);
-      const cloudCardio = cardioRows.map(_normalizeCardioRow).filter(Boolean);
-      const localCardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
-      if (cloudCardio.length > 0 || (Array.isArray(localCardio) && localCardio.length > 0)) {
-        writeJson(STORAGE_KEYS.CARDIO_LOGS, _mergeById(cloudCardio, localCardio));
-      }
-
-      // 4. public.sauna_logs (PK: user_id, id)
-      const saunaRows = await _fetchRowsByUserId(client, 'sauna_logs', userId);
-      const cloudSauna = saunaRows.map(_normalizeSaunaRow).filter(Boolean);
-      const localSauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
-      if (cloudSauna.length > 0 || (Array.isArray(localSauna) && localSauna.length > 0)) {
-        writeJson(STORAGE_KEYS.SAUNA_LOGS, _mergeById(cloudSauna, localSauna));
-      }
-
-      // 5. public.trainer_notes (PK: user_id, id)
-      const noteRows = await _fetchRowsByUserId(client, 'trainer_notes', userId);
-      const cloudNotes = noteRows.map(_normalizeTrainerNoteRow).filter(Boolean);
-      const localNotes = readJson(STORAGE_KEYS.TRAINER_NOTES, []);
-      if (cloudNotes.length > 0 || (Array.isArray(localNotes) && localNotes.length > 0)) {
-        writeJson(STORAGE_KEYS.TRAINER_NOTES, _mergeById(cloudNotes, localNotes));
-      }
-
-      // 6. public.custom_catalog (PK: owner_id, id) — shared or owned rows
-      try {
-        const { data: catalogRows, error: catErr } = await client
-          .from('custom_catalog')
-          .select('id, owner_id, is_shared, data')
-          .or(`owner_id.eq.${userId},is_shared.eq.true`);
-        if (!catErr && Array.isArray(catalogRows) && catalogRows.length > 0) {
-          const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, []);
-          const mergedArr = Array.isArray(localCat) ? [...localCat] : [];
-          catalogRows.forEach((row) => {
-            const item = row && row.data && typeof row.data === 'object' ? row.data : null;
-            if (item && item.name) {
-              const idx = mergedArr.findIndex((x) => x.name === item.name);
-              if (idx >= 0) mergedArr[idx] = { ...mergedArr[idx], ...item };
-              else mergedArr.push(item);
-            }
-          });
-          writeJson(STORAGE_KEYS.CUSTOM_CATALOG, mergedArr);
-        }
-      } catch (_e) {}
-
-      saveUserCacheSnapshot(userId);
-      _hydratedUserId = userId;
-      notifyFrames('storage');
-    } catch (err) {
-      console.warn('Cloud hydration warning:', err);
-    } finally {
-      _isHydrating = false;
+    if (_hydratePromise) {
+      await _hydratePromise;
+      if (!force && _hydratedUserId === userId) return;
     }
+
+    _hydratePromise = (async () => {
+      try {
+        const tombstones = _readTombstones();
+
+        // 1. public.user_state (PK: user_id, key) -> key='coach_context' & key='trainer_directives'
+        const stateRows = await _fetchRowsByUserId(client, 'user_state', userId);
+        const ctxRow = stateRows.find((r) => r.key === 'coach_context');
+        if (ctxRow && ctxRow.value && typeof ctxRow.value === 'object') {
+          const localCtx = readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
+          writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...localCtx, ...ctxRow.value });
+        }
+        const dirRow = stateRows.find((r) => r.key === 'trainer_directives');
+        if (dirRow && dirRow.value && typeof dirRow.value === 'object') {
+          writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, dirRow.value);
+        }
+
+        // 2. public.strength_logs (PK: user_id, id)
+        const strengthRows = await _fetchRowsByUserId(client, 'strength_logs', userId);
+        const cloudLogs = strengthRows.map(_normalizeStrengthRow).filter(Boolean);
+        const localLogs = readJson(STORAGE_KEYS.LOGS, []);
+        if (cloudLogs.length > 0 || (Array.isArray(localLogs) && localLogs.length > 0)) {
+          writeJson(STORAGE_KEYS.LOGS, _mergeById(cloudLogs, localLogs, tombstones.strength_logs));
+        }
+
+        // 3. public.cardio_logs (PK: user_id, id)
+        const cardioRows = await _fetchRowsByUserId(client, 'cardio_logs', userId);
+        const cloudCardio = cardioRows.map(_normalizeCardioRow).filter(Boolean);
+        const localCardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
+        if (cloudCardio.length > 0 || (Array.isArray(localCardio) && localCardio.length > 0)) {
+          writeJson(STORAGE_KEYS.CARDIO_LOGS, _mergeById(cloudCardio, localCardio, tombstones.cardio_logs));
+        }
+
+        // 4. public.sauna_logs (PK: user_id, id)
+        const saunaRows = await _fetchRowsByUserId(client, 'sauna_logs', userId);
+        const cloudSauna = saunaRows.map(_normalizeSaunaRow).filter(Boolean);
+        const localSauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
+        if (cloudSauna.length > 0 || (Array.isArray(localSauna) && localSauna.length > 0)) {
+          writeJson(STORAGE_KEYS.SAUNA_LOGS, _mergeById(cloudSauna, localSauna, tombstones.sauna_logs));
+        }
+
+        // 5. public.trainer_notes (PK: user_id, id)
+        const noteRows = await _fetchRowsByUserId(client, 'trainer_notes', userId);
+        const cloudNotes = noteRows.map(_normalizeTrainerNoteRow).filter(Boolean);
+        const localNotes = readJson(STORAGE_KEYS.TRAINER_NOTES, []);
+        if (cloudNotes.length > 0 || (Array.isArray(localNotes) && localNotes.length > 0)) {
+          writeJson(STORAGE_KEYS.TRAINER_NOTES, _mergeById(cloudNotes, localNotes, tombstones.trainer_notes));
+        }
+
+        // 6. public.custom_catalog (PK: owner_id, id) — shared or owned rows
+        try {
+          const { data: catalogRows, error: catErr } = await client
+            .from('custom_catalog')
+            .select('id, owner_id, is_shared, data')
+            .or(`owner_id.eq.${userId},is_shared.eq.true`);
+          if (!catErr && Array.isArray(catalogRows) && catalogRows.length > 0) {
+            const localCat = readJson(STORAGE_KEYS.CUSTOM_CATALOG, []);
+            const mergedArr = Array.isArray(localCat) ? [...localCat] : [];
+            catalogRows.forEach((row) => {
+              const item = row && row.data && typeof row.data === 'object' ? row.data : null;
+              if (item && item.name) {
+                const idx = mergedArr.findIndex((x) => x.name === item.name);
+                if (idx >= 0) mergedArr[idx] = { ...mergedArr[idx], ...item };
+                else mergedArr.push(item);
+              }
+            });
+            writeJson(STORAGE_KEYS.CUSTOM_CATALOG, mergedArr);
+          }
+        } catch (_e) {}
+
+        saveUserCacheSnapshot(userId);
+        _hydratedUserId = userId;
+        notifyFrames('storage');
+      } catch (err) {
+        console.warn('Cloud hydration warning:', err);
+      } finally {
+        _hydratePromise = null;
+      }
+    })();
+
+    await _hydratePromise;
   }
 
   async function syncCoachContextToCloud(contextObj) {
@@ -486,6 +551,7 @@
     return { ok: true };
   }
 
+  // Non-destructive sync: only deletes rows explicitly marked in tombstones so multi-tab/multi-device state is never clobbered
   async function syncLogsToCloud(logsArr, cardioArr, saunaArr, trainerNotesArr) {
     const user = getCurrentUser();
     if (!user || !user.id) return { ok: false, reason: 'not_signed_in' };
@@ -495,14 +561,12 @@
 
     const errors = [];
     const fallbackDate = _localTodayIso();
+    const tombstones = _readTombstones();
 
     // 1. public.strength_logs (PK: user_id, id)
     if (Array.isArray(logsArr)) {
-      const existingRows = await _fetchRowsByUserId(client, 'strength_logs', user.id);
       const keepIds = new Set(logsArr.map((x) => String(x.id)));
-      const toDelete = existingRows
-        .map((r) => String(r.id || ''))
-        .filter((id) => id && !keepIds.has(id));
+      const toDelete = (tombstones.strength_logs || []).filter((id) => id && !keepIds.has(String(id)));
       if (toDelete.length > 0) {
         const { error: delErr } = await client
           .from('strength_logs')
@@ -512,6 +576,8 @@
         if (delErr) {
           console.warn('strength_logs delete error:', delErr.message);
           errors.push(delErr.message);
+        } else {
+          _clearTombstones('strength_logs', toDelete);
         }
       }
       if (logsArr.length > 0) {
@@ -550,11 +616,8 @@
 
     // 2. public.cardio_logs (PK: user_id, id)
     if (Array.isArray(cardioArr)) {
-      const existingC = await _fetchRowsByUserId(client, 'cardio_logs', user.id);
       const keepC = new Set(cardioArr.map((x) => String(x.id)));
-      const delC = existingC
-        .map((r) => String(r.id || ''))
-        .filter((id) => id && !keepC.has(id));
+      const delC = (tombstones.cardio_logs || []).filter((id) => id && !keepC.has(String(id)));
       if (delC.length > 0) {
         const { error: delCErr } = await client
           .from('cardio_logs')
@@ -564,6 +627,8 @@
         if (delCErr) {
           console.warn('cardio_logs delete error:', delCErr.message);
           errors.push(delCErr.message);
+        } else {
+          _clearTombstones('cardio_logs', delC);
         }
       }
       if (cardioArr.length > 0) {
@@ -592,11 +657,8 @@
 
     // 3. public.sauna_logs (PK: user_id, id)
     if (Array.isArray(saunaArr)) {
-      const existingS = await _fetchRowsByUserId(client, 'sauna_logs', user.id);
       const keepS = new Set(saunaArr.map((x) => String(x.id)));
-      const delS = existingS
-        .map((r) => String(r.id || ''))
-        .filter((id) => id && !keepS.has(id));
+      const delS = (tombstones.sauna_logs || []).filter((id) => id && !keepS.has(String(id)));
       if (delS.length > 0) {
         const { error: delSErr } = await client
           .from('sauna_logs')
@@ -606,6 +668,8 @@
         if (delSErr) {
           console.warn('sauna_logs delete error:', delSErr.message);
           errors.push(delSErr.message);
+        } else {
+          _clearTombstones('sauna_logs', delS);
         }
       }
       if (saunaArr.length > 0) {
@@ -630,11 +694,8 @@
 
     // 4. public.trainer_notes (PK: user_id, id)
     if (Array.isArray(trainerNotesArr)) {
-      const existingN = await _fetchRowsByUserId(client, 'trainer_notes', user.id);
       const keepN = new Set(trainerNotesArr.map((x) => String(x.id)));
-      const delN = existingN
-        .map((r) => String(r.id || ''))
-        .filter((id) => id && !keepN.has(id));
+      const delN = (tombstones.trainer_notes || []).filter((id) => id && !keepN.has(String(id)));
       if (delN.length > 0) {
         const { error: delNErr } = await client
           .from('trainer_notes')
@@ -644,6 +705,8 @@
         if (delNErr) {
           console.warn('trainer_notes delete error:', delNErr.message);
           errors.push(delNErr.message);
+        } else {
+          _clearTombstones('trainer_notes', delN);
         }
       }
       if (trainerNotesArr.length > 0) {
@@ -835,6 +898,7 @@
     signOut,
     readJson,
     writeJson,
+    markRecordDeleted,
     hydrateUserFromCloud,
     syncCoachContextToCloud,
     syncTrainerDirectivesToCloud,

@@ -2238,7 +2238,14 @@
 
     try {
       custom.push(newEntry);
-      localStorage.setItem('basement_custom_catalog', JSON.stringify(custom));
+      if (global.BasementDB && typeof global.BasementDB.writeJson === 'function') {
+        global.BasementDB.writeJson('basement_custom_catalog', custom);
+        if (typeof global.BasementDB.syncCustomCatalogItemToCloud === 'function') {
+          global.BasementDB.syncCustomCatalogItemToCloud(newEntry);
+        }
+      } else {
+        localStorage.setItem('basement_custom_catalog', JSON.stringify(custom));
+      }
     } catch (e) {}
     return newEntry;
   }

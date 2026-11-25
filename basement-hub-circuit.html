@@ -14,6 +14,7 @@
     };
   </script>
   <script src="basement-db.js"></script>
+  <script src="basement-ai.js"></script>
   <script src="basement-exercises.js"></script>
   <script src="module-auth-guard.js"></script>
   <style>
@@ -2560,7 +2561,7 @@ const getExercisePhoto = (name, stage = 'top') => {
         let currentAudioObj = null;
         let sharedSpeechRec = null;
 
-        const getActiveApiKey = () => (localStorage.getItem('basement_gemini_api_key') || '').trim();
+        const getActiveApiKey = () => (window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '').trim());
 
         const stopCurrentAudioPlayback = () => {
           if (currentAudioObj) {
@@ -4259,8 +4260,14 @@ Return ONLY valid JSON:
           if (!ex || aiPhotoGenerating.value) return;
           aiPhotoGenerating.value = true;
           try {
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+            const apiKey = getActiveApiKey();
+            if (!apiKey) {
+              showToast('Tap 🔑 AI Key in the top bar to add your Gemini API key, or pick a photo below.');
+              aiPhotoGenerating.value = false;
+              return;
+            }
+            const imgModel = window.BasementAI ? window.BasementAI.MODELS.IMAGE : 'gemini-3.1-flash-image';
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${imgModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
             const buildStagePrompt = (stageLabel, cueText) =>
               `Photorealistic fitness instructional photo of an athletic adult in a dark home gym performing "${ex.name}" (${ex.equipment}). Show ${stageLabel}: ${cueText}. Clear full-body anatomical angle, no text.`;
             const [res1, res2] = await Promise.all([
@@ -4802,12 +4809,14 @@ Return ONLY valid JSON:
         };
 
         const deleteStrengthLog = async (id) => {
+          if (window.BasementDB && typeof window.BasementDB.markRecordDeleted === 'function') window.BasementDB.markRecordDeleted('strength_logs', id);
           workoutLogs.value = workoutLogs.value.filter(l => l.id !== id);
           await saveLogsToStorage(true);
           synthesizeCoachedCircuit(false);
         };
 
         const deleteCardioLog = async (id) => {
+          if (window.BasementDB && typeof window.BasementDB.markRecordDeleted === 'function') window.BasementDB.markRecordDeleted('cardio_logs', id);
           cardioLogs.value = cardioLogs.value.filter(c => c.id !== id);
           await saveLogsToStorage(true);
           synthesizeCoachedCircuit(false);
@@ -4828,6 +4837,7 @@ Return ONLY valid JSON:
         };
 
         const deleteSaunaLog = async (id) => {
+          if (window.BasementDB && typeof window.BasementDB.markRecordDeleted === 'function') window.BasementDB.markRecordDeleted('sauna_logs', id);
           saunaLogs.value = saunaLogs.value.filter(s => s.id !== id);
           await saveLogsToStorage(true);
         };
@@ -4875,10 +4885,11 @@ Return ONLY valid JSON:
         const saveLogsToStorage = async (awaitCloud = false) => {
           let parsedCtx = null;
           try {
-            localStorage.setItem('basement_logs', JSON.stringify(workoutLogs.value));
-            localStorage.setItem('basement_cardio_logs', JSON.stringify(cardioLogs.value));
-            localStorage.setItem('basement_sauna_logs', JSON.stringify(saunaLogs.value));
-            localStorage.setItem('basement_trainer_notes', JSON.stringify(trainerNotesLogs.value));
+            const writer = (window.BasementDB && window.BasementDB.writeJson) ? window.BasementDB.writeJson : (k, v) => localStorage.setItem(k, JSON.stringify(v));
+            writer('basement_logs', workoutLogs.value);
+            writer('basement_cardio_logs', cardioLogs.value);
+            writer('basement_sauna_logs', saunaLogs.value);
+            writer('basement_trainer_notes', trainerNotesLogs.value);
             const rawCtx = localStorage.getItem('basement_coach_context');
             parsedCtx = rawCtx ? JSON.parse(rawCtx) : { ...coachCtx.value };
             parsedCtx.lastDailyCheckInDate = hasProvidedTodayUpdate.value ? todayIso.value : null;

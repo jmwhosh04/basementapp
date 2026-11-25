@@ -6,13 +6,13 @@
 
 # 1. System Architecture & Shared Data Bus
 
-Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coaching suite** designed around a single reactive `localStorage` data bus (paired with Supabase auth and cloud sync via `basement-db.js`) so all standalone modules and the Master Suite Wrapper (`basement-lab-app.html` / `index.html`) stay synchronized in real time via `storage`, `focus`, and `visibilitychange` listeners.
+Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coaching suite** designed around a single reactive `localStorage` data bus (paired with Supabase auth and cloud sync via `basement-db.js`) so all standalone modules and the Master Suite Wrapper (`index.html`) stay synchronized in real time via `storage`, `focus`, and `visibilitychange` listeners.
 
 ## Standalone Modules & Master Wrapper
 
 | Scope | Module Name | Filename | Required Sub-Tabs / Views |
 | :---: | :---- | :---- | :---- |
-| **Wrapper** | Master Suite Wrapper (4-Tab Bottom Dock) | `basement-lab-app.html` / `index.html` | Bottom Dock: `🏋️ 1. Hub` \| `🎯 2. Profile` \| `📚 3. Catalog` \| `🧠 4. Trainer` |
+| **Wrapper** | Master Suite Wrapper (4-Tab Bottom Dock) | `index.html` | Bottom Dock: `🏋️ 1. Hub` \| `🎯 2. Profile` \| `📚 3. Catalog` \| `🧠 4. Trainer` |
 | **Module 1** | Daily Hub, Guided Player & Calendar | `basement-hub-circuit.html` | Top 2 Tabs: `1. Today's Circuit` \| `2. Calendar & Logs` (+ Full-Screen `Guided Player` & `🛠️ Manual Build` overlays) |
 | **Module 2** | Coach Context & Goals Engine | `basement-coach-profile.html` | Top 4 Tabs: `1. Goals` \| `2. Injuries (N)` \| `3. Life & Inputs` \| `4. AI Sim` |
 | **Module 3** | Smart Catalog & Visual Form Coach | `basement-catalog.html` | Search + Category Pills + Equipment Pills + `★ Favs` / `🎯 Goal Lifts` + Header `+ AI Add Lift` Modal |
@@ -31,12 +31,12 @@ Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coa
 
 # 2. Strict Mobile-First Consumer UI & Zero QA-Leakage Invariants
 
-1. **Mobile Viewport, Fixed Bottom Dock & Viewport-Locked Iframe (`index.html` & `basement-lab-app.html`):**  
+1. **Mobile Viewport, Fixed Bottom Dock & Viewport-Locked Iframe (`index.html`):**  
    - Every standalone module and the Master Suite Wrapper **MUST** use a mobile-first container (`max-w-md mx-auto`) with dynamic viewport height (`min-h-[100dvh]`) on the outer shell rather than static `100vh` / `min-h-screen` so mobile browser chrome (top URL bar and bottom gesture pill) never clips the 4-tab bottom dock (`1. Hub`, `2. Profile`, `3. Catalog`, `4. Trainer`).  
    - Pin the 4-tab bottom navigation dock to `fixed bottom-0` inside the `max-w-md` container with safe-area bottom inset padding (`pb-[calc(0.5rem+env(safe-area-inset-bottom))]`) and give `<main>` bottom clearance so content scrolls cleanly above the dock.  
    - Lock the active module `<iframe>` to the visible viewport (`height: calc(100dvh - 3.25rem - env(safe-area-inset-top))`) with internal module scrolling so `fixed inset-0` modals always open immediately over the current viewport without forcing the user to scroll back to the top or losing their scroll position when closing a modal.  
    - **NEVER** build a wide multi-column desktop bento-grid (`max-w-4xl`, `max-w-5xl`, `max-w-6xl`) or dump all module sections onto one long scrolling page without sub-tabs.
-2. **Flicker-Free Auth & Storage Sync (`index.html`, `basement-lab-app.html` & `basement-db.js`):**  
+2. **Flicker-Free Auth & Storage Sync (`index.html`, `index.html` & `basement-db.js`):**  
    - **NEVER** bind `:key="frameKey"` on the active module `<iframe>` for background syncs; notify active modules in place via `storage` events (`notifyActiveFrame()`) so session hydration or cloud syncs never flash a blank screen or reset scroll/tap state.  
    - Deduplicate auth session hydration (`isHydrating` / `hydratedUserId`) so `getSession()` and `onAuthStateChange()` do not trigger overlapping cloud pulls.
 3. **Unique `custom_catalog` Row IDs & Non-Destructive Pull Merge (`basement-db.js`):**  
@@ -50,7 +50,7 @@ Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coa
    - **NEVER** render developer debug or test-preset buttons (`Test Run Guardrail`, `Test 2-Day Lift Cap`, `Test RPE/TUT Drift`, `Test Empty State`, `Test Slug Self-Heal`, `Publish Directives to Daily Hub`) in the consumer UI.  
    - **NEVER** render raw JSON/code payload boxes (`DIRECTIVE-04: ...`) on the main screen; raw JSON inspection belongs strictly inside a clean modal (`💾 Data` or `JSON`).
 6. **Uncluttered Top Header:**  
-   - The top header displays **ONLY** the Module Badge, Today's Date (`YYYY-MM-DD`), Module Title, and the `↻ Sync Context / Readiness %` button (plus auth / `💾 Data` in `basement-lab-app.html` / `index.html`).  
+   - The top header displays **ONLY** the Module Badge, Today's Date (`YYYY-MM-DD`), Module Title, and the `↻ Sync Context / Readiness %` button (plus auth / `💾 Data` in `index.html`).  
    - Do **NOT** clutter the top header with duplicate age, height, weight, or goal summary strips when Module 1 is open.
 
 ---

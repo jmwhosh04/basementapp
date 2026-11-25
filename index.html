@@ -14,6 +14,7 @@
     };
   </script>
   <script src="./basement-db.js"></script>
+  <script src="./basement-ai.js"></script>
   <style>
     html, body, #app {
       min-height: 100dvh;
@@ -120,15 +121,25 @@
       </p>
     </section>
 
-    <!-- Authenticated App Shell (Centered on Desktop, Full Mobile Width on Phones) -->
+    <!-- Authenticated App Shell -->
     <div v-else class="shell-frame">
       <header class="h-[3.25rem] px-4 flex items-center justify-between border-b border-slate-800/90 bg-slate-950/95 backdrop-blur sticky top-0 z-30">
         <div class="flex items-center gap-2 min-w-0">
           <span class="text-xs font-bold tracking-wide text-indigo-400 shrink-0">BASEMENT LAB</span>
           <span class="text-xs text-slate-500 shrink-0">{{ todayIso }}</span>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="text-xs text-slate-400 truncate max-w-[180px]">{{ userEmail }}</span>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-[11px] text-slate-400 truncate max-w-[120px] hidden sm:inline">{{ userEmail }}</span>
+          <button
+            type="button"
+            @click="openApiKeyModal"
+            title="Configure Gemini AI Key"
+            class="text-xs px-2 py-1 rounded-lg border font-medium transition flex items-center gap-1"
+            :class="hasGeminiKey ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25' : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'"
+          >
+            <span>🔑</span>
+            <span class="text-[10px] font-mono">{{ hasGeminiKey ? 'AI Ready' : 'AI Key' }}</span>
+          </button>
           <button
             type="button"
             @click="handleSignOut"
@@ -169,6 +180,61 @@
           </button>
         </div>
       </nav>
+
+      <!-- Gemini API Key Settings Modal -->
+      <div
+        v-if="showApiKeyModal"
+        @click.self="showApiKeyModal = false"
+        class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-12"
+      >
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-indigo-400 block">AI Coach &amp; Voice Settings</span>
+              <h3 class="text-base font-black text-white">🔑 Gemini API Key</h3>
+            </div>
+            <button type="button" @click="showApiKeyModal = false" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Stored locally in your browser (<code class="text-indigo-300">localStorage</code>) and never uploaded to public repos. Enables live AI circuit generation, voice TTS, and 2-stage exercise photo generation. Without a key, Basement Lab falls back automatically to deterministic coaching rules.
+          </p>
+          <div class="space-y-1.5">
+            <label class="block text-[10px] font-bold uppercase text-slate-400">API Key</label>
+            <input
+              v-model="geminiKeyDraft"
+              type="password"
+              placeholder="AIzaSy..."
+              class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white font-mono focus:outline-none focus:border-indigo-400"
+            />
+          </div>
+          <div class="flex items-center justify-between gap-2 pt-1">
+            <button
+              v-if="hasGeminiKey"
+              type="button"
+              @click="clearGeminiKey"
+              class="px-3 py-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold"
+            >
+              Clear Key
+            </button>
+            <div class="flex gap-2 ml-auto">
+              <button
+                type="button"
+                @click="showApiKeyModal = false"
+                class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                @click="saveGeminiKey"
+                class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black"
+              >
+                Save Key
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -186,6 +252,10 @@
         const email = ref('');
         const password = ref('');
 
+        const showApiKeyModal = ref(false);
+        const geminiKeyDraft = ref('');
+        const hasGeminiKey = ref(false);
+
         const tabs = [
           { id: 'hub', icon: '🏋️', label: '1. Hub', src: './basement-hub-circuit.html' },
           { id: 'profile', icon: '🎯', label: '2. Profile', src: './basement-coach-profile.html' },
@@ -198,7 +268,34 @@
           return found ? found.src : './basement-hub-circuit.html';
         });
 
-        const todayIso = computed(() => new Date().toISOString().slice(0, 10));
+        const todayIso = computed(() => {
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        });
+
+        function refreshApiKeyStatus() {
+          hasGeminiKey.value = window.BasementAI ? window.BasementAI.hasApiKey() : Boolean(localStorage.getItem('basement_gemini_api_key'));
+        }
+
+        function openApiKeyModal() {
+          geminiKeyDraft.value = window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '');
+          showApiKeyModal.value = true;
+        }
+
+        function saveGeminiKey() {
+          if (window.BasementAI) {
+            window.BasementAI.setApiKey(geminiKeyDraft.value);
+          } else {
+            localStorage.setItem('basement_gemini_api_key', geminiKeyDraft.value.trim());
+          }
+          refreshApiKeyStatus();
+          showApiKeyModal.value = false;
+        }
+
+        function clearGeminiKey() {
+          geminiKeyDraft.value = '';
+          saveGeminiKey();
+        }
 
         function syncAuthState(snap) {
           authReady.value = Boolean(snap.authReady);
@@ -246,6 +343,8 @@
         }
 
         onMounted(async () => {
+          refreshApiKeyStatus();
+          window.addEventListener('storage', refreshApiKeyStatus);
           window.BasementDB.onAuthStateChange(syncAuthState);
           await window.BasementDB.initAuth();
           syncAuthState({
@@ -267,6 +366,12 @@
           todayIso,
           email,
           password,
+          showApiKeyModal,
+          geminiKeyDraft,
+          hasGeminiKey,
+          openApiKeyModal,
+          saveGeminiKey,
+          clearGeminiKey,
           handleGoogleSignIn,
           handleEmailSignIn,
           handleSignOut

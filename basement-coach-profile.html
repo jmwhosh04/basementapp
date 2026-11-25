@@ -8,6 +8,7 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./basement-db.js"></script>
+  <script src="./basement-ai.js"></script>
   <script src="./basement-exercises.js"></script>
   <script src="./module-auth-guard.js"></script>
   <style>
@@ -623,7 +624,7 @@
           simAiLoading.value = true;
           const scenarioText = customSimPrompt.value.trim() || simScenarios.find((s) => s.id === activeSimScenario.value)?.label || 'Tomorrow workout';
           try {
-            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const apiKey = (window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '').trim());
             if (apiKey) {
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
                 method: 'POST',
@@ -1004,7 +1005,7 @@
           let finalWeeks = Number(context.value.primaryGoal?.durationWeeks) || 6;
 
           try {
-            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const apiKey = (window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '').trim());
             if (apiKey) {
               const days = Number(context.value.modalityPreferences?.targetDaysPerWeek) || 5;
               const minM = Number(context.value.targetDurationMin) || 25;
@@ -1276,7 +1277,7 @@
 
           // Try Gemini structured extraction to map everything into Goals, Injuries, or Life & DOMS
           try {
-            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const apiKey = (window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '').trim());
             if (apiKey) {
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
                 method: 'POST',

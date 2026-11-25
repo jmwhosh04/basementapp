@@ -8,7 +8,9 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="basement-db.js"></script>
+  <script src="basement-ai.js"></script>
   <script src="basement-exercises.js"></script>
+  <script src="module-auth-guard.js"></script>
   <style>
     :root { color-scheme: dark; }
     body {
@@ -1359,8 +1361,14 @@
           if (!ex || aiPhotoGenerating.value) return;
           aiPhotoGenerating.value = true;
           try {
-            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+            const apiKey = window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '');
+            if (!apiKey) {
+              showToast('Tap 🔑 AI Key in the top bar to add your Gemini API key, or pick a photo below.');
+              aiPhotoGenerating.value = false;
+              return;
+            }
+            const modelImg = window.BasementAI ? window.BasementAI.MODELS.IMAGE : 'gemini-3.1-flash-image';
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelImg}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
             const stepLines = String(ex.cue || '')
               .split('\n')
@@ -1564,8 +1572,10 @@
           };
 
           try {
-            const apiKey = (() => { try { return localStorage.getItem('basement_gemini_api_key') || ''; } catch (e) { return ''; } })();
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const apiKey = window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '');
+            if (!apiKey) throw new Error('no_api_key');
+            const modelTxt = window.BasementAI ? window.BasementAI.MODELS.TEXT : 'gemini-3-flash-preview';
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelTxt}:generateContent?key=${encodeURIComponent(apiKey)}`;
             const slugOptions = VERIFIED_PHOTO_SLUGS.map(s => s.slug).join(', ');
             const prompt = `Create a home-gym catalog entry for "${cleanName}" (Category: ${newExCategory.value}, Equipment: ${newExEquipment.value}, Notes: "${newExNotes.value}").
 Return ONLY a valid JSON object with:
@@ -1680,7 +1690,11 @@ Return ONLY a valid JSON object with:
           if (notify) showToast('Synced Catalog with Module 1 & Module 2!');
         };
 
-        onMounted(() => {
+        onMounted(async () => {
+          if (window.BasementAuthGuard) {
+            const ok = await window.BasementAuthGuard.requireAuthenticatedModule();
+            if (!ok) return;
+          }
           syncFromSharedStorage(false);
           loadFullExternalExerciseDb();
 

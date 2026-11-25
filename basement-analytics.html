@@ -8,6 +8,7 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./basement-db.js"></script>
+  <script src="./basement-ai.js"></script>
   <script src="./module-auth-guard.js"></script>
   <style>
     html, body, #app { min-height: 100dvh; margin: 0; background: #020617; color: #f8fafc; }
@@ -528,7 +529,7 @@
 
         async function generateProTrainerCoaching(force = false) {
           if (trainerAiLoading.value) return;
-          const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+          const apiKey = (window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '').trim());
           if (!apiKey) {
             aiCoachingTake.value = trainerSummary.value;
             return;
@@ -865,7 +866,7 @@ Write 3-4 conversational sentences of genuine coaching feedback (what's working,
           followUpAnswer.value = 'Analyzing your logs...';
 
           try {
-            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
+            const apiKey = (window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '').trim());
             if (apiKey) {
               const recentLifts = strengthLogs.value.slice(0, 18).map((l) => {
                 const src = l.selectionSource && l.selectionSource !== 'legacy' ? ` [${l.selectionSource}]` : '';
