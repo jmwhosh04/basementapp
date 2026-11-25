@@ -3440,7 +3440,20 @@ CRITICAL RULE: Do NOT list individual exercise names or recite raw numbers/stats
           finally { whyWorkoutAiLoading.value = false; }
         };
 
+        const isGuidedCircuitLocked = () => {
+          return (
+            currentView.value === 'guided' &&
+            !isCardioWarmupMode.value &&
+            guidedStage.value !== 'complete' &&
+            Array.isArray(activeCircuitStations.value) &&
+            activeCircuitStations.value.length > 0
+          );
+        };
+
         const synthesizeCoachedCircuit = (notify = false) => {
+          if (isGuidedCircuitLocked()) {
+            return;
+          }
           const audit = liveTrainerAuditSummary.value;
           const doms = coachCtx.value.sorenessMap || {};
           const g = coachCtx.value.activeGoal || {};
@@ -3864,6 +3877,9 @@ Return ONLY valid JSON:
         };
 
         const generateAiCircuitAndBlindSpots = async (forceRefresh = false) => {
+          if (isGuidedCircuitLocked()) {
+            return;
+          }
           // Always compute deterministic baseline first so UI is immediately valid and safe
           synthesizeCoachedCircuit(false);
 
@@ -4017,7 +4033,7 @@ Return ONLY valid JSON:
                   });
                 }
 
-                if (resolvedStations.length >= 4) {
+                if (resolvedStations.length >= 4 && !isGuidedCircuitLocked()) {
                   activeCircuitStations.value = resolvedStations;
                   aiCircuitSourceTag.value = '✨ AI COACHED';
                 }
@@ -4443,6 +4459,7 @@ Return ONLY valid JSON:
               makeStationObj('Seated Calf Raise', 'Default lower-leg station', true, '1° GOAL')
             ];
           }
+          activeCircuitStations.value = activeCircuitStations.value.map(s => ({ ...s }));
           isCardioWarmupMode.value = false;
           currentView.value = 'guided';
           guidedStage.value = (Array.isArray(activeWarmupDrillsList.value) && activeWarmupDrillsList.value.length > 0) ? 'step0' : 'circuit';
@@ -4875,7 +4892,13 @@ Return ONLY valid JSON:
             }
           } catch (e) {}
           coachCtx.value.readinessScore = computeDynamicReadinessScore(coachCtx.value);
-          synthesizeCoachedCircuit(false);
+          if (!isGuidedCircuitLocked()) {
+            if (savedTodayCircuitProgress.value && savedTodayCircuitProgress.value.date === todayIso.value && Array.isArray(savedTodayCircuitProgress.value.stations) && savedTodayCircuitProgress.value.stations.length > 0) {
+              activeCircuitStations.value = savedTodayCircuitProgress.value.stations.map(s => ({ ...s }));
+            } else {
+              synthesizeCoachedCircuit(false);
+            }
+          }
           if (notify) showToast('Synced latest profile & catalog from Modules 2 & 3!');
         };
 
@@ -4918,7 +4941,15 @@ Return ONLY valid JSON:
           loadAllSharedLogs();
           loadSavedCircuitProgressForToday();
           reloadCoachContext(false);
-          if (hasProvidedTodayUpdate.value && !hasCompletedSessionToday.value) generateAiCircuitAndBlindSpots(false);
+          const hasSavedTodayLineup = Boolean(
+            savedTodayCircuitProgress.value &&
+            savedTodayCircuitProgress.value.date === todayIso.value &&
+            Array.isArray(savedTodayCircuitProgress.value.stations) &&
+            savedTodayCircuitProgress.value.stations.length > 0
+          );
+          if (hasProvidedTodayUpdate.value && !hasCompletedSessionToday.value && !hasSavedTodayLineup) {
+            generateAiCircuitAndBlindSpots(false);
+          }
           if (workoutLogs.value.length > 0 || cardioLogs.value.length > 0 || saunaLogs.value.length > 0) {
             saveLogsToStorage(true);
           }
