@@ -9,8 +9,10 @@
     IMAGE: 'gemini-3.1-flash-image'
   };
 
+  const DEFAULT_SILENCE_MS = 3000;
   let _activeAudio = null;
   let _activeSpeechRec = null;
+  let _activeSpeechStopFn = null;
 
   function getApiKey() {
     try {
@@ -231,45 +233,119 @@
     fallbackSpeak();
   }
 
-  function startDictation({ onResult, onStateChange, onAutoFinish, onError }) {
+  function stopDictation(triggerFinish = false) {
+    if (typeof _activeSpeechStopFn === 'function') {
+      const fn = _activeSpeechStopFn;
+      _activeSpeechStopFn = null;
+      fn(triggerFinish);
+    } else if (_activeSpeechRec) {
+      try { _activeSpeechRec.stop(); } catch (_e) {}
+      _activeSpeechRec = null;
+    }
+  }
+
+  function startDictation({
+    onResult,
+    onStateChange,
+    onAutoFinish,
+    onError,
+    initialText = '',
+    silenceMs = DEFAULT_SILENCE_MS
+  }) {
     const SpeechRec = global.SpeechRecognition || global.webkitSpeechRecognition;
     if (!SpeechRec) {
       if (onError) onError('Speech recognition unavailable in this browser.');
       return false;
     }
-    if (_activeSpeechRec) {
-      try { _activeSpeechRec.stop(); } catch (_e) {}
-      _activeSpeechRec = null;
-      if (onStateChange) onStateChange(false);
+    if (_activeSpeechRec || _activeSpeechStopFn) {
+      stopDictation(true);
       return false;
     }
+
     try {
       const rec = new SpeechRec();
       _activeSpeechRec = rec;
       rec.lang = 'en-US';
       rec.interimResults = true;
-      rec.continuous = false;
-      if (onStateChange) onStateChange(true);
-      rec.onresult = (ev) => {
-        let transcript = '';
-        for (let i = 0; i < ev.results.length; i++) {
-          transcript += ev.results[i][0].transcript;
+      rec.continuous = true;
+
+      let listening = true;
+      let silenceTimer = null;
+      const prefix = String(initialText || '').trim();
+      let committedText = prefix ? prefix + ' ' : '';
+      let latestFullTranscript = prefix;
+
+      const finalizeAndStop = (shouldTriggerFinish) => {
+        if (!listening) return;
+        listening = false;
+        if (silenceTimer) {
+          clearTimeout(silenceTimer);
+          silenceTimer = null;
         }
-        if (onResult) onResult(transcript.trim());
+        _activeSpeechRec = null;
+        _activeSpeechStopFn = null;
+        try { rec.stop(); } catch (_e) {}
+        if (onStateChange) onStateChange(false);
+        if (shouldTriggerFinish && onAutoFinish) {
+          onAutoFinish(latestFullTranscript.trim());
+        }
       };
+
+      _activeSpeechStopFn = finalizeAndStop;
+
+      const resetSilenceTimer = () => {
+        if (silenceTimer) clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+          finalizeAndStop(true);
+        }, Math.max(500, Number(silenceMs) || DEFAULT_SILENCE_MS));
+      };
+
+      if (onStateChange) onStateChange(true);
+
+      rec.onresult = (ev) => {
+        let interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          const piece = ev.results[i][0].transcript || '';
+          if (ev.results[i].isFinal) {
+            committedText += piece.trim() + ' ';
+          } else {
+            interim += piece;
+          }
+        }
+        latestFullTranscript = (committedText + interim).replace(/\s+/g, ' ').trim();
+        if (onResult) onResult(latestFullTranscript);
+        if (listening) resetSilenceTimer();
+      };
+
+      // Chrome/Android may fire onend during a 1-2s thinking pause even with continuous=true;
+      // restart seamlessly until the full 3000ms silence timer completes or user taps Stop.
       rec.onend = () => {
-        _activeSpeechRec = null;
-        if (onStateChange) onStateChange(false);
-        if (onAutoFinish) onAutoFinish();
+        if (listening) {
+          try {
+            rec.start();
+          } catch (_e) {
+            finalizeAndStop(true);
+          }
+        }
       };
-      rec.onerror = () => {
-        _activeSpeechRec = null;
-        if (onStateChange) onStateChange(false);
+
+      rec.onerror = (ev) => {
+        const errCode = ev && ev.error ? ev.error : '';
+        if (errCode === 'no-speech' && listening) {
+          return;
+        }
+        finalizeAndStop(false);
+        if (onError && errCode && errCode !== 'aborted') {
+          onError(errCode);
+        }
       };
+
       rec.start();
+      resetSilenceTimer();
       return true;
     } catch (_e) {
       _activeSpeechRec = null;
+      _activeSpeechStopFn = null;
       if (onStateChange) onStateChange(false);
       return false;
     }
@@ -284,8 +360,10 @@
     generateText,
     generateImage,
     compressDataUrlToJpeg,
+    DEFAULT_SILENCE_MS,
     speakText,
     stopSpeech,
-    startDictation
+    startDictation,
+    stopDictation
   };
 })(window);

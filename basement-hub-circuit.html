@@ -2696,6 +2696,25 @@ const getExercisePhoto = (name, stage = 'top') => {
         };
 
         const startSharedVoiceRecognition = (targetRef, listeningBoolRef, onAutoFinish = null) => {
+          if (window.BasementAI && typeof window.BasementAI.startDictation === 'function') {
+            window.BasementAI.startDictation({
+              initialText: targetRef.value || '',
+              silenceMs: 3000,
+              onStateChange: (active) => {
+                listeningBoolRef.value = Boolean(active);
+              },
+              onResult: (fullText) => {
+                targetRef.value = fullText;
+              },
+              onAutoFinish: () => {
+                if (typeof onAutoFinish === 'function') onAutoFinish();
+              },
+              onError: () => {
+                showToast('Browser voice mic unavailable here—type your note in the box.');
+              }
+            });
+            return;
+          }
           const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
           if (!SpeechRec) {
             showToast('Browser voice mic unavailable here—type your note in the box.');
@@ -2710,20 +2729,42 @@ const getExercisePhoto = (name, stage = 'top') => {
             sharedSpeechRec = new SpeechRec();
             sharedSpeechRec.lang = 'en-US';
             sharedSpeechRec.interimResults = true;
-            sharedSpeechRec.continuous = false;
-            const prefix = targetRef.value ? targetRef.value.trim() + ' ' : '';
-            listeningBoolRef.value = true;
-            sharedSpeechRec.onresult = (ev) => {
-              let t = '';
-              for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
-              targetRef.value = (prefix + t).trim();
-            };
-            sharedSpeechRec.onend = () => {
+            sharedSpeechRec.continuous = true;
+            let silenceTimer = null;
+            let committed = targetRef.value ? targetRef.value.trim() + ' ' : '';
+            const finishTurn = () => {
+              clearTimeout(silenceTimer);
               listeningBoolRef.value = false;
+              try { sharedSpeechRec.stop(); } catch (e) {}
               if (typeof onAutoFinish === 'function') onAutoFinish();
             };
-            sharedSpeechRec.onerror = () => { listeningBoolRef.value = false; };
+            const resetSilence = () => {
+              clearTimeout(silenceTimer);
+              silenceTimer = setTimeout(finishTurn, 3000);
+            };
+            listeningBoolRef.value = true;
+            sharedSpeechRec.onresult = (ev) => {
+              let interim = '';
+              for (let i = ev.resultIndex; i < ev.results.length; i++) {
+                const seg = ev.results[i][0].transcript || '';
+                if (ev.results[i].isFinal) committed += seg.trim() + ' ';
+                else interim += seg;
+              }
+              targetRef.value = (committed + interim).replace(/\s+/g, ' ').trim();
+              if (listeningBoolRef.value) resetSilence();
+            };
+            sharedSpeechRec.onend = () => {
+              if (listeningBoolRef.value) {
+                try { sharedSpeechRec.start(); } catch (e) { finishTurn(); }
+              }
+            };
+            sharedSpeechRec.onerror = (ev) => {
+              if (ev && ev.error === 'no-speech' && listeningBoolRef.value) return;
+              clearTimeout(silenceTimer);
+              listeningBoolRef.value = false;
+            };
             sharedSpeechRec.start();
+            resetSilence();
           } catch (e) {
             listeningBoolRef.value = false;
           }

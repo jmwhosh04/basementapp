@@ -1395,18 +1395,59 @@
         }
 
         function toggleInterviewMic() {
+          if (window.BasementAI && typeof window.BasementAI.startDictation === 'function') {
+            window.BasementAI.startDictation({
+              initialText: interviewInput.value || '',
+              silenceMs: 3000,
+              onStateChange: (active) => { isListeningInterview.value = Boolean(active); },
+              onResult: (fullText) => { interviewInput.value = fullText; },
+              onAutoFinish: () => {
+                if (interviewInput.value.trim()) applyAiProfileInterview();
+              }
+            });
+            return;
+          }
           const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
           if (!SR) return;
           const rec = new SR();
           rec.lang = 'en-US';
+          rec.continuous = true;
+          rec.interimResults = true;
           isListeningInterview.value = true;
-          rec.onresult = (ev) => { interviewInput.value = ev.results[0][0].transcript; };
-          rec.onend = () => {
+          let silenceTimer = null;
+          let committed = interviewInput.value ? interviewInput.value.trim() + ' ' : '';
+          const finishTurn = () => {
+            clearTimeout(silenceTimer);
             isListeningInterview.value = false;
+            try { rec.stop(); } catch (_e) {}
             if (interviewInput.value.trim()) applyAiProfileInterview();
           };
-          rec.onerror = () => { isListeningInterview.value = false; };
+          const resetSilence = () => {
+            clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(finishTurn, 3000);
+          };
+          rec.onresult = (ev) => {
+            let interim = '';
+            for (let i = ev.resultIndex; i < ev.results.length; i++) {
+              const seg = ev.results[i][0].transcript || '';
+              if (ev.results[i].isFinal) committed += seg.trim() + ' ';
+              else interim += seg;
+            }
+            interviewInput.value = (committed + interim).replace(/\s+/g, ' ').trim();
+            if (isListeningInterview.value) resetSilence();
+          };
+          rec.onend = () => {
+            if (isListeningInterview.value) {
+              try { rec.start(); } catch (_e) { finishTurn(); }
+            }
+          };
+          rec.onerror = (ev) => {
+            if (ev && ev.error === 'no-speech' && isListeningInterview.value) return;
+            clearTimeout(silenceTimer);
+            isListeningInterview.value = false;
+          };
           rec.start();
+          resetSilence();
         }
 
         onMounted(async () => {

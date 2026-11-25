@@ -1236,18 +1236,60 @@
         };
 
         const toggleExerciseModalVoiceMic = () => {
+          if (window.BasementAI && typeof window.BasementAI.startDictation === 'function') {
+            window.BasementAI.startDictation({
+              initialText: exerciseModalQuestionInput.value || '',
+              silenceMs: 3000,
+              onStateChange: (active) => { isListeningExerciseModal.value = Boolean(active); },
+              onResult: (fullText) => { exerciseModalQuestionInput.value = fullText; },
+              onAutoFinish: () => {
+                if (exerciseModalQuestionInput.value.trim()) askAiAboutActiveExercise();
+              },
+              onError: () => { showToast('Browser mic unavailable—type your question below.'); }
+            });
+            return;
+          }
           const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
           if (!SpeechRec) { showToast('Browser mic unavailable—type your question below.'); return; }
           const rec = new SpeechRec();
           rec.lang = 'en-US';
+          rec.continuous = true;
+          rec.interimResults = true;
           isListeningExerciseModal.value = true;
-          rec.onresult = (ev) => { exerciseModalQuestionInput.value = ev.results[0][0].transcript; };
-          rec.onend = () => {
+          let silenceTimer = null;
+          let committed = exerciseModalQuestionInput.value ? exerciseModalQuestionInput.value.trim() + ' ' : '';
+          const finishTurn = () => {
+            clearTimeout(silenceTimer);
             isListeningExerciseModal.value = false;
+            try { rec.stop(); } catch (_e) {}
             if (exerciseModalQuestionInput.value.trim()) askAiAboutActiveExercise();
           };
-          rec.onerror = () => { isListeningExerciseModal.value = false; };
+          const resetSilence = () => {
+            clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(finishTurn, 3000);
+          };
+          rec.onresult = (ev) => {
+            let interim = '';
+            for (let i = ev.resultIndex; i < ev.results.length; i++) {
+              const seg = ev.results[i][0].transcript || '';
+              if (ev.results[i].isFinal) committed += seg.trim() + ' ';
+              else interim += seg;
+            }
+            exerciseModalQuestionInput.value = (committed + interim).replace(/\s+/g, ' ').trim();
+            if (isListeningExerciseModal.value) resetSilence();
+          };
+          rec.onend = () => {
+            if (isListeningExerciseModal.value) {
+              try { rec.start(); } catch (_e) { finishTurn(); }
+            }
+          };
+          rec.onerror = (ev) => {
+            if (ev && ev.error === 'no-speech' && isListeningExerciseModal.value) return;
+            clearTimeout(silenceTimer);
+            isListeningExerciseModal.value = false;
+          };
           rec.start();
+          resetSilence();
         };
 
         const askAiAboutActiveExercise = async () => {
