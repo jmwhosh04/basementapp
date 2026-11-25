@@ -2454,12 +2454,40 @@ const getExercisePhoto = (name, stage = 'top') => {
         });
 
         const selectedTodayModality = ref(null);
+        const activeTrainingPrefsList = computed(() => {
+          const raw = coachCtx.value.trainingPreferences;
+          if (!Array.isArray(raw)) return [];
+          return raw
+            .filter((p) => (typeof p === 'string' ? Boolean(p.trim()) : p && p.active !== false && p.label))
+            .map((p) => (typeof p === 'string' ? p.trim() : String(p.label).trim()));
+        });
+
         const recommendedDailyModality = computed(() => {
+          const prefsLow = activeTrainingPrefsList.value.join(' | ').toLowerCase();
+          const enjoysRunning = /enjoy running|include.*run|prefer.*run/.test(prefsLow);
+          const rowerOnlyRecovery = /rower.*(only|recovery|rest)/.test(prefsLow);
+          const noB2bRuns = coachCtx.value.modalityPreferences?.preventBackToBackRuns !== false &&
+            !activeTrainingPrefsList.value.some((p) => /never run 2 days/i.test(p) === false && false);
+          const daysSinceLastRun = (() => {
+            const runs = cardioLogs.value.filter((c) => (c.modality || '').toLowerCase().includes('run')).map((c) => c.date).sort();
+            const last = runs[runs.length - 1];
+            if (!last) return 99;
+            return Math.max(0, Math.round((new Date(todayIso.value) - new Date(last)) / 86400000));
+          })();
+          const calvesSore = getZoneSorenessLevel('calves') >= 2;
+
           if (consecutivePriorLiftDays.value >= 2) {
-            if (ranYesterday.value) {
+            if (ranYesterday.value && noB2bRuns) {
               return { mode: 'row', badge: '★ AI PICK: 30m ROW (AFTER 2 LIFT DAYS)', reason: 'You lifted 2 days in a row and ran yesterday—30m Rowing gives you full-body conditioning with zero impact.' };
             }
-            return { mode: 'row', badge: '★ AI PICK: 30m ROW / RUN RECOVERY DAY', reason: 'You lifted 2 consecutive days (max cap)—today switches to 30m Rowing to flush joints and activate upper back.' };
+            if (enjoysRunning && !ranYesterday.value && !calvesSore) {
+              return { mode: 'run', badge: '★ AI PICK: 30m RUN (PREFERENCE + LIFT CAP)', reason: 'You lifted 2 consecutive days and enjoy running—today rotates to a 30m Run while legs/shins are cleared.' };
+            }
+            return { mode: 'row', badge: '★ AI PICK: 30m ROW RECOVERY DAY', reason: 'You lifted 2 consecutive days (max cap)—today switches to 30m Rowing to flush joints and activate upper back.' };
+          }
+          // If user explicitly enjoys running and hasn't run in >=3 days (and didn't lift 2 days in a row), suggest a Run when calves/shins are fresh
+          if (enjoysRunning && !ranYesterday.value && daysSinceLastRun >= 3 && !calvesSore && !liftedYesterday.value && !rowerOnlyRecovery) {
+            return { mode: 'run', badge: '★ AI PICK: 30m RUN (WEEKLY RUN PREFERENCE)', reason: 'It has been 3+ days since your last run and your lower legs are fresh—great day to get a run in.' };
           }
           return { mode: 'lift', badge: '★ AI PICK: STRENGTH CIRCUIT', reason: 'Your recovery window is clear for today\'s anti-overload strength circuit.' };
         });
@@ -4000,7 +4028,8 @@ STRICT CONSTRAINTS:
 - Favorites to favor when appropriate: ${JSON.stringify(favList)}.
 - Active Primary Goal: "${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning'}" (Phase: ${coachCtx.value.mesocyclePhase?.label || coachCtx.value.mesocyclePhase || 'Accumulation'}, Target RPE: ${sessionEffortGameplan.value.baseRpe}).
 - Secondary Goal: "${coachCtx.value.secondaryGoal?.title || 'None'}".
-- Active Chronic Guardrails: ${JSON.stringify(activeGuards)}.
+- Active Chronic Guardrails (Joint/Injury Boundaries): ${JSON.stringify(activeGuards)}.
+- Active Training Preferences & Cadence Rules: ${JSON.stringify(activeTrainingPrefsList.value)}.
 - Active Temporary Injuries: ${JSON.stringify(activeInjs)}.
 - Today's Soreness Map: ${JSON.stringify(coachCtx.value.sorenessMap || {})}.
 - Today's Check-In Note: "${checkInNote}".

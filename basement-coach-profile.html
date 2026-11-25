@@ -49,7 +49,7 @@
     <div class="rounded-2xl bg-gradient-to-r from-indigo-950/80 to-slate-900 border border-indigo-500/40 p-3 space-y-2">
       <div class="flex items-center justify-between">
         <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">🎤 AI Profile Interview</span>
-        <span class="text-[10px] font-mono text-slate-400">Auto-fills Profile, Life &amp; DOMS</span>
+        <span class="text-[10px] font-mono text-slate-400">Auto-fills Profile, Life &amp; Preferences</span>
       </div>
       <div class="flex gap-1.5">
         <button
@@ -405,11 +405,6 @@
         </div>
       </div>
 
-      <!-- Local Muscle Soreness (DOMS) Moved to Daily Hub -->
-      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between gap-2">
-        <span>🩺 Day-to-day <strong class="text-slate-200">Local Muscle Soreness (DOMS)</strong> is now on <strong class="text-emerald-400">1. Hub</strong> right before generating today's circuit.</span>
-      </div>
-
       <!-- Non-Gym Real Life Physical Loads -->
       <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
         <h2 class="text-sm font-black text-white">Non-Gym "Real Life" Physical Load</h2>
@@ -506,9 +501,18 @@
         </div>
       </div>
 
-      <!-- Weekly Modality Cadence & Session Window -->
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
-        <h2 class="text-sm font-black text-white">Pro Trainer Weekly Modality Cadence</h2>
+      <!-- Training Preferences & Cadence Rules (Unified Card) -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-black text-white">Training Preferences &amp; Cadence Rules</h2>
+            <span class="text-[10px] text-slate-400">Modality likes, weekly frequency &amp; consecutive-day spacing</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+            {{ activePreferenceCount }}/{{ normalizedPreferences.length }} ACTIVE
+          </span>
+        </div>
+
         <div class="grid grid-cols-3 gap-2">
           <label class="text-[10px] text-slate-400 font-bold">
             Days / Week
@@ -523,10 +527,86 @@
             <input v-model.number="context.targetDurationMax" @change="saveContext()" type="number" min="20" max="90" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
           </label>
         </div>
-        <label class="flex items-center gap-2 text-xs text-slate-200 pt-1">
-          <input type="checkbox" v-model="context.modalityPreferences.preventBackToBackRuns" @change="saveContext()" class="rounded" />
-          <span>Never Run 2 Days in a Row (48h Shin/Achilles Clearance)</span>
-        </label>
+
+        <!-- Quick-Add Preference / Cadence Presets -->
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="preset in preferencePresets"
+            :key="preset"
+            type="button"
+            @click="addQuickPreferencePreset(preset)"
+            class="px-2 py-1 rounded-lg text-[10px] font-bold border transition"
+            :class="hasPreferenceLabel(preset) ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'"
+          >
+            {{ hasPreferenceLabel(preset) ? '✓ ' : '+ ' }}{{ preset }}
+          </button>
+        </div>
+
+        <!-- Add Custom Preference or Cadence Rule -->
+        <div class="flex gap-1.5">
+          <input
+            v-model="newPreferenceText"
+            @keyup.enter="addPreferenceRule"
+            type="text"
+            placeholder="Add preference (e.g., Enjoy running 2–3x/wk, Never lift 3 days in a row)..."
+            class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+          />
+          <button
+            type="button"
+            @click="addPreferenceRule"
+            :disabled="!newPreferenceText.trim()"
+            class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black disabled:opacity-40 shrink-0"
+          >
+            + Add
+          </button>
+        </div>
+
+        <div v-if="normalizedPreferences.length === 0" class="text-xs text-slate-400 text-center py-2">
+          No training preferences or spacing rules added yet. Tap a preset above, type one, or tell the AI Profile Interview.
+        </div>
+
+        <!-- Individual Toggleable Preference & Cadence Rule Cards -->
+        <div class="space-y-1.5">
+          <div
+            v-for="(pref, idx) in normalizedPreferences"
+            :key="pref.id || idx"
+            class="p-2.5 rounded-xl border flex items-start justify-between gap-2 transition"
+            :class="pref.active ? 'bg-slate-950 border-emerald-500/40' : 'bg-slate-950/60 border-slate-800 opacity-60'"
+          >
+            <div class="min-w-0 flex-1">
+              <div v-if="editingPreferenceIdx === idx" class="flex gap-1.5">
+                <input
+                  v-model="editingPreferenceDraft"
+                  @keyup.enter="saveEditPreference(idx)"
+                  type="text"
+                  class="flex-1 px-2 py-1 rounded bg-slate-900 border border-emerald-400 text-xs text-white"
+                />
+                <button type="button" @click="saveEditPreference(idx)" class="px-2 py-1 rounded bg-emerald-500 text-slate-950 text-[10px] font-black">Save</button>
+              </div>
+              <p v-else @click="startEditPreference(idx, pref.label)" class="text-xs leading-snug cursor-pointer" :class="pref.active ? 'text-slate-100 font-medium' : 'text-slate-400 line-through'">
+                {{ pref.label }}
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                @click="togglePreferenceActive(idx)"
+                class="px-2 py-1 rounded-lg text-[10px] font-mono font-black border transition"
+                :class="pref.active ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400'"
+              >
+                {{ pref.active ? 'ACTIVE' : 'OFF' }}
+              </button>
+              <button
+                type="button"
+                @click="removePreferenceRule(idx)"
+                title="Delete preference"
+                class="w-6 h-6 rounded-lg bg-slate-900 hover:bg-rose-950/60 text-rose-400 font-bold text-xs flex items-center justify-center"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -608,6 +688,9 @@
         const newGuardrailText = ref('');
         const editingGuardrailIdx = ref(-1);
         const editingGuardrailDraft = ref('');
+        const newPreferenceText = ref('');
+        const editingPreferenceIdx = ref(-1);
+        const editingPreferenceDraft = ref('');
         const customGoalPrompt = ref('');
         const showNewSecondaryForm = ref(false);
         const customSecondaryTitle = ref('');
@@ -659,7 +742,7 @@
         const subTabs = [
           { id: 'goals', label: '1. Goals' },
           { id: 'injuries', label: '2. Injuries' },
-          { id: 'life', label: '3. Life & DOMS' },
+          { id: 'life', label: '3. Life & Prefs' },
           { id: 'sim', label: '4. AI Sim' }
         ];
 
@@ -908,15 +991,147 @@
           editingGuardrailIdx.value = -1;
         }
 
+        const preferencePresets = [
+          'Enjoy running — include 2–3 runs/week when recovery allows',
+          'Never run 2 days in a row (48h shin/Achilles clearance)',
+          'Max 2 consecutive lift days (never lift 3 days in a row)',
+          'Use rower for low-impact recovery & variety'
+        ];
+
+        function normalizePreferenceList(rawList, modPrefs = {}) {
+          const base = Array.isArray(rawList) ? rawList : [];
+          const normalized = base
+            .map((item, idx) => {
+              if (typeof item === 'string') {
+                const clean = item.trim();
+                return clean ? { id: `pref-${idx}-${clean.slice(0, 12)}`, label: clean, active: true } : null;
+              }
+              if (item && typeof item === 'object') {
+                const label = String(item.label || item.rule || item.name || '').trim();
+                if (!label) return null;
+                return {
+                  id: item.id || `pref-${idx}`,
+                  label,
+                  active: item.active !== false
+                };
+              }
+              return null;
+            })
+            .filter(Boolean);
+          // Migrate legacy preventBackToBackRuns boolean into an explicit toggleable rule if not already present
+          if (modPrefs && modPrefs.preventBackToBackRuns === true && !normalized.some((p) => /never run 2 days|back-to-back run/i.test(p.label))) {
+            normalized.push({
+              id: 'pref-no-b2b-runs',
+              label: 'Never run 2 days in a row (48h shin/Achilles clearance)',
+              active: true
+            });
+          }
+          return normalized;
+        }
+
+        const normalizedPreferences = computed(() => normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences));
+        const activePreferenceCount = computed(() => normalizedPreferences.value.filter((p) => p.active).length);
+
+        function syncLegacyCadenceFlagsFromPreferences(prefList) {
+          if (!context.value.modalityPreferences) context.value.modalityPreferences = {};
+          const activeLabels = prefList.filter((p) => p.active).map((p) => p.label.toLowerCase());
+          const noB2bRunRule = prefList.find((p) => /never run 2 days|back-to-back run/i.test(p.label));
+          if (noB2bRunRule) {
+            context.value.modalityPreferences.preventBackToBackRuns = noB2bRunRule.active;
+          }
+          const max2LiftRule = activeLabels.find((l) => /never lift 3 days|max 2 consecutive lift/i.test(l));
+          if (max2LiftRule) {
+            context.value.modalityPreferences.maxConsecutiveLiftDays = 2;
+          }
+        }
+
+        function appendTrainingPreferenceLine(prefText) {
+          const clean = String(prefText || '').trim();
+          if (!clean) return false;
+          const list = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
+          if (!list.some((item) => item.label.toLowerCase() === clean.toLowerCase())) {
+            list.push({ id: `pref-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, label: clean, active: true });
+            context.value.trainingPreferences = list;
+            syncLegacyCadenceFlagsFromPreferences(list);
+            return true;
+          }
+          return false;
+        }
+
+        function hasPreferenceLabel(label) {
+          return normalizedPreferences.value.some((p) => p.label.toLowerCase() === label.toLowerCase() && p.active);
+        }
+
+        function addQuickPreferencePreset(label) {
+          const list = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
+          const idx = list.findIndex((p) => p.label.toLowerCase() === label.toLowerCase());
+          if (idx >= 0) {
+            list[idx].active = !list[idx].active;
+          } else {
+            list.push({ id: `pref-${Date.now()}`, label, active: true });
+          }
+          context.value.trainingPreferences = list;
+          syncLegacyCadenceFlagsFromPreferences(list);
+          saveContext(true);
+        }
+
+        function addPreferenceRule() {
+          const label = newPreferenceText.value.trim();
+          if (!label) return;
+          if (appendTrainingPreferenceLine(label)) {
+            newPreferenceText.value = '';
+            saveContext(true);
+          } else {
+            newPreferenceText.value = '';
+          }
+        }
+
+        function togglePreferenceActive(idx) {
+          const list = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
+          if (!list[idx]) return;
+          list[idx].active = !list[idx].active;
+          context.value.trainingPreferences = list;
+          syncLegacyCadenceFlagsFromPreferences(list);
+          saveContext(true);
+        }
+
+        function removePreferenceRule(idx) {
+          const list = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
+          list.splice(idx, 1);
+          context.value.trainingPreferences = list;
+          syncLegacyCadenceFlagsFromPreferences(list);
+          if (editingPreferenceIdx.value === idx) editingPreferenceIdx.value = -1;
+          saveContext(true);
+        }
+
+        function startEditPreference(idx, currentLabel) {
+          editingPreferenceIdx.value = idx;
+          editingPreferenceDraft.value = currentLabel;
+        }
+
+        function saveEditPreference(idx) {
+          const updated = editingPreferenceDraft.value.trim();
+          const list = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
+          if (updated && list[idx]) {
+            list[idx].label = updated;
+            context.value.trainingPreferences = list;
+            syncLegacyCadenceFlagsFromPreferences(list);
+            saveContext(true);
+          }
+          editingPreferenceIdx.value = -1;
+        }
+
         function loadState() {
           if (!window.BasementDB) return;
           const loaded = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, defaultCtx);
+          const mergedModPrefs = { ...defaultCtx().modalityPreferences, ...(loaded.modalityPreferences || {}) };
           const merged = {
             ...defaultCtx(),
             ...loaded,
             primaryGoal: { ...defaultCtx().primaryGoal, ...(loaded.primaryGoal || {}) },
-            modalityPreferences: { ...defaultCtx().modalityPreferences, ...(loaded.modalityPreferences || {}) },
-            chronicGuardrails: normalizeGuardrailList(loaded.chronicGuardrails)
+            modalityPreferences: mergedModPrefs,
+            chronicGuardrails: normalizeGuardrailList(loaded.chronicGuardrails),
+            trainingPreferences: normalizePreferenceList(loaded.trainingPreferences, mergedModPrefs)
           };
           context.value = merged;
           // Auto-migrate legacy static 18-set default on existing saved goals that haven't been calibrated yet
@@ -937,6 +1152,8 @@
         function saveContext(notify = false) {
           if (!window.BasementDB) return;
           context.value.chronicGuardrails = normalizeGuardrailList(context.value.chronicGuardrails);
+          context.value.trainingPreferences = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
+          syncLegacyCadenceFlagsFromPreferences(context.value.trainingPreferences);
           context.value.readinessScore = readinessScore.value;
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, context.value);
           window.BasementDB.syncCoachContextToCloud(context.value);
@@ -1194,10 +1411,28 @@
             updates.push(`~${m}m window`);
           }
 
-          // 5. Running cadence rule
+          // 5. Modality preferences & consecutive-day cadence rules -> Training Preferences & Cadence Rules
           if (lower.includes('no back-to-back run') || lower.includes('never run 2') || lower.includes('not run two days')) {
             context.value.modalityPreferences.preventBackToBackRuns = true;
-            updates.push('No back-to-back runs');
+            if (appendTrainingPreferenceLine('Never run 2 days in a row (48h shin/Achilles clearance)')) {
+              updates.push('Cadence rule added');
+            }
+          }
+          if (lower.includes('never lift 3') || lower.includes('not lift 3') || lower.includes('max 2 consecutive lift') || lower.includes('2 lift days in a row')) {
+            context.value.modalityPreferences.maxConsecutiveLiftDays = 2;
+            if (appendTrainingPreferenceLine('Max 2 consecutive lift days (never lift 3 days in a row)')) {
+              updates.push('Lift spacing rule added');
+            }
+          }
+          if (lower.match(/\b(enjoy|like|love|include|want|prefer)\b.*\brunning\b|\brun\b.*\b(workout|routine|week|schedule)\b/)) {
+            if (appendTrainingPreferenceLine('Enjoy running — include 2–3 runs/week when recovery allows')) {
+              updates.push('Running preference added');
+            }
+          }
+          if (lower.match(/\b(rower|rowing)\b.*\b(only|recovery|rest|variety|prefer|enjoy|like)\b/)) {
+            if (appendTrainingPreferenceLine('Use rower primarily for low-impact recovery & variety')) {
+              updates.push('Rowing preference added');
+            }
           }
 
           // 6. Primary Goal
@@ -1283,7 +1518,10 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  contents: [{ parts: [{ text: `Extract profile updates from: "${text}". Route every detail into the user's profile sections rather than separate custom variables. Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number), heightFeet (number), heightInches (number), primaryGoalTitle (string), secondaryGoalTitle (string), targetDaysPerWeek (number), targetDurationMin (number), targetDurationMax (number), preventBackToBackRuns (boolean), chronicGuardrails (array of concise 1-sentence joint/tendency/equipment guardrail rules for Life & DOMS -> Chronic Guardrails, e.g. "Prone to Shin Splints — enforce 48h run spacing"), externalLifeLoads (array from ["Yard Work / Heavy Labor", "Long Drive / Travel", "10+ Hr Desk Crunch", "High Life Stress"]), sorenessZones (array of {zone, level} where zone is one of ["Quads", "Hamstrings & Glutes", "Calves & Shins", "Chest & Front Delts", "Lats & Upper Back", "Side Delts & Arms"] and level is "Tight" or "Sore ⊘"), temporaryInjury (optional {name, region, days} for acute short-term flare-ups).` }] }],
+                  contents: [{ parts: [{ text: `Extract profile updates from: "${text}". Route every detail cleanly into the right section:
+- Joint/injury/anatomical boundaries -> chronicGuardrails (ONLY physical/joint issues like shin splints, plantar fasciitis, lower back, shoulder impingement).
+- Workout modality likes/dislikes, cardio inclusions, or consecutive-day spacing limits (e.g. "Enjoy running — include 2-3 runs/week", "Never lift 3 days in a row", "Never run 2 days in a row") -> trainingPreferences.
+Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number), heightFeet (number), heightInches (number), primaryGoalTitle (string), secondaryGoalTitle (string), targetDaysPerWeek (number), targetDurationMin (number), targetDurationMax (number), preventBackToBackRuns (boolean), chronicGuardrails (array of concise joint/injury guardrail rules), trainingPreferences (array of concise modality preference & consecutive-day cadence rules), externalLifeLoads (array from ["Yard Work / Heavy Labor", "Long Drive / Travel", "10+ Hr Desk Crunch", "High Life Stress"]), sorenessZones (array of {zone, level} where zone is one of ["Quads", "Hamstrings & Glutes", "Calves & Shins", "Chest & Front Delts", "Lats & Upper Back", "Side Delts & Arms"] and level is "Tight" or "Sore ⊘"), temporaryInjury (optional {name, region, days} for acute short-term flare-ups).` }] }],
                   generationConfig: { responseMimeType: 'application/json' }
                 })
               });
@@ -1303,6 +1541,13 @@
                   parsed.chronicGuardrails.forEach((rule) => {
                     if (appendChronicGuardrailLine(rule) && !updatedFields.includes('Chronic Guardrail added')) {
                       updatedFields.push('Chronic Guardrail added');
+                    }
+                  });
+                }
+                if (Array.isArray(parsed.trainingPreferences)) {
+                  parsed.trainingPreferences.forEach((pref) => {
+                    if (appendTrainingPreferenceLine(pref) && !updatedFields.includes('Training Preference added')) {
+                      updatedFields.push('Training Preference added');
                     }
                   });
                 }
@@ -1376,14 +1621,18 @@
           }
 
           if (updatedFields.length === 0) {
-            if (appendChronicGuardrailLine(text)) {
-              updatedFields.push('Chronic Guardrail (Life & DOMS)');
+            if (lowText.match(/\b(pain|injury|sprain|strain|tendon|joint|impingement|sciatica|hernia|flare|hurt|ache)\b/)) {
+              if (appendChronicGuardrailLine(text)) {
+                updatedFields.push('Chronic Guardrail');
+              }
+            } else if (appendTrainingPreferenceLine(text)) {
+              updatedFields.push('Training Preference');
             }
           }
 
           // Keep customCoachingVariables empty so nothing renders below the interviewer
           context.value.customCoachingVariables = [];
-          interviewStatusMsg.value = `✓ Updated Profile & Life/DOMS: ${updatedFields.join(' • ')}`;
+          interviewStatusMsg.value = `✓ Updated Profile & Preferences: ${updatedFields.join(' • ')}`;
           interviewInput.value = '';
           interviewLoading.value = false;
           saveContext(true);
@@ -1471,6 +1720,9 @@
           lifeLoadPresets, toggleLifeLoad, normalizedGuardrails, activeGuardrailCount,
           newGuardrailText, addGuardrailRule, toggleGuardrailActive, removeGuardrailRule,
           editingGuardrailIdx, editingGuardrailDraft, startEditGuardrail, saveEditGuardrail,
+          preferencePresets, normalizedPreferences, activePreferenceCount, hasPreferenceLabel, addQuickPreferencePreset,
+          newPreferenceText, addPreferenceRule, togglePreferenceActive, removePreferenceRule,
+          editingPreferenceIdx, editingPreferenceDraft, startEditPreference, saveEditPreference,
           simScenarios, activeSimScenario, currentSimDetail, customSimPrompt, simAiLoading, liveSimResult, runLiveAiSimulation,
           interviewInput, interviewLoading, interviewStatusMsg, isListeningInterview, applyAiProfileInterview, removeCustomVariable, toggleInterviewMic, athleteAge,
           readinessScore, savedBanner, saveContext

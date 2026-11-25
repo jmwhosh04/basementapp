@@ -51,6 +51,7 @@
     externalLifeLoads: [],
     activeTemporaryInjuries: [],
     chronicGuardrails: [],
+    trainingPreferences: [],
     sleepHours: null,
     targetDurationMin: 25,
     targetDurationMax: 40,
