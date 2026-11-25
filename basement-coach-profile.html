@@ -781,6 +781,7 @@
         ];
 
         const domsZones = ['Quads', 'Hamstrings & Glutes', 'Calves & Shins', 'Chest & Front Delts', 'Lats & Upper Back', 'Side Delts & Arms'];
+        const lifeLoadPresets = [];
         const quickPreferenceLifts = [
           'Goblet Squat', 'Dumbbell Bulgarian Split Squat', 'Dumbbell Romanian Deadlift',
           'Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Single-Arm Dumbbell Row',
@@ -1677,10 +1678,15 @@ Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number),
         }
 
         onMounted(async () => {
-          if (window.BasementAuthGuard) {
-            const ok = await window.BasementAuthGuard.requireAuthenticatedModule();
-            if (!ok) return;
-          }
+          try {
+            if (window.BasementAuthGuard && typeof window.BasementAuthGuard.requireAuthenticatedModule === 'function') {
+              const ok = await window.BasementAuthGuard.requireAuthenticatedModule();
+              if (!ok) {
+                loadState();
+                return;
+              }
+            }
+          } catch (_e) {}
           loadState();
           window.addEventListener('storage', loadState);
         });
@@ -1694,6 +1700,8 @@ Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number),
           quickPreferenceLifts, favCount, banCount, isPrefFav, isPrefBan, togglePrefFavorite, togglePrefBanned,
           newInjuryName, newInjuryRegion, newInjuryDays, normalizedInjuries, activeInjuryCount, addInjury, removeInjury,
           domsZones,
+          lifeLoadPresets,
+          lifeLoadPresets,
           lifeLoadPresets, newLifeLoadText, addCustomLifeLoad, toggleLifeLoad, normalizedGuardrails, activeGuardrailCount,
           newGuardrailText, addGuardrailRule, toggleGuardrailActive, removeGuardrailRule,
           editingGuardrailIdx, editingGuardrailDraft, startEditGuardrail, saveEditGuardrail,

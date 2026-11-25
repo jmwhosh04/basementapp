@@ -56,6 +56,7 @@
     targetDurationMin: 25,
     targetDurationMax: 40,
     modalityPreferences: {
+      targetDaysPerWeek: 5,
       maxConsecutiveLiftDays: null,
       preventBackToBackRuns: false,
       cardioOptions: ['treadmill', 'rower']
