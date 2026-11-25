@@ -2448,26 +2448,38 @@ const getExercisePhoto = (name, stage = 'top') => {
             .map((p) => (typeof p === 'string' ? p.trim() : String(p.label).trim()));
         });
 
+        const normalizeNumberWordsInText = (str) => {
+          const wordMap = {
+            one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7'
+          };
+          return String(str || '').replace(/\b(one|two|three|four|five|six|seven)\b/gi, (m) => wordMap[m.toLowerCase()] || m);
+        };
+
         const userMaxConsecutiveLiftDays = computed(() => {
-          const prefsLow = activeTrainingPrefsList.value.join(' | ').toLowerCase();
-          const match = prefsLow.match(/(?:max|no more than)\s*(\d)\s*consecutive\s*lift|never\s*lift\s*(\d)\s*days/);
-          if (match) {
-            const n = Number(match[1] || match[2]);
-            return n > 0 ? (match[2] ? Math.max(1, n - 1) : n) : null;
+          const prefsLow = normalizeNumberWordsInText(activeTrainingPrefsList.value.join(' | ')).toLowerCase();
+          const maxMatch = prefsLow.match(/(?:max|no more than|up to)\s*(\d)\s*consecutive\s*(?:lift|lifting|strength)/);
+          if (maxMatch) {
+            const n = Number(maxMatch[1]);
+            return n > 0 ? n : null;
+          }
+          const neverMatch = prefsLow.match(/(?:prefer not to|never|not to|avoid|don't|dont)\s*(?:lift(?:\s+weights)?|lifting|strength)(?:\s+\w+){0,3}?\s*(\d)\s*(?:consecutive\s*)?days/);
+          if (neverMatch) {
+            const n = Number(neverMatch[1]);
+            return n > 1 ? n - 1 : 2;
           }
           const cfgMax = Number(coachCtx.value.modalityPreferences?.maxConsecutiveLiftDays);
           return cfgMax > 0 ? cfgMax : null;
         });
 
         const userEnforcesNoBackToBackRuns = computed(() => {
-          const prefsLow = activeTrainingPrefsList.value.join(' | ').toLowerCase();
-          if (/never run 2 days|no back-to-back run|not run two days|48h run/.test(prefsLow)) return true;
+          const prefsLow = normalizeNumberWordsInText(activeTrainingPrefsList.value.join(' | ')).toLowerCase();
+          if (/(?:never|prefer not to|not to|avoid|don't|dont)\s*run(?:\s+\w+){0,3}?\s*2\s*(?:consecutive\s*)?days|no back-to-back run|not run two days|48h run/.test(prefsLow)) return true;
           return coachCtx.value.modalityPreferences?.preventBackToBackRuns === true;
         });
 
         const recommendedDailyModality = computed(() => {
-          const prefsLow = activeTrainingPrefsList.value.join(' | ').toLowerCase();
-          const enjoysRunning = /enjoy running|include.*run|prefer.*run/.test(prefsLow);
+          const prefsLow = normalizeNumberWordsInText(activeTrainingPrefsList.value.join(' | ')).toLowerCase();
+          const enjoysRunning = /(?:enjoy|like|love|prefer)\s*(?:to\s*)?run|include.*run/.test(prefsLow);
           const rowerOnlyRecovery = /rower.*(only|recovery|rest)/.test(prefsLow);
           const noB2bRuns = userEnforcesNoBackToBackRuns.value;
           const maxLiftDays = userMaxConsecutiveLiftDays.value;
