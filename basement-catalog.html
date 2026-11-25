@@ -947,24 +947,16 @@
         const workoutLogs = ref([]);
         const coachCtx = ref({
           activeGoal: {
-            shortTag: 'Calf & Shin Armor',
-            primaryLifts: ['Seated Calf Raise', 'Standing Dumbbell Calf Raise'],
-            secondaryLifts: ['Banded Clamshell', 'Band Lateral Walk', 'Bodyweight Glute Bridge']
+            shortTag: 'Strength & Conditioning',
+            primaryLifts: [],
+            secondaryLifts: []
           },
-          secondaryGoal: {
-            shortTag: 'V-Taper Lats',
-            lift: 'Dumbbell Pullover'
-          },
-          chronicGuardrails: [
-            { id: 'plantar', region: 'ankle', label: 'Plantar Fasciitis / Heel Strain' },
-            { id: 'shin_splints', region: 'ankle', label: 'Prone to Shin Splints' }
-          ],
-          activeTemporaryInjuries: [
-            { id: 'temp-1', name: 'Mild Right Ankle Sprain', region: 'ankle' }
-          ]
+          secondaryGoal: null,
+          chronicGuardrails: [],
+          activeTemporaryInjuries: []
         });
 
-        const favoriteLifts = ref(['Dumbbell Pullover', 'Banded Clamshell']);
+        const favoriteLifts = ref([]);
         const bannedLifts = ref([]);
 
         const activeExercise = ref(null);
@@ -1104,10 +1096,13 @@
         };
 
         const getGuardrailWarning = (name) => {
-          const hasAnkle = (coachCtx.value.chronicGuardrails || []).some(g => g.region === 'ankle' || g.id === 'plantar') ||
-            (coachCtx.value.activeTemporaryInjuries || []).some(i => i.region === 'ankle');
+          const activeGuards = (coachCtx.value.chronicGuardrails || []).filter(g => (typeof g === 'string' ? Boolean(g.trim()) : g && g.active !== false));
+          const guardLow = activeGuards.map(g => (typeof g === 'string' ? g : `${g.label || ''} ${g.region || ''}`).toLowerCase()).join(' | ');
+          const today = new Date().toISOString().slice(0, 10);
+          const hasAnkle = /ankle|foot|plantar|heel|shin/.test(guardLow) ||
+            (coachCtx.value.activeTemporaryInjuries || []).some(i => i && (!i.expiresAt || i.expiresAt >= today) && i.region === 'ankle');
           if (name === 'Standing Dumbbell Calf Raise' && hasAnkle) {
-            return 'Ankle/Plantar Guard: Prefer Seated Calf Raise on flare-up days';
+            return 'Active Ankle/Foot Guardrail: Prefer Seated Calf Raise on flare-up days';
           }
           return '';
         };

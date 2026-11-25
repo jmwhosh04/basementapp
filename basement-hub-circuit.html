@@ -173,7 +173,7 @@
             >
               <span>🏃 Run (30m)</span>
               <span v-if="recommendedDailyModality.mode === 'run'" class="text-[8px] font-mono uppercase tracking-tighter opacity-90">★ AI Pick Today</span>
-              <span v-else-if="ranYesterday" class="text-[8px] font-mono text-rose-400">🛑 Ran Yest.</span>
+              <span v-else-if="ranYesterday && userEnforcesNoBackToBackRuns" class="text-[8px] font-mono text-rose-400">🛑 Ran Yest.</span>
             </button>
             <button
               @click="selectedTodayModality = 'row'"
@@ -606,7 +606,7 @@
 
             <!-- Pro Trainer Cadence Banner: Shows When Today is Day 2 of Back-to-Back Lifting OR When 2 Consecutive Lift Days Were Already Hit -->
             <div
-              v-if="consecutivePriorLiftDays >= 2"
+              v-if="userMaxConsecutiveLiftDays && consecutivePriorLiftDays >= userMaxConsecutiveLiftDays"
               class="p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/60 flex items-center justify-between gap-2 text-xs"
             >
               <div class="text-rose-100 leading-snug">
@@ -622,7 +622,7 @@
             </div>
 
             <div
-              v-else-if="liftedYesterday && consecutivePriorLiftDays < 2"
+              v-else-if="liftedYesterday && (!userMaxConsecutiveLiftDays || consecutivePriorLiftDays < userMaxConsecutiveLiftDays)"
               class="px-3 py-2 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-[11px] text-indigo-100 space-y-0.5"
             >
               <div class="flex items-center justify-between gap-2">
@@ -2202,7 +2202,7 @@
         quickCue: 'Remember to keep your heel glued flat to the floor as you gently glide your knee forward over your second toe — never let your arch collapse inward.',
         cue: '1. Roll the arch of each foot slowly from heel to ball-of-foot for 20 seconds.\n2. Place one foot near a wall and glide your knee forward over your second toe while keeping your heel glued down.',
         trap: '• Letting your heel pop off the floor or collapsing your arch inward.',
-        science: 'Restores pain-free ankle dorsiflexion at 215 lb body weight.'
+        science: 'Restores pain-free ankle dorsiflexion and reduces landing impact stress.'
       },
       'Half-Kneeling Hip Flexor Opener': {
         slug: 'Kneeling_Hip_Flexor', category: 'Mobility', equipment: 'Bodyweight', weight: 0, reps: 10,
@@ -2271,21 +2271,14 @@
         targetDurationMax: 40
       },
       modalityPreferences: {
-        cadenceRule: 'pro_trainer_max_2_lifts',
-        maxConsecutiveLiftDays: 2,
-        neverRunConsecutiveDays: true,
-        primaryCardio: 'Running',
-        secondaryCardio: 'Rowing',
-        rowingRole: 'full_body_posture_and_variety',
+        maxConsecutiveLiftDays: null,
+        preventBackToBackRuns: false,
+        cardioOptions: ['treadmill', 'rower'],
         targetDurationMin: 25,
         targetDurationMax: 40,
         targetWindowLabel: '25–40 min Window'
       },
-      stepZeroPrimers: [
-        { title: 'Wall Tibialis Raises & Slow Eccentric Calf Pumps (15 reps)', reason: 'Pre-activates anterior tibialis & soleus blood flow for your "Calf & Shin Armor" block.', triggerBadge: '1° GOAL: Calf & Shin Armor' },
-        { title: 'Plantar Fascia Lacrosse Ball Roll & Seated Ankle Circles (45s/foot)', reason: 'Releases plantar fascia and warms ankle capsule (215 lb body-weight protection) with zero impact.', triggerBadge: 'GUARD: Mild Right Ankle' },
-        { title: 'Half-Kneeling Hip Flexor & Psoas Opener (30s/side)', reason: 'Releases shortened hip flexors from sitting so your lower back isn’t pulled into hyperextension.', triggerBadge: 'GUARD: Desk / Hip' }
-      ]
+      stepZeroPrimers: []
     };
 
     createApp({
@@ -2462,12 +2455,29 @@ const getExercisePhoto = (name, stage = 'top') => {
             .map((p) => (typeof p === 'string' ? p.trim() : String(p.label).trim()));
         });
 
+        const userMaxConsecutiveLiftDays = computed(() => {
+          const prefsLow = activeTrainingPrefsList.value.join(' | ').toLowerCase();
+          const match = prefsLow.match(/(?:max|no more than)\s*(\d)\s*consecutive\s*lift|never\s*lift\s*(\d)\s*days/);
+          if (match) {
+            const n = Number(match[1] || match[2]);
+            return n > 0 ? (match[2] ? Math.max(1, n - 1) : n) : null;
+          }
+          const cfgMax = Number(coachCtx.value.modalityPreferences?.maxConsecutiveLiftDays);
+          return cfgMax > 0 ? cfgMax : null;
+        });
+
+        const userEnforcesNoBackToBackRuns = computed(() => {
+          const prefsLow = activeTrainingPrefsList.value.join(' | ').toLowerCase();
+          if (/never run 2 days|no back-to-back run|not run two days|48h run/.test(prefsLow)) return true;
+          return coachCtx.value.modalityPreferences?.preventBackToBackRuns === true;
+        });
+
         const recommendedDailyModality = computed(() => {
           const prefsLow = activeTrainingPrefsList.value.join(' | ').toLowerCase();
           const enjoysRunning = /enjoy running|include.*run|prefer.*run/.test(prefsLow);
           const rowerOnlyRecovery = /rower.*(only|recovery|rest)/.test(prefsLow);
-          const noB2bRuns = coachCtx.value.modalityPreferences?.preventBackToBackRuns !== false &&
-            !activeTrainingPrefsList.value.some((p) => /never run 2 days/i.test(p) === false && false);
+          const noB2bRuns = userEnforcesNoBackToBackRuns.value;
+          const maxLiftDays = userMaxConsecutiveLiftDays.value;
           const daysSinceLastRun = (() => {
             const runs = cardioLogs.value.filter((c) => (c.modality || '').toLowerCase().includes('run')).map((c) => c.date).sort();
             const last = runs[runs.length - 1];
@@ -2476,7 +2486,7 @@ const getExercisePhoto = (name, stage = 'top') => {
           })();
           const calvesSore = getZoneSorenessLevel('calves') >= 2;
 
-          if (consecutivePriorLiftDays.value >= 2) {
+          if (maxLiftDays && consecutivePriorLiftDays.value >= maxLiftDays) {
             if (ranYesterday.value && noB2bRuns) {
               return { mode: 'row', badge: '★ AI PICK: 30m ROW (AFTER 2 LIFT DAYS)', reason: 'You lifted 2 days in a row and ran yesterday—30m Rowing gives you full-body conditioning with zero impact.' };
             }
@@ -2956,7 +2966,7 @@ const getExercisePhoto = (name, stage = 'top') => {
             : `Logged your daily check-in ("${text}"). I've calibrated today's warm-up and circuit pace accordingly.`;
 
           const aiReply = await askSharedAiCoachText(
-            `You are an elite home-gym personal trainer speaking to your 46yo client (5'11", 215 lb, 50 lb DB cap). He just gave this pre-workout check-in before starting today's workout: "${text}". In 2 concise, encouraging sentences, tell him how you adapted today's warm-up and circuit (${adaptations.join('; ') || 'calibrated target RPE and mobility warm-up'}).`,
+            `You are an elite home-gym personal trainer speaking to your client (${buildDynamicAthleteDescriptor()}, 50 lb DB cap). They just gave this pre-workout check-in before starting today's workout: "${text}". In 2 concise, encouraging sentences, explain how you adapted today's warm-up and circuit (${adaptations.join('; ') || 'calibrated target RPE and mobility warm-up'}).`,
             text,
             defaultSummary
           );
@@ -3005,7 +3015,7 @@ const getExercisePhoto = (name, stage = 'top') => {
           }
 
           const aiReply = await askSharedAiCoachText(
-            `You are an elite personal trainer. Your 46yo client just finished today's workout and gave this voice debrief: "${text}". In 2 concise sentences, acknowledge the symptom/feedback, explain briefly why it happens biomechanically, and state how you'll adjust his next session.`,
+            `You are an elite personal trainer. Your client (${buildDynamicAthleteDescriptor()}) just finished today's workout and gave this voice debrief: "${text}". In 2 concise sentences, acknowledge the symptom/feedback, explain briefly why it happens biomechanically, and state how you'll adjust their next session.`,
             text,
             fallbackCoach
           );
@@ -3072,9 +3082,9 @@ const getExercisePhoto = (name, stage = 'top') => {
           exerciseAiLoading.value = true;
 
           const fallback = buildLocalExerciseCoachAnswer(ex, question);
-          const sysPrompt = `You are a knowledgeable, conversational gym coach standing next to your 46yo client (5'11", 215 lb, home gym with 50 lb dumbbell cap and bands).
-He is looking at the exercise card for "${ex.name}" (Equipment: ${ex.equipment}, Target Muscles: ${ex.muscles}, Quick Cue: "${ex.quickCue}", Breakdown Trap: "${ex.trap}").
-Answer his specific question in 2-3 short, spoken-friendly sentences so it sounds natural when read out loud in the gym.`;
+          const sysPrompt = `You are a knowledgeable, conversational gym coach standing next to your client (${buildDynamicAthleteDescriptor()}, home gym with 50 lb dumbbell cap and bands).
+They are looking at the exercise card for "${ex.name}" (Equipment: ${ex.equipment}, Target Muscles: ${ex.muscles}, Quick Cue: "${ex.quickCue}", Breakdown Trap: "${ex.trap}").
+Answer their specific question in 2-3 short, spoken-friendly sentences so it sounds natural when read out loud in the gym.`;
 
           const reply = await askSharedAiCoachText(sysPrompt, question, fallback);
           exerciseChatHistoryMap.value[ex.name].push({ role: 'coach', text: reply });
@@ -3089,7 +3099,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
         const sessionEffortGameplan = computed(() => {
           const phase = coachCtx.value.mesocyclePhase || DEFAULT_COACH_CONTEXT.mesocyclePhase;
           const sleep = Number(coachCtx.value.dailyBiometrics?.sleepHours ?? 7.5);
-          const highStress = (coachCtx.value.externalLifeLoads || []).includes('high_stress');
+          const highStress = (coachCtx.value.externalLifeLoads || []).some(x => /stress|exhaust|poor sleep/i.test(String(x)));
           const audit = liveTrainerAuditSummary.value;
 
           if (phase.id === 'deload') {
@@ -3141,17 +3151,87 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           };
         };
 
+        const buildDynamicAthleteDescriptor = () => {
+          const w = Number(coachCtx.value.weightLbs || coachCtx.value.athleteProfile?.weightLbs);
+          const ft = Number(coachCtx.value.heightFeet || coachCtx.value.athleteProfile?.heightFeet);
+          const inch = Number(coachCtx.value.heightInches ?? coachCtx.value.athleteProfile?.heightInches ?? 0);
+          const parts = [];
+          if (ft > 0) parts.push(`${ft}'${inch}"`);
+          if (w > 0) parts.push(`${w} lb`);
+          return parts.length > 0 ? parts.join(', ') : 'home-gym athlete';
+        };
+
         const stepZeroPrimerList = computed(() => {
-          const raw = coachCtx.value.stepZeroPrimers || DEFAULT_COACH_CONTEXT.stepZeroPrimers;
-          return raw.map(p => {
-            let catalogName = 'Wall Tibialis & Calf Primer';
-            const t = (p.title || '').toLowerCase();
-            if (t.includes('plantar') || t.includes('ankle')) catalogName = 'Plantar & Ankle Mobility Release';
-            else if (t.includes('hip') || t.includes('psoas')) catalogName = 'Half-Kneeling Hip Flexor Opener';
-            else if (t.includes('thoracic') || t.includes('lat')) catalogName = 'Thoracic & Lat Opener';
-            else if (t.includes('cat-cow') || t.includes('bird-dog')) catalogName = 'Cat-Cow & Bird-Dog Decompression';
-            return { ...p, catalogName };
-          });
+          const goalLow = `${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || ''} ${coachCtx.value.secondaryGoal?.title || ''}`.toLowerCase();
+          const activeGuards = (coachCtx.value.chronicGuardrails || [])
+            .filter(g => (typeof g === 'string' ? true : g.active !== false))
+            .map(g => (typeof g === 'string' ? g : `${g.label || ''} ${g.region || ''}`).toLowerCase());
+          const guardText = activeGuards.join(' | ');
+          const activeInjs = (coachCtx.value.activeTemporaryInjuries || [])
+            .filter(i => i && (!i.expiresAt || i.expiresAt >= todayIso.value));
+          const injText = activeInjs.map(i => `${i.name || ''} ${i.region || ''}`).toLowerCase()).join(' | ');
+          const lifeText = (coachCtx.value.externalLifeLoads || []).join(' | ').toLowerCase();
+          const checkInText = (todayPreWorkoutNoteObj.value?.transcript || '').toLowerCase();
+          const combined = `${goalLow} ${guardText} ${injText} ${lifeText} ${checkInText}`;
+
+          const drills = [];
+          if (/calf|shin|tibialis|achilles|plantar|ankle|heel|running/.test(combined) || getZoneSorenessLevel('calves') > 0) {
+            drills.push({
+              title: 'Wall Tibialis Raises & Slow Eccentric Calf Pumps (15 reps)',
+              catalogName: 'Wall Tibialis & Calf Primer',
+              reason: 'Pre-activates anterior tibialis and soleus blood flow based on your active lower-leg focus/guardrails.',
+              triggerBadge: 'LOWER-LEG PREP'
+            });
+          }
+          if (/ankle|foot|plantar|heel/.test(`${guardText} ${injText} ${checkInText}`)) {
+            drills.push({
+              title: 'Plantar Arch Release & Ankle Dorsiflexion Glides (45s/foot)',
+              catalogName: 'Plantar & Ankle Mobility Release',
+              reason: 'Warms up the foot arch and ankle capsule with zero impact.',
+              triggerBadge: 'ANKLE / FOOT GUARD'
+            });
+          }
+          if (/hip|glute|sit|desk|commute|drive|travel/.test(combined) || getZoneSorenessLevel('quads') > 0 || getZoneSorenessLevel('posterior') > 0) {
+            drills.push({
+              title: 'Half-Kneeling Hip Flexor & Psoas Opener (30s/side)',
+              catalogName: 'Half-Kneeling Hip Flexor Opener',
+              reason: 'Opens tight hip flexors and wakes up glutes based on your active soreness or daily check-in.',
+              triggerBadge: 'HIP & PELVIS PREP'
+            });
+          }
+          if (/shoulder|pull|posture|v-taper|upper|back|rotator/.test(combined) || getZoneSorenessLevel('back') > 0 || getZoneSorenessLevel('chest') > 0 || getZoneSorenessLevel('shoulders_arms') > 0) {
+            drills.push({
+              title: 'Kneeling Thoracic & Lat Opener (10 slow breaths)',
+              catalogName: 'Thoracic & Lat Opener',
+              reason: 'Mobilizes thoracic extension and shoulder capsule before upper-body work.',
+              triggerBadge: 'THORACIC & SHOULDER'
+            });
+          }
+          if (/lower_back|lumbar|spine|core|yard|labor/.test(combined)) {
+            drills.push({
+              title: 'Cat-Cow & Bird-Dog Decompression (10 reps)',
+              catalogName: 'Cat-Cow & Bird-Dog Decompression',
+              reason: 'Lubricates lumbar segments and activates deep core stabilizers.',
+              triggerBadge: 'SPINE & CORE PREP'
+            });
+          }
+          if (drills.length === 0) {
+            drills.push(
+              {
+                title: 'Half-Kneeling Hip Flexor & Psoas Opener (30s/side)',
+                catalogName: 'Half-Kneeling Hip Flexor Opener',
+                reason: 'Dynamic lower-body and hip activation before resistance training.',
+                triggerBadge: 'DYNAMIC WARM-UP'
+              },
+              {
+                title: 'Kneeling Thoracic & Lat Opener (10 slow breaths)',
+                catalogName: 'Thoracic & Lat Opener',
+                reason: 'Dynamic upper-back and shoulder mobility before loading.',
+                triggerBadge: 'DYNAMIC WARM-UP'
+              }
+            );
+          }
+          return drills.slice(0, 4);
         });
 
         // Dedicated Pre-Run / Pre-Row Guided Step 0 Warm-Up Drills (with 2-Stage Photos & Step-by-Step Cues)
@@ -3187,7 +3267,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
               title: 'Plantar Arch Release & Ankle Dorsiflexion Glides (45s/foot)',
               catalogName: 'Plantar & Ankle Mobility Release',
               triggerBadge: 'PRE-RUN DRILL 2/3',
-              reason: 'Warms up the plantar fascia and ankle capsule before stepping onto the treadmill at 215 lb body weight.'
+              reason: 'Warms up the plantar fascia and ankle capsule before stepping onto the treadmill.'
             },
             {
               shortName: 'Hip Flexor & Glute Wake-Up',
@@ -3268,17 +3348,19 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
             warnings.push(`Marked as Banned (⊘) in your preferences.`);
           }
 
-          const activeInjuries = (coachCtx.value.activeTemporaryInjuries || []).filter(i => !i.expiresAt || i.expiresAt >= todayIso.value);
-          const activeGuards = coachCtx.value.chronicGuardrails || [];
-          const hasAnkleGuard = activeGuards.some(g => g.region === 'ankle' || g.id === 'plantar' || g.id === 'shin_splints') ||
+          const activeInjuries = (coachCtx.value.activeTemporaryInjuries || []).filter(i => i && (!i.expiresAt || i.expiresAt >= todayIso.value));
+          const activeGuards = (coachCtx.value.chronicGuardrails || []).filter(g => (typeof g === 'string' ? Boolean(g.trim()) : g && g.active !== false));
+          const activeGuardLow = activeGuards.map(g => (typeof g === 'string' ? g : `${g.label || ''} ${g.region || ''}`).toLowerCase()).join(' | ');
+          const activeLifeLow = (coachCtx.value.externalLifeLoads || []).join(' | ').toLowerCase();
+          const hasAnkleGuard = /ankle|foot|plantar|heel|shin/.test(activeGuardLow) ||
             activeInjuries.some(i => i.region === 'ankle');
           if (liftName === 'Standing Dumbbell Calf Raise' && hasAnkleGuard) {
-            warnings.push(`Active Ankle/Plantar Guardrail: Seated or hip-stabilized options reduce standing impact.`);
+            warnings.push(`Active Ankle/Foot Guardrail: Seated or hip-stabilized options reduce standing impact.`);
           }
 
           const hasLumbarLoad = recent72hCardioMiles.value >= 3.0 ||
-            (coachCtx.value.externalLifeLoads || []).includes('yard_work') ||
-            activeGuards.some(g => g.region === 'lower_back') ||
+            /yard|labor|lumbar|lower back/.test(activeLifeLow) ||
+            /lower_back|lower back|lumbar|sciatica/.test(activeGuardLow) ||
             activeInjuries.some(i => i.region === 'lower_back');
           if (liftName === 'Dumbbell Romanian Deadlift (RDL)' && hasLumbarLoad) {
             warnings.push(`Multi-day lower-back/cardio load (${recent72hCardioMiles.value.toFixed(1)}mi recent run): lower-shear alternative protects spine.`);
@@ -3335,7 +3417,7 @@ Answer his specific question in 2-3 short, spoken-friendly sentences so it sound
           const mGroup = getMuscleGroupForLift(liftName);
           const mSoreness = getZoneSorenessLevel(mGroup);
           const sleep = Number(coachCtx.value.dailyBiometrics?.sleepHours ?? 7.5);
-          const highStress = (coachCtx.value.externalLifeLoads || []).includes('high_stress');
+          const highStress = (coachCtx.value.externalLifeLoads || []).some(x => /stress|exhaust|poor sleep/i.test(String(x)));
 
           // Adjust rest period based on whether the trainer wants a higher-HR push or longer recovery
           if (baseRpe >= 8.5 && mSoreness === 0 && sleep >= 7.0 && !highStress) {
@@ -3545,14 +3627,16 @@ CRITICAL RULE: Do NOT list individual exercise names or recite raw numbers/stats
           const g = coachCtx.value.activeGoal || {};
           const bannedSet = new Set(coachCtx.value.exercisePreferences?.banned || []);
           const favSet = new Set(coachCtx.value.exercisePreferences?.favorites || []);
-          const activeInjuries = (coachCtx.value.activeTemporaryInjuries || []).filter(i => !i.expiresAt || i.expiresAt >= todayIso.value);
-          const activeGuards = coachCtx.value.chronicGuardrails || [];
+          const activeInjuries = (coachCtx.value.activeTemporaryInjuries || []).filter(i => i && (!i.expiresAt || i.expiresAt >= todayIso.value));
+          const activeGuards = (coachCtx.value.chronicGuardrails || []).filter(x => (typeof x === 'string' ? Boolean(x.trim()) : x && x.active !== false));
+          const activeGuardLow = activeGuards.map(x => (typeof x === 'string' ? x : `${x.label || ''} ${x.region || ''}`).toLowerCase()).join(' | ');
+          const activeLifeLow = (coachCtx.value.externalLifeLoads || []).join(' | ').toLowerCase();
 
-          const hasAnkleGuard = activeGuards.some(x => x.region === 'ankle' || x.id === 'plantar' || x.id === 'shin_splints') ||
+          const hasAnkleGuard = /ankle|foot|plantar|heel|shin/.test(activeGuardLow) ||
             activeInjuries.some(i => i.region === 'ankle');
           const hasLumbarLoad = recent72hCardioMiles.value >= 3.0 ||
-            (coachCtx.value.externalLifeLoads || []).includes('yard_work') ||
-            activeGuards.some(x => x.region === 'lower_back') ||
+            /yard|labor|lumbar|lower back/.test(activeLifeLow) ||
+            /lower_back|lower back|lumbar|sciatica/.test(activeGuardLow) ||
             activeInjuries.some(i => i.region === 'lower_back');
 
           const pickBestFromPool = (pool, fallbackName, reasonBuilder, isGoalFocus = false, goalBadge = '') => {
@@ -3903,7 +3987,7 @@ Return ONLY valid JSON:
             name: 'Side-Lying Hip Abduction (Straight-Leg Raise)',
             gapId: 'abductors',
             gapBadge: 'GAP: HIP ABDUCTORS',
-            gapReason: 'Standard squats/lunges miss pure frontal-plane hip abduction. Directly prevents pelvic drop and medial shin-splint torsion during running at 215 lb.'
+            gapReason: 'Standard squats/lunges miss pure frontal-plane hip abduction. Directly prevents pelvic drop and knee/shin valgus stress during single-leg stance and running.'
           },
           {
             name: 'Weighted Wall Tibialis Raise',
@@ -5129,7 +5213,7 @@ Return ONLY valid JSON:
           coachCtx, reloadCoachContext, yesterdayLiftNames, liftedYesterday, liftedTwoDaysAgo, consecutivePriorLiftDays, liftedToday,
           allowAdditionalWorkoutToday, hasCompletedSessionToday, todayStrengthLogsList, todayStrengthUniqueExercises, todayCardioLogsList, todaySaunaLogsList,
           hubDomsZones, hasAnySorenessToday, getHubSorenessBadge, cycleHubSorenessZone, resetTodaySorenessMap, liveTrainerAuditSummary,
-          ranYesterday, rowedYesterday, selectedTodayModality, recommendedDailyModality,
+          ranYesterday, rowedYesterday, userMaxConsecutiveLiftDays, userEnforcesNoBackToBackRuns, selectedTodayModality, recommendedDailyModality,
           activeTodayModality, estimatedCircuitMinutes, activeCardioPrescription, completePrescribedCardioSession,
           todayRowDuration, todayRowResistance, todayRowMeters, todayRunDuration, todayRunMiles, todayRunIncline, todayCardioRpe,
           recent72hCardioMiles, totalTonnageLbs,

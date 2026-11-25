@@ -405,20 +405,46 @@
         </div>
       </div>
 
-      <!-- Non-Gym Real Life Physical Loads -->
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2">
-        <h2 class="text-sm font-black text-white">Non-Gym "Real Life" Physical Load</h2>
-        <div class="flex flex-wrap gap-1.5">
+      <!-- Non-Gym Real Life Physical Loads (Dynamic / User & AI Parsed) -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-black text-white">Non-Gym "Real Life" Physical Load</h2>
+            <span class="text-[10px] text-slate-400">Active physical stressors parsed by AI or added below</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+            {{ (context.externalLifeLoads || []).length }} ACTIVE
+          </span>
+        </div>
+        <div class="flex gap-1.5">
+          <input
+            v-model="newLifeLoadText"
+            @keyup.enter="addCustomLifeLoad"
+            type="text"
+            placeholder="Add active life load (e.g., Yard work, Travel, Long shift)..."
+            class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+          />
           <button
-            v-for="item in lifeLoadPresets"
-            :key="item"
             type="button"
-            @click="toggleLifeLoad(item)"
-            class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition"
-            :class="(context.externalLifeLoads || []).includes(item) ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-950 border-slate-800 text-slate-400'"
+            @click="addCustomLifeLoad"
+            :disabled="!newLifeLoadText.trim()"
+            class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black disabled:opacity-40 shrink-0"
           >
-            {{ item }}
+            + Add
           </button>
+        </div>
+        <div v-if="(context.externalLifeLoads || []).length === 0" class="text-xs text-slate-400 text-center py-1.5">
+          No active non-gym physical loads logged.
+        </div>
+        <div v-else class="flex flex-wrap gap-1.5">
+          <span
+            v-for="item in (context.externalLifeLoads || [])"
+            :key="item"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-amber-500/20 border border-amber-400 text-amber-200"
+          >
+            <span>{{ item }}</span>
+            <button type="button" @click="toggleLifeLoad(item)" class="text-amber-300 hover:text-white font-black">&times;</button>
+          </span>
         </div>
       </div>
 
@@ -526,20 +552,6 @@
             Max Window (m)
             <input v-model.number="context.targetDurationMax" @change="saveContext()" type="number" min="20" max="90" class="mt-1 w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
           </label>
-        </div>
-
-        <!-- Quick-Add Preference / Cadence Presets -->
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="preset in preferencePresets"
-            :key="preset"
-            type="button"
-            @click="addQuickPreferencePreset(preset)"
-            class="px-2 py-1 rounded-lg text-[10px] font-bold border transition"
-            :class="hasPreferenceLabel(preset) ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'"
-          >
-            {{ hasPreferenceLabel(preset) ? '✓ ' : '+ ' }}{{ preset }}
-          </button>
         </div>
 
         <!-- Add Custom Preference or Cadence Rule -->
@@ -686,6 +698,7 @@
         const newInjuryRegion = ref('ankle');
         const newInjuryDays = ref(14);
         const newGuardrailText = ref('');
+        const newLifeLoadText = ref('');
         const editingGuardrailIdx = ref(-1);
         const editingGuardrailDraft = ref('');
         const newPreferenceText = ref('');
@@ -768,7 +781,7 @@
         ];
 
         const domsZones = ['Quads', 'Hamstrings & Glutes', 'Calves & Shins', 'Chest & Front Delts', 'Lats & Upper Back', 'Side Delts & Arms'];
-        const lifeLoadPresets = ['Yard Work / Heavy Labor', 'Long Drive / Travel', '10+ Hr Desk Crunch', 'High Life Stress'];
+        const lifeLoadPresets = [];
         const quickPreferenceLifts = [
           'Goblet Squat', 'Dumbbell Bulgarian Split Squat', 'Dumbbell Romanian Deadlift',
           'Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Single-Arm Dumbbell Row',
@@ -909,8 +922,8 @@
           }
           if (activeSimScenario.value === 'C') {
             return {
-              headline: '2 Consecutive Lift Days Reached → Active Conditioning Shift',
-              rationale: 'Enforces max 2 consecutive lift days rule and recommends a 30-minute Rowing session instead of heavy barbell/DB loading.',
+              headline: 'Multi-Day Strength Load → Active Conditioning & Mobility Shift',
+              rationale: 'Evaluates cumulative multi-day strength fatigue and active cadence preferences, rotating to a 30-minute Rowing session to keep joints fresh.',
               stations: ['Step 0: Half-Kneeling Hip Flexor Stretch', 'Step 0: Band Pull-Apart', 'Main: 30-Min Steady Aerobic Row (Resistance 12–16)', 'Post: 15m Traditional Sauna']
             };
           }
@@ -991,16 +1004,11 @@
           editingGuardrailIdx.value = -1;
         }
 
-        const preferencePresets = [
-          'Enjoy running — include 2–3 runs/week when recovery allows',
-          'Never run 2 days in a row (48h shin/Achilles clearance)',
-          'Max 2 consecutive lift days (never lift 3 days in a row)',
-          'Use rower for low-impact recovery & variety'
-        ];
+        const preferencePresets = [];
 
-        function normalizePreferenceList(rawList, modPrefs = {}) {
+        function normalizePreferenceList(rawList, _modPrefs = {}) {
           const base = Array.isArray(rawList) ? rawList : [];
-          const normalized = base
+          return base
             .map((item, idx) => {
               if (typeof item === 'string') {
                 const clean = item.trim();
@@ -1018,15 +1026,6 @@
               return null;
             })
             .filter(Boolean);
-          // Migrate legacy preventBackToBackRuns boolean into an explicit toggleable rule if not already present
-          if (modPrefs && modPrefs.preventBackToBackRuns === true && !normalized.some((p) => /never run 2 days|back-to-back run/i.test(p.label))) {
-            normalized.push({
-              id: 'pref-no-b2b-runs',
-              label: 'Never run 2 days in a row (48h shin/Achilles clearance)',
-              active: true
-            });
-          }
-          return normalized;
         }
 
         const normalizedPreferences = computed(() => normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences));
@@ -1035,13 +1034,14 @@
         function syncLegacyCadenceFlagsFromPreferences(prefList) {
           if (!context.value.modalityPreferences) context.value.modalityPreferences = {};
           const activeLabels = prefList.filter((p) => p.active).map((p) => p.label.toLowerCase());
-          const noB2bRunRule = prefList.find((p) => /never run 2 days|back-to-back run/i.test(p.label));
-          if (noB2bRunRule) {
-            context.value.modalityPreferences.preventBackToBackRuns = noB2bRunRule.active;
-          }
-          const max2LiftRule = activeLabels.find((l) => /never lift 3 days|max 2 consecutive lift/i.test(l));
-          if (max2LiftRule) {
-            context.value.modalityPreferences.maxConsecutiveLiftDays = 2;
+          const hasNoB2bRun = activeLabels.some((l) => /never run 2 days|no back-to-back run|not run two days|48h run/i.test(l));
+          context.value.modalityPreferences.preventBackToBackRuns = hasNoB2bRun;
+          const maxLiftMatch = activeLabels.join(' | ').match(/(?:max|no more than)\s*(\d)\s*consecutive\s*lift|never\s*lift\s*(\d)\s*days/);
+          if (maxLiftMatch) {
+            const n = Number(maxLiftMatch[1] || maxLiftMatch[2]);
+            context.value.modalityPreferences.maxConsecutiveLiftDays = n > 0 ? (maxLiftMatch[2] ? Math.max(1, n - 1) : n) : 2;
+          } else {
+            context.value.modalityPreferences.maxConsecutiveLiftDays = null;
           }
         }
 
@@ -1149,12 +1149,77 @@
           logs.value = Array.isArray(rawLogs) ? rawLogs : [];
         }
 
+        function buildDynamicStepZeroPrimers(ctx) {
+          const primers = [];
+          const today = new Date().toISOString().slice(0, 10);
+          const goalLow = `${ctx.primaryGoal?.title || ''} ${ctx.secondaryGoal?.title || ''}`.toLowerCase();
+          const activeGuards = normalizeGuardrailList(ctx.chronicGuardrails).filter((g) => g.active);
+          const guardText = activeGuards.map((g) => g.label.toLowerCase()).join(' | ');
+          const activeInjs = (Array.isArray(ctx.activeTemporaryInjuries) ? ctx.activeTemporaryInjuries : [])
+            .filter((i) => i && (!i.expiresAt || i.expiresAt >= today));
+          const injText = activeInjs.map((i) => `${i.name || ''} ${i.region || ''}`.toLowerCase()).join(' | ');
+          const lifeText = (Array.isArray(ctx.externalLifeLoads) ? ctx.externalLifeLoads : []).join(' | ').toLowerCase();
+          const soreness = ctx.sorenessMap || {};
+
+          if (/calf|shin|tibialis|achilles|plantar|ankle|heel|running/.test(`${goalLow} ${guardText} ${injText}`) || soreness['Calves & Shins']) {
+            primers.push({
+              title: 'Wall Tibialis Raises & Slow Eccentric Calf Pumps (15 reps)',
+              reason: 'Activates anterior tibialis and soleus blood flow based on your active lower-leg profile focus.',
+              triggerBadge: 'LOWER-LEG PREP'
+            });
+          }
+          if (/ankle|foot|plantar|heel/.test(`${guardText} ${injText}`)) {
+            primers.push({
+              title: 'Plantar Arch Release & Ankle Dorsiflexion Glides (45s/foot)',
+              reason: 'Warms up the foot arch and ankle joint with zero impact.',
+              triggerBadge: 'ANKLE / FOOT GUARD'
+            });
+          }
+          if (/hip|glute|sit|desk|commute|drive|travel/.test(`${goalLow} ${guardText} ${injText} ${lifeText}`) || soreness['Quads'] || soreness['Hamstrings & Glutes']) {
+            primers.push({
+              title: 'Half-Kneeling Hip Flexor & Psoas Opener (30s/side)',
+              reason: 'Opens hip flexors and wakes up glutes based on your active soreness or life load.',
+              triggerBadge: 'HIP & PELVIS PREP'
+            });
+          }
+          if (/shoulder|pull|posture|v-taper|upper|back|rotator/.test(`${goalLow} ${guardText} ${injText}`) || soreness['Lats & Upper Back'] || soreness['Chest & Front Delts'] || soreness['Side Delts & Arms']) {
+            primers.push({
+              title: 'Kneeling Thoracic & Lat Opener (10 slow breaths)',
+              reason: 'Mobilizes thoracic extension and shoulder capsule before upper-body work.',
+              triggerBadge: 'THORACIC & SHOULDER'
+            });
+          }
+          if (/lower_back|lumbar|spine|core|yard|labor/.test(`${goalLow} ${guardText} ${injText} ${lifeText}`)) {
+            primers.push({
+              title: 'Cat-Cow & Bird-Dog Decompression (10 reps)',
+              reason: 'Lubricates lumbar segments and activates deep core stabilizers.',
+              triggerBadge: 'SPINE & CORE PREP'
+            });
+          }
+          if (primers.length === 0) {
+            primers.push(
+              {
+                title: 'Half-Kneeling Hip Flexor & Psoas Opener (30s/side)',
+                reason: 'Dynamic lower-body and hip activation before resistance training.',
+                triggerBadge: 'DYNAMIC WARM-UP'
+              },
+              {
+                title: 'Kneeling Thoracic & Lat Opener (10 slow breaths)',
+                reason: 'Dynamic upper-back and shoulder mobility before loading.',
+                triggerBadge: 'DYNAMIC WARM-UP'
+              }
+            );
+          }
+          return primers.slice(0, 4);
+        }
+
         function saveContext(notify = false) {
           if (!window.BasementDB) return;
           context.value.chronicGuardrails = normalizeGuardrailList(context.value.chronicGuardrails);
           context.value.trainingPreferences = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
           syncLegacyCadenceFlagsFromPreferences(context.value.trainingPreferences);
           context.value.readinessScore = readinessScore.value;
+          context.value.stepZeroPrimers = buildDynamicStepZeroPrimers(context.value);
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, context.value);
           window.BasementDB.syncCoachContextToCloud(context.value);
           window.BasementDB.notifyFrames('storage');
@@ -1324,6 +1389,18 @@
           saveContext();
         }
 
+        function addCustomLifeLoad() {
+          const clean = newLifeLoadText.value.trim();
+          if (!clean) return;
+          const list = Array.isArray(context.value.externalLifeLoads) ? [...context.value.externalLifeLoads] : [];
+          if (!list.some((x) => x.toLowerCase() === clean.toLowerCase())) {
+            list.push(clean);
+            context.value.externalLifeLoads = list;
+            saveContext(true);
+          }
+          newLifeLoadText.value = '';
+        }
+
         const interviewLoading = ref(false);
         const interviewStatusMsg = ref('');
 
@@ -1411,31 +1488,7 @@
             updates.push(`~${m}m window`);
           }
 
-          // 5. Modality preferences & consecutive-day cadence rules -> Training Preferences & Cadence Rules
-          if (lower.includes('no back-to-back run') || lower.includes('never run 2') || lower.includes('not run two days')) {
-            context.value.modalityPreferences.preventBackToBackRuns = true;
-            if (appendTrainingPreferenceLine('Never run 2 days in a row (48h shin/Achilles clearance)')) {
-              updates.push('Cadence rule added');
-            }
-          }
-          if (lower.includes('never lift 3') || lower.includes('not lift 3') || lower.includes('max 2 consecutive lift') || lower.includes('2 lift days in a row')) {
-            context.value.modalityPreferences.maxConsecutiveLiftDays = 2;
-            if (appendTrainingPreferenceLine('Max 2 consecutive lift days (never lift 3 days in a row)')) {
-              updates.push('Lift spacing rule added');
-            }
-          }
-          if (lower.match(/\b(enjoy|like|love|include|want|prefer)\b.*\brunning\b|\brun\b.*\b(workout|routine|week|schedule)\b/)) {
-            if (appendTrainingPreferenceLine('Enjoy running — include 2–3 runs/week when recovery allows')) {
-              updates.push('Running preference added');
-            }
-          }
-          if (lower.match(/\b(rower|rowing)\b.*\b(only|recovery|rest|variety|prefer|enjoy|like)\b/)) {
-            if (appendTrainingPreferenceLine('Use rower primarily for low-impact recovery & variety')) {
-              updates.push('Rowing preference added');
-            }
-          }
-
-          // 6. Primary Goal
+          // 5. Primary Goal (if explicitly stated)
           const goalMatch = text.match(/(?:primary\s+goal\s*(?:is|:)?|my\s+goal\s*(?:is|:)?|focus\s+on)\s+([^.,;]+)/i);
           if (goalMatch && goalMatch[1].trim().length > 3) {
             context.value.primaryGoal.title = goalMatch[1].trim();
@@ -1445,7 +1498,7 @@
             updates.push(`1° Goal (${context.value.primaryGoal.title})`);
           }
 
-          // 7. DOMS / Soreness zones (Life & DOMS -> Local Muscle Soreness Map)
+          // 6. DOMS / Soreness zones (Life & Prefs -> Local Muscle Soreness Map)
           const zoneKeywords = [
             { kw: ['quad'], zone: 'Quads' },
             { kw: ['hamstring', 'glute'], zone: 'Hamstrings & Glutes' },
@@ -1464,40 +1517,6 @@
               }
             });
           }
-
-          // 8. Real-Life Physical Loads (Life & DOMS -> Non-Gym Real Life Physical Load)
-          const lifeMappings = [
-            { kw: ['yard work', 'mowing', 'shoveling', 'heavy labor', 'landscaping'], label: 'Yard Work / Heavy Labor' },
-            { kw: ['long drive', 'travel', 'flight', 'flying', 'road trip'], label: 'Long Drive / Travel' },
-            { kw: ['desk', 'sitting all day', 'office crunch'], label: '10+ Hr Desk Crunch' },
-            { kw: ['stress', 'poor sleep', 'exhausted'], label: 'High Life Stress' }
-          ];
-          lifeMappings.forEach(({ kw, label }) => {
-            if (kw.some((k) => lower.includes(k))) {
-              if (!Array.isArray(context.value.externalLifeLoads)) context.value.externalLifeLoads = [];
-              if (!context.value.externalLifeLoads.includes(label)) {
-                context.value.externalLifeLoads.push(label);
-                updates.push(`Life Load (${label})`);
-              }
-            }
-          });
-
-          // 9. Chronic Guardrails & Joint Tendencies (Life & DOMS -> Chronic Guardrails & Joint Rules)
-          const chronicPatterns = [
-            { kw: ['shin splint', 'shin splints'], rule: 'Prone to Shin Splints — enforce 48h run clearance, low incline (<=1.5%), and tibialis/soleus armor' },
-            { kw: ['plantar', 'heel pain', 'heel strain'], rule: 'Plantar Fasciitis / Heel Guardrail — favor seated calf raises and avoid consecutive high-impact days' },
-            { kw: ['lower back', 'lumbar', 'sciatica'], rule: 'Lower-Back Guardrail — prioritize chest-supported rows, glute bridges, and braced hinges' },
-            { kw: ['bad knee', 'knee pain', 'patellar', 'meniscus'], rule: 'Knee Guardrail — prioritize posterior-chain hinges, glute bridges, and controlled split squats' },
-            { kw: ['bad shoulder', 'rotator cuff', 'impingement', 'shoulder pain'], rule: 'Shoulder Guardrail — use neutral-grip/floor presses, 45° elbow tuck, and band face pulls' },
-            { kw: ['tennis elbow', 'golfer elbow', 'elbow pain'], rule: 'Elbow Guardrail — favor neutral hammer grips and controlled 3s eccentrics' }
-          ];
-          chronicPatterns.forEach(({ kw, rule }) => {
-            if (kw.some((k) => lower.includes(k))) {
-              if (appendChronicGuardrailLine(rule)) {
-                updates.push('Chronic Guardrail added');
-              }
-            }
-          });
 
           return updates;
         }
@@ -1518,10 +1537,13 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  contents: [{ parts: [{ text: `Extract profile updates from: "${text}". Route every detail cleanly into the right section:
-- Joint/injury/anatomical boundaries -> chronicGuardrails (ONLY physical/joint issues like shin splints, plantar fasciitis, lower back, shoulder impingement).
-- Workout modality likes/dislikes, cardio inclusions, or consecutive-day spacing limits (e.g. "Enjoy running — include 2-3 runs/week", "Never lift 3 days in a row", "Never run 2 days in a row") -> trainingPreferences.
-Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number), heightFeet (number), heightInches (number), primaryGoalTitle (string), secondaryGoalTitle (string), targetDaysPerWeek (number), targetDurationMin (number), targetDurationMax (number), preventBackToBackRuns (boolean), chronicGuardrails (array of concise joint/injury guardrail rules), trainingPreferences (array of concise modality preference & consecutive-day cadence rules), externalLifeLoads (array from ["Yard Work / Heavy Labor", "Long Drive / Travel", "10+ Hr Desk Crunch", "High Life Stress"]), sorenessZones (array of {zone, level} where zone is one of ["Quads", "Hamstrings & Glutes", "Calves & Shins", "Chest & Front Delts", "Lats & Upper Back", "Side Delts & Arms"] and level is "Tight" or "Sore ⊘"), temporaryInjury (optional {name, region, days} for acute short-term flare-ups).` }] }],
+                  contents: [{ parts: [{ text: `Extract profile updates from the user's free-form statement: "${text}".
+Analyze their exact words and route every detail cleanly into the appropriate structured bucket:
+- Joint, anatomical, or chronic injury boundaries -> chronicGuardrails (concise actionable home-gym guardrail synthesized from what they actually said).
+- Workout modality preferences, cardio rules, or consecutive-day spacing rules -> trainingPreferences (concise actionable rule synthesized from what they actually said).
+- Non-gym physical stressors (e.g. yard work, travel, long shifts, poor sleep) -> externalLifeLoads (concise descriptive labels).
+- Acute short-term injuries -> temporaryInjury ({name, region, days}).
+Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number), heightFeet (number), heightInches (number), primaryGoalTitle (string), secondaryGoalTitle (string), targetDaysPerWeek (number), targetDurationMin (number), targetDurationMax (number), chronicGuardrails (array of concise strings), trainingPreferences (array of concise strings), externalLifeLoads (array of concise strings), sorenessZones (array of {zone, level} where zone is one of ["Quads", "Hamstrings & Glutes", "Calves & Shins", "Chest & Front Delts", "Lats & Upper Back", "Side Delts & Arms"] and level is "Tight" or "Sore ⊘"), temporaryInjury (optional {name, region, days}).` }] }],
                   generationConfig: { responseMimeType: 'application/json' }
                 })
               });
@@ -1717,7 +1739,7 @@ Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number),
           quickPreferenceLifts, favCount, banCount, isPrefFav, isPrefBan, togglePrefFavorite, togglePrefBanned,
           newInjuryName, newInjuryRegion, newInjuryDays, normalizedInjuries, activeInjuryCount, addInjury, removeInjury,
           domsZones, cycleSoreness, resetSoreness, sorenessClass,
-          lifeLoadPresets, toggleLifeLoad, normalizedGuardrails, activeGuardrailCount,
+          lifeLoadPresets, newLifeLoadText, addCustomLifeLoad, toggleLifeLoad, normalizedGuardrails, activeGuardrailCount,
           newGuardrailText, addGuardrailRule, toggleGuardrailActive, removeGuardrailRule,
           editingGuardrailIdx, editingGuardrailDraft, startEditGuardrail, saveEditGuardrail,
           preferencePresets, normalizedPreferences, activePreferenceCount, hasPreferenceLabel, addQuickPreferencePreset,

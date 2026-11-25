@@ -56,8 +56,8 @@
     targetDurationMin: 25,
     targetDurationMax: 40,
     modalityPreferences: {
-      maxConsecutiveLiftDays: 2,
-      preventBackToBackRuns: true,
+      maxConsecutiveLiftDays: null,
+      preventBackToBackRuns: false,
       cardioOptions: ['treadmill', 'rower']
     },
     stepZeroPrimers: []
@@ -261,10 +261,6 @@
       writeJson(STORAGE_KEYS.SAUNA_LOGS, Array.isArray(snap.saunaLogs) ? snap.saunaLogs : []);
       writeJson(STORAGE_KEYS.TRAINER_DIRECTIVES, snap.trainerDirectives || null);
       writeJson(STORAGE_KEYS.TRAINER_NOTES, Array.isArray(snap.trainerNotes) ? snap.trainerNotes : []);
-    } else if (hasAnyLocalWorkoutData()) {
-      const ctx = readJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
-      writeJson(STORAGE_KEYS.COACH_CONTEXT, { ...DEFAULT_COACH_CONTEXT, ...ctx });
-      saveUserCacheSnapshot(userId);
     } else {
       writeJson(STORAGE_KEYS.COACH_CONTEXT, DEFAULT_COACH_CONTEXT);
       writeJson(STORAGE_KEYS.LOGS, []);
@@ -283,6 +279,8 @@
       STORAGE_KEYS.SAUNA_LOGS,
       STORAGE_KEYS.TRAINER_DIRECTIVES,
       STORAGE_KEYS.TRAINER_NOTES,
+      'basement_active_circuit_progress',
+      'basement_temp_injuries',
       TOMBSTONE_KEY
     ].forEach((k) => {
       try {
