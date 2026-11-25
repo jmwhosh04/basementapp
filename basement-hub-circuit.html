@@ -320,7 +320,7 @@
               </div>
 
               <p class="text-xs text-slate-300 leading-relaxed">
-                Before I generate today's circuit, let me know if anything is tight/sore or how your day went (e.g., <em>"Commute home took 60 minutes today instead of 30"</em> or <em>"My hammies are pretty tight from yesterday"</em>).
+                Before I generate today's circuit, let me know if anything is tight/sore, how your energy feels, or if anything changed today.
               </p>
 
               <!-- Day-to-Day 6-Zone Local Muscle Soreness (DOMS) Selector Before Circuit Generation -->
@@ -391,7 +391,7 @@
                 <textarea
                   v-model="dailyUpdateTranscript"
                   rows="3"
-                  placeholder="e.g., 'Man the commute home was 60 minutes today instead of 30 and my hammies are pretty tight from yesterday'..."
+                  placeholder="Speak or type anything for your trainer (e.g., soreness, sleep, schedule, or exercise adjustments)..."
                   class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-emerald-400 focus:outline-none"
                 ></textarea>
 
@@ -2298,7 +2298,6 @@
         };
 
         const customCatalogVersion = ref(0);
-        const trainerDirectivesFromStorage = ref(null);
         const allowAdditionalWorkoutToday = ref(false);
 
         const bandLevels = [
@@ -2338,7 +2337,6 @@ const getExercisePhoto = (name, stage = 'top') => {
         const todayStrengthUniqueExercises = computed(() => new Set(todayStrengthLogsList.value.map(l => l.exercise)).size);
         const todayCardioLogsList = computed(() => cardioLogs.value.filter(c => c.date === todayIso.value));
         const todaySaunaLogsList = computed(() => saunaLogs.value.filter(s => s.date === todayIso.value));
-        const liftedToday = computed(() => todayStrengthLogsList.value.length > 0);
         const hasCompletedSessionToday = computed(() => todayStrengthLogsList.value.length > 0 || todayCardioLogsList.value.length > 0);
 
         const yesterdayLiftNames = computed(() => [...new Set(workoutLogs.value.filter(l => l.date === yesterdayIso.value).map(l => l.exercise))]);
@@ -2351,7 +2349,6 @@ const getExercisePhoto = (name, stage = 'top') => {
         });
 
         const ranYesterday = computed(() => cardioLogs.value.some(c => c.date === yesterdayIso.value && (c.modality || '').toLowerCase().includes('run')));
-        const rowedYesterday = computed(() => cardioLogs.value.some(c => c.date === yesterdayIso.value && (c.modality || '').toLowerCase().includes('row')));
 
         const recent72hCardioMiles = computed(() => {
           const cutoff = getLocalIsoDate(-3);
@@ -2359,10 +2356,6 @@ const getExercisePhoto = (name, stage = 'top') => {
             .filter(c => c.date >= cutoff && (c.modality || '').toLowerCase().includes('run'))
             .reduce((sum, c) => sum + (Number(c.distance) || 0), 0);
         });
-
-        const totalTonnageLbs = computed(() =>
-          workoutLogs.value.reduce((sum, l) => sum + (Number(l.weight) || 0) * (Number(l.reps) || 0), 0)
-        );
 
         const hubDomsZones = [
           { key: 'quads', altLabel: 'Quads', label: 'Quads' },
@@ -2563,12 +2556,6 @@ const getExercisePhoto = (name, stage = 'top') => {
           showToast(isRow ? `🚣 Logged ${mins}m Row (Res ${todayRowResistance.value} • ${meters}m)!${tag}` : `🏃 Logged ${mins}m Run (${todayRunMiles.value} mi)!${tag}`);
         };
 
-        const latestRecentSauna = computed(() => saunaLogs.value[0] || null);
-        const recentSaunaMinutes36h = computed(() => {
-          const cutoff = getLocalIsoDate(-1);
-          return saunaLogs.value.filter(s => s.date >= cutoff).reduce((sum, s) => sum + (Number(s.duration) || 0), 0);
-        });
-
         const saunaTodayAdvisory = computed(() => {
           const sleep = Number(coachCtx.value.dailyBiometrics?.sleepHours ?? 7.5);
           const recentAcuteInjury = (coachCtx.value.activeTemporaryInjuries || []).find(i => i.createdAt >= getLocalIsoDate(-3));
@@ -2602,6 +2589,9 @@ const getExercisePhoto = (name, stage = 'top') => {
         const getActiveApiKey = () => (window.BasementAI ? window.BasementAI.getApiKey() : (localStorage.getItem('basement_gemini_api_key') || '').trim());
 
         const stopCurrentAudioPlayback = () => {
+          if (window.BasementAI && typeof window.BasementAI.stopSpeech === 'function') {
+            window.BasementAI.stopSpeech();
+          }
           if (currentAudioObj) {
             try { currentAudioObj.pause(); } catch (e) {}
             currentAudioObj = null;
@@ -2612,116 +2602,21 @@ const getExercisePhoto = (name, stage = 'top') => {
           activeTtsSourceId.value = null;
         };
 
-        const pcm16Base64ToWavUrl = (base64Pcm, sampleRate = 24000) => {
-          const binaryStr = atob(base64Pcm);
-          const pcmLen = binaryStr.length;
-          const buffer = new ArrayBuffer(44 + pcmLen);
-          const view = new DataView(buffer);
-          const writeStr = (offset, str) => {
-            for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-          };
-          writeStr(0, 'RIFF');
-          view.setUint32(4, 36 + pcmLen, true);
-          writeStr(8, 'WAVE');
-          writeStr(12, 'fmt ');
-          view.setUint32(16, 16, true);
-          view.setUint16(20, 1, true);
-          view.setUint16(22, 1, true);
-          view.setUint32(24, sampleRate, true);
-          view.setUint32(28, sampleRate * 2, true);
-          view.setUint16(32, 2, true);
-          view.setUint16(34, 16, true);
-          writeStr(36, 'data');
-          view.setUint32(40, pcmLen, true);
-          for (let i = 0; i < pcmLen; i++) view.setUint8(44 + i, binaryStr.charCodeAt(i));
-          return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
-        };
-
         const speakTextOutLoud = async (textToSpeak, sourceId = 'coach') => {
           const clean = (textToSpeak || '').replace(/[*#`_~]/g, '').trim();
           if (!clean) return;
           stopCurrentAudioPlayback();
           activeTtsSourceId.value = sourceId;
-          let ttsResolved = false;
-          let fastFallbackTimer = null;
-
-          const speakBrowserFallback = () => {
-            if (ttsResolved) return;
-            try {
-              if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utter = new SpeechSynthesisUtterance(clean);
-                utter.rate = 1.08;
-                utter.onend = () => { if (activeTtsSourceId.value === sourceId) activeTtsSourceId.value = null; };
-                utter.onerror = () => { if (activeTtsSourceId.value === sourceId) activeTtsSourceId.value = null; };
-                window.speechSynthesis.speak(utter);
-              } else {
-                activeTtsSourceId.value = null;
-              }
-            } catch (e) {
-              activeTtsSourceId.value = null;
-            }
-          };
-
-          try {
-            const apiKey = (typeof getActiveApiKey === 'function' ? getActiveApiKey() : (localStorage.getItem('basement_gemini_api_key') || '')).trim();
-            if (!apiKey) {
-              speakBrowserFallback();
-              return;
-            }
-            fastFallbackTimer = setTimeout(() => {
-              if (!ttsResolved) speakBrowserFallback();
-            }, 950);
-            const controller = new AbortController();
-            const abortId = setTimeout(() => controller.abort(), 3500);
-            const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-            const res = await fetch(ttsUrl, {
-              method: 'POST',
-              signal: controller.signal,
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: `Speak briskly and naturally like a gym coach: ${clean}` }] }],
-                generationConfig: {
-                  responseModalities: ['AUDIO'],
-                  speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }
-                }
-              })
+          if (window.BasementAI && typeof window.BasementAI.speakText === 'function') {
+            await window.BasementAI.speakText(clean, {
+              onEnd: () => { if (activeTtsSourceId.value === sourceId) activeTtsSourceId.value = null; }
             });
-            clearTimeout(abortId);
-            if (res.ok) {
-              const data = await res.json();
-              const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-              if (inlineData?.data) {
-                ttsResolved = true;
-                clearTimeout(fastFallbackTimer);
-                if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
-                const wavUrl = (typeof pcm16Base64ToWavUrl === 'function')
-                  ? pcm16Base64ToWavUrl(inlineData.data, 24000)
-                  : (() => {
-                      const bin = atob(inlineData.data);
-                      const buf = new ArrayBuffer(44 + bin.length);
-                      const view = new DataView(buf);
-                      const ws = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
-                      ws(0, 'RIFF'); view.setUint32(4, 36 + bin.length, true); ws(8, 'WAVE'); ws(12, 'fmt ');
-                      view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-                      view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-                      ws(36, 'data'); view.setUint32(40, bin.length, true);
-                      for (let i = 0; i < bin.length; i++) view.setUint8(44 + i, bin.charCodeAt(i));
-                      return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
-                    })();
-                currentAudioObj = new Audio(wavUrl);
-                currentAudioObj.onended = () => { activeTtsSourceId.value = null; };
-                currentAudioObj.onerror = () => { activeTtsSourceId.value = null; };
-                await currentAudioObj.play();
-                return;
-              }
-            }
-          } catch (e) {}
-
+            return;
+          }
           try {
             if ('speechSynthesis' in window) {
               const utter = new SpeechSynthesisUtterance(clean);
-              utter.rate = 1.03;
+              utter.rate = 1.05;
               utter.onend = () => { activeTtsSourceId.value = null; };
               utter.onerror = () => { activeTtsSourceId.value = null; };
               window.speechSynthesis.speak(utter);
@@ -3681,80 +3576,81 @@ CRITICAL RULE: Do NOT list individual exercise names or recite raw numbers/stats
             return makeStationObj(chosen, contextNote, isGoalFocus, goalBadge);
           };
 
+          const catalogEntries = allCatalogLiftNames.value.map(name => ({ name, meta: getLiftMeta(name) }));
+          const byCategory = (cat) => catalogEntries.filter(e => e.meta.category === cat).map(e => e.name);
+          const lowerKneePool = catalogEntries
+            .filter(e => e.meta.category === 'Lower' && /squat|lunge|step-up/i.test(e.name))
+            .map(e => e.name);
+          const lowerHingePool = catalogEntries
+            .filter(e => e.meta.category === 'Lower' && (/rdl|deadlift|bridge|thrust|good morning|pull-through/i.test(e.name)))
+            .filter(name => !(hasLumbarLoad || getZoneSorenessLevel('posterior') >= 2) || !/deadlift|rdl|good morning/i.test(name))
+            .map(e => e.name);
+          const pushPool = byCategory('Upper Push');
+          const pullPool = byCategory('Upper Pull');
+          const shoulderPool = byCategory('Shoulders');
+          const stabilizerCorePool = catalogEntries
+            .filter(e => e.meta.category === 'Calves & Hips' || e.meta.category === 'Core')
+            .filter(e => !(hasAnkleGuard || getZoneSorenessLevel('calves') >= 2) || !/standing.*calf/i.test(e.name))
+            .map(e => e.name);
+
+          const activeGoalTitle = coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || '';
           const s1 = pickBestFromPool(
-            ['Goblet Squat', 'Dumbbell Sumo Squat', 'Dumbbell Bulgarian Split Squat'],
-            'Dumbbell Sumo Squat',
+            lowerKneePool.length ? lowerKneePool : byCategory('Lower'),
+            'Goblet Squat',
             (name, tr, sLevel) => {
               const bits = [];
               if (tr.sets7d > 0) bits.push(`${tr.sets7d} set(s) in 7d${tr.avgRpe ? ' @ avg RPE ' + tr.avgRpe : ''}`);
-              if (tr.rpeDelta !== 0) bits.push(`RPE trend ${tr.rpeDelta > 0 ? '+' : ''}${tr.rpeDelta}`);
               if (sLevel > 0) bits.push(`quad soreness level ${sLevel}`);
-              return `Holistic Quad/Hip Selection (${bits.join(', ') || 'fresh 7d window'}).`;
+              return `Lower-Body Knee-Dominant Selection (${bits.join(', ') || 'fresh 7d window'}).`;
             }
           );
 
           const s2 = pickBestFromPool(
-            ['Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Dumbbell Floor Press'],
+            pushPool,
             'Incline Dumbbell Bench Press',
             (name, tr, sLevel) => {
               const bits = [];
               if (tr.sets7d > 0) bits.push(`${tr.sets7d} set(s) in 7d${tr.avgRpe ? ' @ avg RPE ' + tr.avgRpe : ''}`);
-              if (tr.rpeDelta !== 0) bits.push(`RPE shift ${tr.rpeDelta > 0 ? '+' : ''}${tr.rpeDelta}`);
               if (sLevel > 0) bits.push(`chest soreness level ${sLevel}`);
-              return `Holistic Push Selection (${bits.join(', ') || 'balanced upper-push load'}).`;
+              return `Upper-Body Push Selection (${bits.join(', ') || 'balanced upper-push load'}).`;
             }
           );
 
           const s3 = pickBestFromPool(
-            hasLumbarLoad || (doms.posterior || 0) >= 2
-              ? ['Bodyweight Glute Bridge', 'Band Lateral Walk', 'Dead Bug']
-              : ['Dumbbell Romanian Deadlift (RDL)', 'Bodyweight Glute Bridge'],
+            lowerHingePool.length ? lowerHingePool : byCategory('Lower'),
             'Bodyweight Glute Bridge',
             (name, tr, sLevel) => {
               const bits = [];
-              if (hasLumbarLoad) bits.push(`${recent72hCardioMiles.value.toFixed(1)}mi recent run / spine load`);
+              if (hasLumbarLoad) bits.push('spine-sparing posterior option');
               if (sLevel > 0) bits.push(`posterior soreness ${sLevel}`);
               if (tr.avgRpe) bits.push(`recent RPE ${tr.avgRpe}`);
-              return `Holistic Posterior/Spine Balance (${bits.join(', ') || '7d posterior recovery'}).`;
+              return `Posterior-Chain Hinge/Glute Selection (${bits.join(', ') || '7d posterior recovery'}).`;
             }
           );
 
           const s4 = pickBestFromPool(
-            ['Dumbbell Pullover', 'Single-Arm Dumbbell Row', 'Chest-Supported Incline Row'],
-            'Dumbbell Pullover',
-            (name, tr) => {
-              const goalTag = g.focusArea === 'v_taper' || coachCtx.value.secondaryGoal?.lift === 'Dumbbell Pullover' ? 'Goal & posture pull' : 'Upper pull balance';
-              return `${goalTag} (${tr.sets7d} set(s) in 7d${tr.avgRpe ? ', avg RPE ' + tr.avgRpe : ''}).`;
-            },
-            true,
-            g.focusArea === 'v_taper' ? '1° GOAL' : '2° GOAL'
+            pullPool,
+            'Single-Arm Dumbbell Row',
+            (name, tr) => `Upper-Body Pull Balance (${tr.sets7d} set(s) in 7d${tr.avgRpe ? ', avg RPE ' + tr.avgRpe : ''}).`,
+            Boolean(coachCtx.value.secondaryGoal),
+            coachCtx.value.secondaryGoal ? '2° GOAL' : ''
           );
 
           const s5 = pickBestFromPool(
-            ['Dumbbell Lateral Raise', 'Dumbbell Rear Delt Reverse Fly', 'Band Face Pull'],
-            'Dumbbell Rear Delt Reverse Fly',
+            shoulderPool,
+            'Dumbbell Lateral Raise',
             (name, tr, sLevel) => {
               const bits = [`${tr.sets7d} set(s) in 7d`];
               if (tr.avgRpe) bits.push(`avg RPE ${tr.avgRpe}`);
               if (sLevel > 0) bits.push(`shoulder/arm DOMS ${sLevel}`);
-              return `Shoulder & Posture Balance (${bits.join(', ')}).`;
+              return `Shoulder & Scapular Balance (${bits.join(', ')}).`;
             }
           );
 
-          const lowerLegPool = hasAnkleGuard || (doms.calves || 0) >= 2
-            ? ['Seated Calf Raise', 'Banded Clamshell', 'Side-Lying Hip Abduction (Straight-Leg Raise)', 'Weighted Wall Tibialis Raise']
-            : ['Seated Calf Raise', 'Standing Dumbbell Calf Raise', 'Banded Clamshell', 'Weighted Wall Tibialis Raise'];
-
           const s6 = pickBestFromPool(
-            lowerLegPool,
-            'Banded Clamshell',
-            (name, tr, sLevel) => {
-              const parts = [`7d calf/hip/tib sets: ${audit.calfSets}:${audit.hipSets}:${audit.tibialisSets}`];
-              if (tr.avgRpe) parts.push(`RPE ${tr.avgRpe}`);
-              if (sLevel > 0) parts.push(`lower-leg DOMS ${sLevel}`);
-              if (hasAnkleGuard) parts.push('ankle/shin guard active');
-              return `Comprehensive Lower-Leg & Goal Guidance (${parts.join(' • ')}).`;
-            },
+            stabilizerCorePool,
+            'Dead Bug',
+            (name, tr) => `Core & Joint Stabilizer Selection (${tr.sets7d} set(s) in 7d${activeGoalTitle ? ' • ' + activeGoalTitle : ''}).`,
             true,
             '1° GOAL'
           );
@@ -4030,8 +3926,15 @@ Return ONLY valid JSON:
           try {
             const saved = JSON.parse(localStorage.getItem('basement_custom_catalog') || '[]');
             if (!saved.some(x => x.name === item.name)) {
-              saved.push({ name: item.name, ...getLiftMeta(item.name) });
-              localStorage.setItem('basement_custom_catalog', JSON.stringify(saved));
+              const entry = { name: item.name, ...getLiftMeta(item.name), isCustom: true };
+              saved.push(entry);
+              if (window.BasementDB) {
+                window.BasementDB.writeJson('basement_custom_catalog', saved);
+                window.BasementDB.syncCustomCatalogItemToCloud(entry);
+                window.BasementDB.notifyFrames('storage');
+              } else {
+                localStorage.setItem('basement_custom_catalog', JSON.stringify(saved));
+              }
             }
           } catch (e) {}
           showToast(`Added "${item.name}" to Today's Circuit & saved to Catalog!`);
@@ -4511,13 +4414,6 @@ Return ONLY valid JSON:
           }
         };
 
-        const pauseAndLeaveCircuit = () => {
-          stopTimer();
-          persistActiveCircuitProgress('circuit');
-          currentView.value = 'today';
-          showToast('Circuit paused — your logged sets are saved and you can resume today.');
-        };
-
         const quitActiveCircuit = (targetView = 'today') => {
           stopTimer();
           clearSavedCircuitProgress();
@@ -4625,13 +4521,6 @@ Return ONLY valid JSON:
           timerInterval = setInterval(() => {
             setDurationSeconds.value++;
           }, 1000);
-        };
-
-        const resetActiveTimer = () => {
-          stopTimer();
-          guidedState.value = 'ready';
-          setDurationSeconds.value = 0;
-          showToast('Timer reset to 00:00.');
         };
 
         const startRestCountdown = () => {
@@ -5142,8 +5031,6 @@ Return ONLY valid JSON:
                 hasProvidedTodayUpdate.value = true;
               }
             }
-            const savedDir = localStorage.getItem('basement_trainer_directives');
-            if (savedDir) trainerDirectivesFromStorage.value = JSON.parse(savedDir);
           } catch (e) {}
         };
 
@@ -5210,15 +5097,15 @@ Return ONLY valid JSON:
           togglePostWorkoutDebriefDrawer, togglePostWorkoutVoiceMic, submitPostWorkoutDebriefNote,
           exerciseChatHistoryMap, currentExerciseChatList, exerciseModalQuestionInput,
           isListeningExerciseModal, exerciseAiLoading, toggleExerciseModalVoiceMic, askAiAboutActiveExercise,
-          coachCtx, reloadCoachContext, yesterdayLiftNames, liftedYesterday, liftedTwoDaysAgo, consecutivePriorLiftDays, liftedToday,
+          coachCtx, reloadCoachContext, yesterdayLiftNames, liftedYesterday, liftedTwoDaysAgo, consecutivePriorLiftDays,
           allowAdditionalWorkoutToday, hasCompletedSessionToday, todayStrengthLogsList, todayStrengthUniqueExercises, todayCardioLogsList, todaySaunaLogsList,
           hubDomsZones, hasAnySorenessToday, getHubSorenessBadge, cycleHubSorenessZone, resetTodaySorenessMap, liveTrainerAuditSummary,
-          ranYesterday, rowedYesterday, userMaxConsecutiveLiftDays, userEnforcesNoBackToBackRuns, selectedTodayModality, recommendedDailyModality,
+          ranYesterday, userMaxConsecutiveLiftDays, userEnforcesNoBackToBackRuns, selectedTodayModality, recommendedDailyModality,
           activeTodayModality, estimatedCircuitMinutes, activeCardioPrescription, completePrescribedCardioSession,
           todayRowDuration, todayRowResistance, todayRowMeters, todayRunDuration, todayRunMiles, todayRunIncline, todayCardioRpe,
-          recent72hCardioMiles, totalTonnageLbs,
+          recent72hCardioMiles,
           saunaLogs, saunaDuration, saunaType, saunaTiming, postWorkoutSaunaLogged,
-          latestRecentSauna, recentSaunaMinutes36h, saunaTodayAdvisory, submitPostWorkoutSauna, logSaunaEntry, deleteSaunaLog,
+          saunaTodayAdvisory, submitPostWorkoutSauna, logSaunaEntry, deleteSaunaLog,
           stepZeroPrimerList, cardioStepZeroDrills, activeWarmupDrillsList, isCardioWarmupMode, cardioWarmupCompletedToday, startGuidedCardioWarmup,
           activeCircuitStations, synthesizeCoachedCircuit, generateAiCircuitAndBlindSpots, aiCircuitGenerating, aiCircuitSourceTag,
           customCircuitList, openManualBuildPage, toggleCustomBuilderExercise, addSafeAlternativeToCustom, moveCustomStation, launchCustomBuiltCircuit,
@@ -5232,13 +5119,13 @@ Return ONLY valid JSON:
           aiPhotoGenerating, generateAiModalPhotos,
           bandLevels, selectedBandLevel, selectedManualBand,
           sessionEffortGameplan, getStationEffortProfile, currentStationEffort, targetSessionRpe, targetRirLabel,
-          savedTodayCircuitProgress, resumeSavedCircuitToday, pauseAndLeaveCircuit, quitActiveCircuit,
+          savedTodayCircuitProgress, resumeSavedCircuitToday, quitActiveCircuit,
           totalCircuitSetsCount, currentOverallSetNumber, nextPreviewStation, displayedCardStation, displayedCardEffort,
           lastSetWasSkipped, skipCurrentSet,
           guidedStage, currentPrimerIndex, currentPrimerObj, currentRound, currentStationIndex, currentStation,
           guidedState, isSetTimerRunning, showGuidedFormDetails, setDurationSeconds, restRemainingSeconds,
           lastCompletedReps, lastCompletedDurationSec, lastCompletedSecPerRep, postSetRpe,
-          startGuidedWorkout, startTimer, resetActiveTimer, completeCurrentPrimerDrill, skipStepZeroToMainCircuit,
+          startGuidedWorkout, startTimer, completeCurrentPrimerDrill, skipStepZeroToMainCircuit,
           adjustPlannedWeight, completeSetAndEnterRestRpe, adjustLastLoggedReps, updateLastLoggedRpe, advanceToNextStationAfterRest,
           formatSeconds, workoutLogs,
           calendarMonthLabel, calendarCells, monthlyWorkoutDaysCount, selectedCalendarDate, changeCalendarMonth,

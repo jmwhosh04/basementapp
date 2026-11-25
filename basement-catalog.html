@@ -1143,10 +1143,6 @@
           return `${PHOTO_CDN}/${slug}/${stage === 'bottom' ? '1.jpg' : '0.jpg'}`;
         };
 
-        const scrollViewportToTop = () => {
-
-        };
-
         const openExerciseDetail = (ex) => {
           activeExercise.value = ex;
           showPhotoFixer.value = false;
@@ -1180,6 +1176,9 @@
         });
 
         const stopCurrentAudioPlayback = () => {
+          if (window.BasementAI && typeof window.BasementAI.stopSpeech === 'function') {
+            window.BasementAI.stopSpeech();
+          }
           if (currentAudioObj) { try { currentAudioObj.pause(); } catch (e) {} currentAudioObj = null; }
           if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
           activeTtsSourceId.value = null;
@@ -1190,36 +1189,12 @@
           if (!clean) return;
           stopCurrentAudioPlayback();
           activeTtsSourceId.value = sourceId;
-          try {
-            const apiKey = (localStorage.getItem('basement_gemini_api_key') || '').trim();
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: `Speak naturally like an encouraging personal trainer in a gym: ${clean}` }] }],
-                generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } } }
-              })
+          if (window.BasementAI && typeof window.BasementAI.speakText === 'function') {
+            await window.BasementAI.speakText(clean, {
+              onEnd: () => { if (activeTtsSourceId.value === sourceId) activeTtsSourceId.value = null; }
             });
-            if (res.ok) {
-              const data = await res.json();
-              const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-              if (b64) {
-                const bin = atob(b64);
-                const buf = new ArrayBuffer(44 + bin.length);
-                const view = new DataView(buf);
-                const ws = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
-                ws(0, 'RIFF'); view.setUint32(4, 36 + bin.length, true); ws(8, 'WAVE'); ws(12, 'fmt ');
-                view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-                view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-                ws(36, 'data'); view.setUint32(40, bin.length, true);
-                for (let i = 0; i < bin.length; i++) view.setUint8(44 + i, bin.charCodeAt(i));
-                currentAudioObj = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
-                currentAudioObj.onended = () => { activeTtsSourceId.value = null; };
-                await currentAudioObj.play();
-                return;
-              }
-            }
-          } catch (e) {}
+            return;
+          }
           if ('speechSynthesis' in window) {
             const u = new SpeechSynthesisUtterance(clean);
             u.rate = 1.03;
@@ -1518,11 +1493,19 @@
           try {
             const raw = localStorage.getItem('basement_coach_context');
             const parsed = raw ? JSON.parse(raw) : { ...coachCtx.value };
-            parsed.exercisePreferences = {
+            const prefs = {
               favorites: favoriteLifts.value,
               banned: bannedLifts.value
             };
-            localStorage.setItem('basement_coach_context', JSON.stringify(parsed));
+            parsed.preferences = prefs;
+            parsed.exercisePreferences = prefs;
+            if (window.BasementDB) {
+              window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, parsed);
+              window.BasementDB.syncCoachContextToCloud(parsed);
+              window.BasementDB.notifyFrames('storage');
+            } else {
+              localStorage.setItem('basement_coach_context', JSON.stringify(parsed));
+            }
           } catch (e) {}
         };
 

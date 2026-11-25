@@ -226,17 +226,6 @@
     return `basement_user_cache_${userId}`;
   }
 
-  function hasAnyLocalWorkoutData() {
-    const logs = readJson(STORAGE_KEYS.LOGS, []);
-    const cardio = readJson(STORAGE_KEYS.CARDIO_LOGS, []);
-    const sauna = readJson(STORAGE_KEYS.SAUNA_LOGS, []);
-    return (
-      (Array.isArray(logs) && logs.length > 0) ||
-      (Array.isArray(cardio) && cardio.length > 0) ||
-      (Array.isArray(sauna) && sauna.length > 0)
-    );
-  }
-
   function saveUserCacheSnapshot(userId) {
     if (!userId) return;
     const payload = {

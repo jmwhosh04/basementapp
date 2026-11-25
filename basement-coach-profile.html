@@ -781,7 +781,6 @@
         ];
 
         const domsZones = ['Quads', 'Hamstrings & Glutes', 'Calves & Shins', 'Chest & Front Delts', 'Lats & Upper Back', 'Side Delts & Arms'];
-        const lifeLoadPresets = [];
         const quickPreferenceLifts = [
           'Goblet Squat', 'Dumbbell Bulgarian Split Squat', 'Dumbbell Romanian Deadlift',
           'Flat Dumbbell Bench Press', 'Incline Dumbbell Bench Press', 'Single-Arm Dumbbell Row',
@@ -1004,8 +1003,6 @@
           editingGuardrailIdx.value = -1;
         }
 
-        const preferencePresets = [];
-
         function normalizePreferenceList(rawList, _modPrefs = {}) {
           const base = Array.isArray(rawList) ? rawList : [];
           return base
@@ -1056,23 +1053,6 @@
             return true;
           }
           return false;
-        }
-
-        function hasPreferenceLabel(label) {
-          return normalizedPreferences.value.some((p) => p.label.toLowerCase() === label.toLowerCase() && p.active);
-        }
-
-        function addQuickPreferencePreset(label) {
-          const list = normalizePreferenceList(context.value.trainingPreferences, context.value.modalityPreferences);
-          const idx = list.findIndex((p) => p.label.toLowerCase() === label.toLowerCase());
-          if (idx >= 0) {
-            list[idx].active = !list[idx].active;
-          } else {
-            list.push({ id: `pref-${Date.now()}`, label, active: true });
-          }
-          context.value.trainingPreferences = list;
-          syncLegacyCadenceFlagsFromPreferences(list);
-          saveContext(true);
         }
 
         function addPreferenceRule() {
@@ -1360,26 +1340,6 @@
           saveContext(true);
         }
 
-        function cycleSoreness(zone) {
-          if (!context.value.sorenessMap) context.value.sorenessMap = {};
-          const cur = context.value.sorenessMap[zone] || '';
-          const next = cur === '' ? 'Tight' : cur === 'Tight' ? 'Sore ⊘' : '';
-          if (next) context.value.sorenessMap[zone] = next;
-          else delete context.value.sorenessMap[zone];
-          saveContext();
-        }
-
-        function resetSoreness() {
-          context.value.sorenessMap = {};
-          saveContext(true);
-        }
-
-        function sorenessClass(val) {
-          if (val === 'Sore ⊘') return 'bg-rose-950/50 border-rose-500/50 text-rose-200';
-          if (val === 'Tight') return 'bg-amber-950/40 border-amber-500/40 text-amber-200';
-          return 'bg-slate-950 border-slate-800 text-slate-300';
-        }
-
         function toggleLifeLoad(item) {
           const list = Array.isArray(context.value.externalLifeLoads) ? [...context.value.externalLifeLoads] : [];
           const idx = list.indexOf(item);
@@ -1660,11 +1620,6 @@ Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number),
           saveContext(true);
         }
 
-        function removeCustomVariable(idx) {
-          context.value.customCoachingVariables.splice(idx, 1);
-          saveContext(true);
-        }
-
         function toggleInterviewMic() {
           if (window.BasementAI && typeof window.BasementAI.startDictation === 'function') {
             window.BasementAI.startDictation({
@@ -1738,15 +1693,15 @@ Return ONLY JSON with optional keys: birthDate (YYYY-MM-DD), weightLbs (number),
           showNewSecondaryForm, customSecondaryTitle, createCustomSecondaryGoal,
           quickPreferenceLifts, favCount, banCount, isPrefFav, isPrefBan, togglePrefFavorite, togglePrefBanned,
           newInjuryName, newInjuryRegion, newInjuryDays, normalizedInjuries, activeInjuryCount, addInjury, removeInjury,
-          domsZones, cycleSoreness, resetSoreness, sorenessClass,
+          domsZones,
           lifeLoadPresets, newLifeLoadText, addCustomLifeLoad, toggleLifeLoad, normalizedGuardrails, activeGuardrailCount,
           newGuardrailText, addGuardrailRule, toggleGuardrailActive, removeGuardrailRule,
           editingGuardrailIdx, editingGuardrailDraft, startEditGuardrail, saveEditGuardrail,
-          preferencePresets, normalizedPreferences, activePreferenceCount, hasPreferenceLabel, addQuickPreferencePreset,
+          normalizedPreferences, activePreferenceCount,
           newPreferenceText, addPreferenceRule, togglePreferenceActive, removePreferenceRule,
           editingPreferenceIdx, editingPreferenceDraft, startEditPreference, saveEditPreference,
           simScenarios, activeSimScenario, currentSimDetail, customSimPrompt, simAiLoading, liveSimResult, runLiveAiSimulation,
-          interviewInput, interviewLoading, interviewStatusMsg, isListeningInterview, applyAiProfileInterview, removeCustomVariable, toggleInterviewMic, athleteAge,
+          interviewInput, interviewLoading, interviewStatusMsg, isListeningInterview, applyAiProfileInterview, toggleInterviewMic, athleteAge,
           readinessScore, savedBanner, saveContext
         };
       }
