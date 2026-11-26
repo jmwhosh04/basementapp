@@ -25,7 +25,7 @@ Basement Lab is a **mobile-first, 4-module AI personal training and home-gym coa
 - **`basement_cardio_logs`**: Cardio session logs (`id`, `date`, `modality`, `duration`, `distance`, `incline`, `resistance`, `meters`, `rpe`) enforcing shin-splint recovery rules (`Resistance 1–30` for Rowing; `Miles` and `Incline %` for Running).  
 - **`basement_sauna_logs`**: Traditional Sauna sessions (`id`, `date`, `duration`, `type`, `timing`) used for post-workout logging, acute-injury/hydration cautions, and next-day readiness correlations.  
 - **`basement_custom_catalog`**: Custom exercises, overridden 2-stage human photo slugs (`yuhonas/free-exercise-db`), custom photo URLs, AI-generated 2-stage photos (stored via public URLs from Supabase Storage when signed in), and custom Quick Cues.  
-- **`basement_trainer_directives`**: Closed-loop coaching directives automatically published by Module 4's AI Pro Trainer audit (`calfSets`, `hipStabilitySets`, `tibialisSets`, `upperSets`, `lowerSets`, `coreSets`, `hasLowerLegGuardrail`, `sevenDayAvgRpe`, `rpeAdjustment`, `autoInjectLifts`) and mirrored by Module 1's circuit synthesis engine.
+- **`basement_trainer_directives`**: Closed-loop coaching directives automatically published by Module 4's AI Pro Trainer audit (`calfSets`, `hipStabilitySets`, `tibialisSets`, `upperSets`, `lowerSets`, `coreSets`, `hasLowerLegGuardrail`, `sevenDayAvgRpe`, `targetRpe`, `targetRpeCap`, `hasActiveRpeCap`, `coachTakeSummary`, `recoveryFocus`, `cardioSwapDirective`, `autoInjectLifts`) and mirrored in real time by Module 1's `sessionEffortGameplan`, station Target RPEs, and `Why This Workout?` rationale.
 
 ---
 

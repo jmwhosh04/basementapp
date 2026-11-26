@@ -94,8 +94,11 @@
             >
               {{ trainerAiLoading ? 'Analyzing...' : '✨ Refresh Coach' }}
             </button>
-            <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 font-mono font-bold">
-              Target RPE {{ targetRpe }}
+            <span
+              class="text-xs px-2.5 py-1 rounded-lg border font-mono font-bold"
+              :class="aiRecommendedMaxRpe !== null && Number(aiRecommendedMaxRpe) < 8.0 ? 'bg-amber-500/20 border-amber-400/50 text-amber-200' : 'bg-indigo-500/20 border-indigo-500/40 text-indigo-200'"
+            >
+              Target RPE {{ targetRpe }}<template v-if="aiRecommendedMaxRpe !== null && Number(aiRecommendedMaxRpe) < 8.0"> (Cap)</template>
             </span>
           </div>
         </div>
@@ -449,13 +452,48 @@
 
         const todayIso = computed(() => new Date().toISOString().slice(0, 10));
 
-        const targetRpe = computed(() => {
-          if (!strengthLogs.value.length) return '8.0';
+        const aiRecommendedMaxRpe = ref(null);
+        const aiCardioSwapDirective = ref('');
+        const aiRecoveryFocus = ref('');
+
+        function extractRpeCapFromProse(proseText) {
+          if (!proseText || typeof proseText !== 'string') return null;
+          const patterns = [
+            /(?:cap(?:ping|ped)?|strict|limit(?:ed|ing)?|ceiling|below|under|max(?:imum)?|no\s+more\s+than|nothing\s+above)\s+(?:a\s+|an\s+|at\s+|to\s+)?(?:RPE\s*)?(\d(?:\.\d)?)(?:\s*RPE)?/i,
+            /RPE\s*(\d(?:\.\d)?)\s*(?:cap|ceiling|max|limit)/i
+          ];
+          for (const rx of patterns) {
+            const m = proseText.match(rx);
+            if (m && m[1]) {
+              const parsed = parseFloat(m[1]);
+              if (!Number.isNaN(parsed) && parsed >= 5.0 && parsed <= 9.5) return parsed;
+            }
+          }
+          return null;
+        }
+
+        function extractCardioDirectiveFromProse(proseText) {
+          if (!proseText || typeof proseText !== 'string') return '';
+          if (/swap(?:ping)?\s+(?:your\s+)?(?:next\s+)?(?:scheduled\s+)?run|low-impact\s+incline\s+walk|offload\s+your\s+hip|skip\s+running|avoid\s+running/i.test(proseText)) {
+            return 'Swap high-impact run for low-impact incline walk or row to offload hip/lower back';
+          }
+          return '';
+        }
+
+        const baseComputedTargetRpe = computed(() => {
+          if (!strengthLogs.value.length) return 8.0;
           const recent = strengthLogs.value.slice(-15);
           const avg = recent.reduce((acc, item) => acc + (Number(item.rpe) || 8), 0) / recent.length;
-          if (avg < 7.4) return '8.5';
-          if (avg >= 8.9) return '7.5';
-          return '8.0';
+          if (avg < 7.4) return 8.5;
+          if (avg >= 8.9) return 7.5;
+          return 8.0;
+        });
+
+        const targetRpe = computed(() => {
+          const base = baseComputedTargetRpe.value;
+          const aiCap = aiRecommendedMaxRpe.value;
+          const effective = (aiCap !== null && !Number.isNaN(Number(aiCap))) ? Math.min(base, Number(aiCap)) : base;
+          return effective.toFixed(1);
         });
 
         const hasLowerLegArmorFocus = computed(() => {
@@ -554,21 +592,59 @@ Primary Goal: ${coachCtx.value.primaryGoal?.title || 'Strength & Conditioning'} 
 42-Day Summary: ${r42.sets} sets, Avg RPE ${r42.avgRpe}, ${r42.runMiles} mi run, ${r42.rowMins} min row.
 Recent Lifts: ${recentLifts}
 Recent Check-In / Post-Workout Notes: ${recentNotes}
+Active Soreness Map: ${JSON.stringify(coachCtx.value.sorenessMap || {})}
 Active Guardrails: ${JSON.stringify(coachCtx.value.chronicGuardrails || [])}
-Write 3-4 conversational sentences of genuine coaching feedback (what's working, what to watch out for, and what we're adjusting next).`;
+
+Return ONLY valid JSON with these exact keys:
+{
+  "coachTake": "3-4 conversational sentences of genuine coaching feedback (what's working, what to watch out for, and what we're adjusting next).",
+  "recommendedMaxRpe": number (between 6.5 and 8.5; MUST match any RPE cap mentioned in coachTake, e.g., 7.0 if capping lifts at RPE 7 this week),
+  "recoveryFocus": "short phrase describing primary tissue/recovery focus or empty string",
+  "cardioSwapDirective": "short directive if swapping high-impact running for incline walk/row/bike, otherwise empty string"
+}`;
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+              })
             });
             if (res.ok) {
               const data = await res.json();
-              const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-              if (txt) aiCoachingTake.value = txt;
+              const rawTxt = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+              if (rawTxt) {
+                let parsed = null;
+                try { parsed = JSON.parse(rawTxt); } catch (_e) {}
+                const prose = (parsed && parsed.coachTake) ? String(parsed.coachTake).trim() : rawTxt;
+                aiCoachingTake.value = prose;
+                const proseCap = extractRpeCapFromProse(prose);
+                const jsonCap = (parsed && typeof parsed.recommendedMaxRpe === 'number' && !Number.isNaN(parsed.recommendedMaxRpe))
+                  ? parsed.recommendedMaxRpe
+                  : null;
+                if (proseCap !== null && jsonCap !== null) {
+                  aiRecommendedMaxRpe.value = Math.min(proseCap, jsonCap);
+                } else if (proseCap !== null) {
+                  aiRecommendedMaxRpe.value = proseCap;
+                } else if (jsonCap !== null) {
+                  aiRecommendedMaxRpe.value = jsonCap;
+                } else {
+                  aiRecommendedMaxRpe.value = null;
+                }
+                aiRecoveryFocus.value = (parsed && parsed.recoveryFocus) ? String(parsed.recoveryFocus).trim() : '';
+                aiCardioSwapDirective.value = (parsed && parsed.cardioSwapDirective)
+                  ? String(parsed.cardioSwapDirective).trim()
+                  : extractCardioDirectiveFromProse(prose);
+                publishDirectives();
+              }
             }
           } catch (_e) {
             aiCoachingTake.value = trainerSummary.value;
+            const fallbackCap = extractRpeCapFromProse(aiCoachingTake.value);
+            aiRecommendedMaxRpe.value = fallbackCap;
+            aiCardioSwapDirective.value = extractCardioDirectiveFromProse(aiCoachingTake.value);
+            publishDirectives();
           } finally {
             trainerAiLoading.value = false;
           }
@@ -819,19 +895,35 @@ Write 3-4 conversational sentences of genuine coaching feedback (what's working,
             if (hipSets < calfSets) autoInjectLifts.push('Banded Clamshell');
             if (tibialisSets < calfSets) autoInjectLifts.push('Weighted Wall Tibialis Raise');
           }
+          const activeProse = aiCoachingTake.value || trainerSummary.value || '';
+          const parsedProseCap = extractRpeCapFromProse(activeProse);
+          const effectiveCap = parsedProseCap !== null
+            ? parsedProseCap
+            : (aiRecommendedMaxRpe.value !== null ? Number(aiRecommendedMaxRpe.value) : Number(targetRpe.value));
+          const effectiveCardioSwap = aiCardioSwapDirective.value || extractCardioDirectiveFromProse(activeProse);
+
           const dirPayload = {
             updatedAt: new Date().toISOString(),
+            date: todayIso.value,
             hasLowerLegArmorFocus: hasLowerLegArmorFocus.value,
             calfSets,
             hipStabilitySets: hipSets,
             tibialisSets,
             sevenDayAvgRpe: Number(rollup7d.value.avgRpe),
-            targetRpe: Number(targetRpe.value),
+            targetRpe: Number(effectiveCap),
+            targetRpeCap: Number(effectiveCap),
+            hasActiveRpeCap: Number(effectiveCap) < 8.0,
+            coachTakeSummary: activeProse,
+            recoveryFocus: aiRecoveryFocus.value || '',
+            cardioSwapDirective: effectiveCardioSwap,
             autoInjectLifts
           };
           window.BasementDB.writeJson(window.BasementDB.STORAGE_KEYS.TRAINER_DIRECTIVES, dirPayload);
           if (typeof window.BasementDB.syncTrainerDirectivesToCloud === 'function') {
             window.BasementDB.syncTrainerDirectivesToCloud(dirPayload);
+          }
+          if (typeof window.BasementDB.notifyFrames === 'function') {
+            window.BasementDB.notifyFrames('storage');
           }
         }
 
@@ -842,6 +934,19 @@ Write 3-4 conversational sentences of genuine coaching feedback (what's working,
           saunaLogs.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.SAUNA_LOGS, []);
           trainerNotes.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.TRAINER_NOTES, []);
           coachCtx.value = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.COACH_CONTEXT, window.BasementDB.DEFAULT_COACH_CONTEXT);
+          const existingDir = window.BasementDB.readJson(window.BasementDB.STORAGE_KEYS.TRAINER_DIRECTIVES, null);
+          if (existingDir && typeof existingDir === 'object') {
+            if (existingDir.coachTakeSummary && !aiCoachingTake.value) {
+              aiCoachingTake.value = existingDir.coachTakeSummary;
+            }
+            if (typeof existingDir.targetRpeCap === 'number' && !Number.isNaN(existingDir.targetRpeCap)) {
+              aiRecommendedMaxRpe.value = existingDir.targetRpeCap;
+            } else if (existingDir.coachTakeSummary) {
+              aiRecommendedMaxRpe.value = extractRpeCapFromProse(existingDir.coachTakeSummary);
+            }
+            if (existingDir.recoveryFocus) aiRecoveryFocus.value = existingDir.recoveryFocus;
+            if (existingDir.cardioSwapDirective) aiCardioSwapDirective.value = existingDir.cardioSwapDirective;
+          }
           if (availableE1rmExercises.value.length && !availableE1rmExercises.value.includes(selectedE1rmExercise.value)) {
             selectedE1rmExercise.value = availableE1rmExercises.value[0];
           }
@@ -1127,7 +1232,7 @@ Trainer Notes: ${recentNotes}` }] }]
 
         return {
           activeSubTab, subTabs, activeHorizon, horizons, todayIso,
-          targetRpe, hasLowerLegArmorFocus, balanceStats, trainerSummary, aiCoachingTake, trainerAiLoading, generateProTrainerCoaching, speakCoachTake,
+          targetRpe, aiRecommendedMaxRpe, hasLowerLegArmorFocus, balanceStats, trainerSummary, aiCoachingTake, trainerAiLoading, generateProTrainerCoaching, speakCoachTake,
           strengthLogs, cardioLogs, saunaLogs, coachCtx,
           followUpQuestion, followUpAnswer, isListeningQa, submitFollowUp, toggleQaMic,
           stepBlockWeek, showGraduateDrawer, nextPrimaryGoalInput, openGraduatePicker, confirmGraduateGoal,

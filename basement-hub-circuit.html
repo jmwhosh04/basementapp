@@ -2443,6 +2443,7 @@ const getExercisePhoto = (name, stage = 'top') => {
           const cur = getZoneSorenessLevel(zoneKey);
           const next = cur === 0 ? 1 : cur === 1 ? 2 : 0;
           coachCtx.value.sorenessMap[zoneKey] = next;
+          aiWhyWorkoutText.value = '';
           saveLogsToStorage();
         };
 
@@ -2460,6 +2461,55 @@ const getExercisePhoto = (name, stage = 'top') => {
             .map(i => `${i.name || ''} ${i.region || ''}`.toLowerCase());
           const goalText = `${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || ''}`.toLowerCase();
           return /calf|calves|shin|tibialis|achilles|plantar|ankle|heel|running armor/.test([...guards, ...injs, goalText].join(' '));
+        });
+
+        const trainerDirectivesState = ref({});
+
+        const readTrainerDirectivesFromStorage = () => {
+          try {
+            const raw = localStorage.getItem('basement_trainer_directives');
+            const parsed = raw ? JSON.parse(raw) : {};
+            const prose = parsed.coachTakeSummary || parsed.coachTake || '';
+            let proseCap = null;
+            if (prose) {
+              const rxList = [
+                /(?:cap(?:ping|ped)?|strict|limit(?:ed|ing)?|ceiling|below|under|max(?:imum)?|no\s+more\s+than|nothing\s+above)\s+(?:a\s+|an\s+|at\s+|to\s+)?(?:RPE\s*)?(\d(?:\.\d)?)(?:\s*RPE)?/i,
+                /RPE\s*(\d(?:\.\d)?)\s*(?:cap|ceiling|max|limit)/i
+              ];
+              for (const rx of rxList) {
+                const m = prose.match(rx);
+                if (m && m[1]) {
+                  const val = parseFloat(m[1]);
+                  if (!Number.isNaN(val) && val >= 5.0 && val <= 9.5) {
+                    proseCap = val;
+                    break;
+                  }
+                }
+              }
+            }
+            const storedCap = typeof parsed.targetRpeCap === 'number'
+              ? parsed.targetRpeCap
+              : (typeof parsed.targetRpe === 'number' ? parsed.targetRpe : null);
+            const effectiveRpeCap = proseCap !== null ? proseCap : storedCap;
+            trainerDirectivesState.value = {
+              ...parsed,
+              targetRpeCap: effectiveRpeCap,
+              hasActiveRpeCap: effectiveRpeCap !== null && effectiveRpeCap < 8.0,
+              coachTakeSummary: prose,
+              recoveryFocus: parsed.recoveryFocus || '',
+              cardioSwapDirective: parsed.cardioSwapDirective || (/swap(?:ping)?\s+(?:your\s+)?(?:next\s+)?(?:scheduled\s+)?run|low-impact\s+incline\s+walk|offload\s+your\s+hip|skip\s+running|avoid\s+running/i.test(prose) ? 'Swap high-impact run for low-impact incline walk or row to offload hip/lower back' : '')
+            };
+          } catch (_e) {
+            trainerDirectivesState.value = {};
+          }
+        };
+
+        const activeTrainerRpeCap = computed(() => {
+          const d = trainerDirectivesState.value || {};
+          if (typeof d.targetRpeCap === 'number' && !Number.isNaN(d.targetRpeCap) && d.targetRpeCap < 8.0) {
+            return Number(d.targetRpeCap);
+          }
+          return null;
         });
 
         const liveTrainerAuditSummary = computed(() => {
@@ -3055,12 +3105,26 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
           }
         };
 
-        // Effort & RPE Coaching Engine (Synced with 7-Day Pro Trainer RPE Audit)
+        // Effort & RPE Coaching Engine (Synced with Module 4 Pro Trainer Directives & 7-Day RPE Audit)
         const sessionEffortGameplan = computed(() => {
           const phase = coachCtx.value.mesocyclePhase || DEFAULT_COACH_CONTEXT.mesocyclePhase;
           const sleep = Number(coachCtx.value.dailyBiometrics?.sleepHours ?? 7.5);
           const highStress = (coachCtx.value.externalLifeLoads || []).some(x => /stress|exhaust|poor sleep/i.test(String(x)));
           const audit = liveTrainerAuditSummary.value;
+          const trainerCap = activeTrainerRpeCap.value;
+          const trainerFocus = trainerDirectivesState.value?.recoveryFocus;
+
+          if (trainerCap !== null) {
+            const capStr = trainerCap.toFixed(1);
+            const rirStr = trainerCap <= 7.0 ? 'Leave ~3 Reps in Tank' : 'Leave ~2–3 Reps in Tank';
+            const focusSuffix = trainerFocus ? ` (${trainerFocus})` : '';
+            return {
+              baseRpe: capStr,
+              headlineRpe: `RPE ${capStr}`,
+              shortRir: rirStr,
+              coachingDirective: `Pro Trainer Recovery Cap Active${focusSuffix}: Strictly cap all lifts at RPE ${capStr} this week—focus on crisp 3s lowering tempo and clean mechanics rather than pushing toward failure.`
+            };
+          }
 
           if (phase.id === 'deload') {
             return {
@@ -3539,13 +3603,31 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
           };
         };
 
+        const getActiveSorenessSummaryList = () => {
+          return hubDomsZones
+            .map(z => ({ label: z.label, lvl: getZoneSorenessLevel(z.key) }))
+            .filter(item => item.lvl > 0)
+            .map(item => `${item.label} (${item.lvl === 2 ? 'Sore' : 'Tight'})`);
+        };
+
         const dynamicWhyWorkoutSummary = computed(() => {
           if (aiWhyWorkoutText.value) return aiWhyWorkoutText.value;
           const goalTitle = coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning';
-          const noteContext = todayPreWorkoutNoteObj.value?.transcript
-            ? `Given that you mentioned "${todayPreWorkoutNoteObj.value.transcript}" today, `
+          const trainerCap = activeTrainerRpeCap.value;
+          const trainerDir = trainerDirectivesState.value || {};
+          const soreList = getActiveSorenessSummaryList();
+
+          const contextClauses = [];
+          if (todayPreWorkoutNoteObj.value?.transcript) {
+            contextClauses.push(`you mentioned "${todayPreWorkoutNoteObj.value.transcript}"`);
+          }
+          if (soreList.length > 0) {
+            contextClauses.push(`you flagged ${soreList.join(' & ')} today`);
+          }
+          const noteContext = contextClauses.length > 0
+            ? `Given that ${contextClauses.join(' and ')}, `
             : '';
-          const modInfo = describeActiveModalityChoice();
+
           const rec = recommendedDailyModality.value || { mode: 'lift', reason: '' };
           const yLogs = workoutLogs.value.filter((l) => l.date === yesterdayIso.value);
           const yZones = [...new Set(yLogs.map((l) => formatMuscleZoneLabel(getMuscleGroupForLift(l.exercise))))];
@@ -3555,9 +3637,13 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
 
           let modalityLine = '';
           if (activeTodayModality.value === 'run') {
-            modalityLine = rec.mode === 'run'
-              ? `Today's recommendation is a 30-minute Run—${rec.reason || 'it fits your cardio preference and current recovery window while building aerobic endurance for ' + goalTitle}.'}`
-              : `You're looking at a 30-minute Run today, while the trainer's top pick is ${rec.mode === 'row' ? '30-minute Rowing' : 'a Strength Circuit'} (${rec.reason || 'matching your current spacing and recovery'}). If you do run, keep effort smooth and respect any joint spacing rules.`;
+            if (trainerDir.cardioSwapDirective) {
+              modalityLine = `Your Pro Trainer flagged a recovery guardrail (${trainerDir.cardioSwapDirective}), so if you get on the treadmill today, keep it to a low-impact incline walk rather than pushing a hard run.`;
+            } else {
+              modalityLine = rec.mode === 'run'
+                ? `Today's recommendation is a 30-minute Run—${rec.reason || 'it fits your cardio preference and current recovery window while building aerobic endurance for ' + goalTitle}.`
+                : `You're looking at a 30-minute Run today, while the trainer's top pick is ${rec.mode === 'row' ? '30-minute Rowing' : 'a Strength Circuit'} (${rec.reason || 'matching your current spacing and recovery'}). Keep effort smooth and respect your joint spacing rules.`;
+            }
           } else if (activeTodayModality.value === 'row') {
             modalityLine = rec.mode === 'row'
               ? `Today's recommendation is 30-minute Rowing—${rec.reason || 'it gives you full-body conditioning and recovery support without extra impact stress.'}`
@@ -3566,17 +3652,24 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
             if (rec.mode !== 'lift') {
               modalityLine = `The trainer is recommending ${rec.mode === 'row' ? '30-minute Rowing' : 'a 30-minute Run'} today (${rec.reason || 'protecting your consecutive-day lifting spacing'}), though you have Strength Circuit selected.`;
             } else if (yZones.length > 0 && overlapping.length > 0 && freshToday.length > 0) {
-              modalityLine = `Today's pick is a Strength Circuit building on ${overlapping.slice(0, 2).join(' and ')} from yesterday while bringing in ${freshToday.slice(0, 2).join(' and ')} toward ${goalTitle}.`;
+              modalityLine = `Today's strength circuit builds on ${overlapping.slice(0, 2).join(' and ')} while shifting emphasis toward ${freshToday.slice(0, 2).join(' and ')} to protect recovery.`;
             } else if (yZones.length > 0 && freshToday.length > 0) {
-              modalityLine = `Today's pick is a Strength Circuit giving ${yZones.slice(0, 2).join(' and ')} from yesterday breathing room while focusing on ${freshToday.slice(0, 2).join(' and ')} toward ${goalTitle}.`;
+              modalityLine = `Today's strength circuit gives ${yZones.slice(0, 2).join(' and ')} breathing room while focusing on ${freshToday.slice(0, 2).join(' and ')} toward ${goalTitle}.`;
             } else if (yZones.length > 0) {
-              modalityLine = `Today's pick is a Strength Circuit continuing your work in ${yZones.slice(0, 2).join(' and ')} toward ${goalTitle}.`;
+              modalityLine = `Today's strength circuit continues steady progress toward ${goalTitle} while unloading fatigued tissues.`;
             } else {
-              modalityLine = `Today's pick is a Strength Circuit to build steady momentum toward ${goalTitle} with crisp, controlled reps.`;
+              modalityLine = `Today's strength circuit builds steady momentum toward ${goalTitle} with crisp, controlled reps.`;
             }
           }
 
-          const focusLine = ` Aim for ${sessionEffortGameplan.value.headlineRpe}—stay controlled, breathe smoothly, and keep quality execution front and center.`;
+          let focusLine = '';
+          if (trainerCap !== null) {
+            const capStr = trainerCap.toFixed(1);
+            const focusDetail = trainerDir.recoveryFocus ? ` to let your ${trainerDir.recoveryFocus.toLowerCase()} recover` : ' per your Pro Trainer recovery directive';
+            focusLine = ` In line with your Pro Trainer's directive, keep every set strictly capped at ${capStr} out of 10 effort (${sessionEffortGameplan.value.headlineRpe})${focusDetail}—smooth 3-second lowering and clean mechanics, zero grinding.`;
+          } else {
+            focusLine = ` Aim for ${sessionEffortGameplan.value.headlineRpe}—stay controlled, breathe smoothly, and keep quality execution front and center.`;
+          }
           return `${noteContext}${modalityLine}${focusLine}`;
         });
 
@@ -3603,20 +3696,30 @@ Answer their specific question in 2-3 short, spoken-friendly sentences so it sou
               .filter((g) => (typeof g === 'string' ? true : g.active !== false))
               .map((g) => (typeof g === 'string' ? g : g.label))
               .join('; ') || 'None';
+            const trainerDir = trainerDirectivesState.value || {};
+            const soreList = getActiveSorenessSummaryList();
+            const trainerDirectiveBlock = [
+              activeTrainerRpeCap.value !== null ? `STRICT PRO TRAINER RPE CAP: ${activeTrainerRpeCap.value.toFixed(1)}/10 (Do NOT recommend 8/10 effort; explicitly reinforce the ${activeTrainerRpeCap.value.toFixed(1)} RPE recovery ceiling).` : '',
+              trainerDir.coachTakeSummary ? `LATEST PRO TRAINER ASSESSMENT: "${trainerDir.coachTakeSummary}"` : '',
+              trainerDir.cardioSwapDirective ? `CARDIO SWAP DIRECTIVE: ${trainerDir.cardioSwapDirective}` : '',
+              soreList.length > 0 ? `TODAY'S REPORTED SORENESS: ${soreList.join(', ')}` : ''
+            ].filter(Boolean).join('\n- ');
+
             const prompt = `You are a personal trainer talking conversationally to your client before today's workout.
-Make sure your explanation is 100% consistent with what the trainer is recommending today:
+Make sure your explanation is 100% consistent with your Pro Trainer assessment and today's plan:
 - Modality Recommendation & Selection: ${modInfo.context}.
 - Primary Goal: "${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning'}".
 - Active Training Preferences & Cadence Rules: ${activePrefs}.
 - Active Chronic Guardrails: ${activeGuards}.
+${trainerDirectiveBlock ? '- ' + trainerDirectiveBlock : ''}
 - Recent Strength Logs (last 3 days): ${JSON.stringify(recent3d)}.
 - Recent Cardio Logs (last 3 days): ${JSON.stringify(recentCardio3d)}.
 - Today's Focus / Lineup Themes: ${selectionThemes}.
 
 Explain in 3 short, natural sentences:
-1) Why today's recommended modality (${modInfo.label}) fits right now and how it connects to recent days (${JSON.stringify(recent3d)} and ${JSON.stringify(recentCardio3d)}),
-2) What to focus on today (effort/pacing/control around ${sessionEffortGameplan.value.headlineRpe}), and
-3) How it aligns with their goal and cadence/guardrail rules without contradicting the trainer's recommendation.
+1) Why today's modality (${modInfo.label}) fits right now and how it accounts for recent days, reported soreness, and any Pro Trainer recovery notes,
+2) What effort ceiling and pacing to focus on today (strictly matching ${sessionEffortGameplan.value.headlineRpe}), and
+3) How it keeps them progressing safely without contradicting the Pro Trainer's assessment.
 CRITICAL RULE: Do NOT mention unrelated muscle groups not part of today's plan, do NOT list individual exercise names, and do NOT recite raw numbers/stats.`;
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
               method: 'POST',
@@ -4093,7 +4196,11 @@ Return ONLY valid JSON:
               if (cachedRaw) {
                 const cached = JSON.parse(cachedRaw);
                 if (Array.isArray(cached.stations) && cached.stations.length >= 4) {
-                  activeCircuitStations.value = cached.stations;
+                  const capVal = activeTrainerRpeCap.value;
+                  activeCircuitStations.value = cached.stations.map(st => ({
+                    ...st,
+                    prescribedRpe: capVal !== null ? Math.min(Number(st.prescribedRpe) || capVal, capVal) : st.prescribedRpe
+                  }));
                   if (Array.isArray(cached.blindSpots) && cached.blindSpots.length > 0) {
                     discoveryExercises.value = cached.blindSpots;
                   }
@@ -4142,7 +4249,8 @@ STRICT CONSTRAINTS:
 - Equipment available: Dumbbells (MAX 50 lb), Resistance Bands, Adjustable Weight Bench, Bodyweight.
 - Never include banned lifts: ${JSON.stringify([...bannedSet])}.
 - Favorites to favor when appropriate: ${JSON.stringify(favList)}.
-- Active Primary Goal: "${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning'}" (Phase: ${coachCtx.value.mesocyclePhase?.label || coachCtx.value.mesocyclePhase || 'Accumulation'}, Target RPE: ${sessionEffortGameplan.value.baseRpe}).
+- Active Primary Goal: "${coachCtx.value.primaryGoal?.title || coachCtx.value.activeGoal?.title || 'Strength & Conditioning'}" (Phase: ${coachCtx.value.mesocyclePhase?.label || coachCtx.value.mesocyclePhase || 'Accumulation'}, Target RPE: ${sessionEffortGameplan.value.baseRpe}${activeTrainerRpeCap.value !== null ? ' — STRICT PRO TRAINER RPE CAP ACTIVE' : ''}).
+- Latest Pro Trainer Coaching Note: "${trainerDirectivesState.value?.coachTakeSummary || 'None'}". 
 - Secondary Goal: "${coachCtx.value.secondaryGoal?.title || 'None'}".
 - Active Chronic Guardrails (Joint/Injury Boundaries): ${JSON.stringify(activeGuards)}.
 - Active Training Preferences & Cadence Rules: ${JSON.stringify(activeTrainingPrefsList.value)}.
@@ -5252,6 +5360,8 @@ Return ONLY valid JSON:
         };
 
         const loadAllSharedLogs = () => {
+          readTrainerDirectivesFromStorage();
+          aiWhyWorkoutText.value = '';
           try {
             const savedW = localStorage.getItem('basement_logs');
             if (savedW) workoutLogs.value = JSON.parse(savedW);

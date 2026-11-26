@@ -28,4 +28,5 @@ Basement Lab pairs **Live Gemini AI Coaching** (judgment, synthesis, context-awa
 
 1. **Keep AI Dynamic Where Intended:** Never replace AI circuit/weight/rest planning, station swaps, blind-spot detection, or `COACH'S TAKE` coaching feedback with static templates or 3-exercise hardcoded pools.
 2. **Keep Safety Rails Intact:** Always clamp AI outputs to home-gym hardware limits and active guardrails with clean offline fallbacks.
-3. **Keep Docs & Code in Sync:** Update `AI_COACHING_BLUEPRINT.md`, `Basement Lab -Builder Rules.md`, and the QA test script whenever coaching logic changes.
+3. **Maintain Two-Way Trainer ↔ Hub Directive Parity:** Never let `COACH'S TAKE` in Module 4 prescribe an RPE cap or cardio swap in prose without also updating `basement_trainer_directives` (`targetRpeCap`, `coachTakeSummary`, `recoveryFocus`, `cardioSwapDirective`) and Module 4's `Target RPE` badge, and always feed active `basement_trainer_directives` + `sorenessMap` into Module 1's `sessionEffortGameplan`, station Target RPEs, and `Why This Workout?` rationale.
+4. **Keep Docs & Code in Sync:** Update `AI_COACHING_BLUEPRINT.md`, `Basement Lab -Builder Rules.md`, and the QA test script whenever coaching logic changes.
