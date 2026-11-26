@@ -2654,10 +2654,26 @@ const getExercisePhoto = (name, stage = 'top') => {
           const isRow = activeTodayModality.value === 'row';
           const mins = isRow ? (Number(todayRowDuration.value) || 30) : (Number(todayRunDuration.value) || 30);
           const meters = Number(todayRowMeters.value) || 6000;
+          const aiRecMode = recommendedDailyModality.value?.mode || 'lift';
+          const aiRecLabel = aiRecMode === 'row' ? 'Rowing' : (aiRecMode === 'run' ? 'Treadmill Run' : 'Strength Circuit');
+          const matchesAiPick = aiRecMode === activeTodayModality.value;
+          const prescribedDur = Number(activeCardioPrescription.value?.durationMins) || 30;
+          const prescribedRpeVal = activeTrainerRpeCap.value !== null
+            ? Math.min(7.5, activeTrainerRpeCap.value)
+            : 7.5;
+
           cardioLogs.value.unshift({
             id: 'c-' + Date.now(),
             date: todayIso.value,
             modality: isRow ? 'Rowing' : 'Treadmill Run',
+            selectionSource: matchesAiPick ? 'ai_pick' : 'user_override',
+            aiRecommendedModality: aiRecLabel,
+            prescribedModality: isRow ? 'Rowing' : 'Treadmill Run',
+            prescribedDuration: prescribedDur,
+            prescribedDistance: isRow ? null : 3.25,
+            prescribedIncline: isRow ? 0 : 1.0,
+            prescribedResistance: isRow ? 12 : null,
+            prescribedRpe: prescribedRpeVal,
             duration: mins,
             resistance: isRow ? (Number(todayRowResistance.value) || 12) : null,
             meters: isRow ? meters : null,
@@ -5182,16 +5198,31 @@ Return ONLY valid JSON:
           const isRow = cardioModality.value === 'Rowing';
           const mins = Math.max(5, Number(cardioDuration.value) || 30);
           const meters = Number(cardioMeters.value) || mins * 200;
+          const actualDist = isRow ? Number((meters / 1609.34).toFixed(2)) : (Number(cardioDistance.value) || 2.0);
+          const actualInc = isRow ? 0 : (Number(cardioIncline.value) || 1.0);
+          const actualRes = isRow ? (Number(cardioResistance.value) || 12) : null;
+          const actualRpe = Number(cardioRpe.value) || 7.5;
+          const aiRecMode = selectedCalendarDate.value === todayIso.value ? (recommendedDailyModality.value?.mode || 'lift') : null;
+          const aiRecLabel = aiRecMode === 'row' ? 'Rowing' : (aiRecMode === 'run' ? 'Treadmill Run' : (aiRecMode === 'lift' ? 'Strength Circuit' : null));
+
           cardioLogs.value.unshift({
             id: 'c-' + Date.now(),
             date: selectedCalendarDate.value,
             modality: cardioModality.value,
+            selectionSource: 'calendar_manual',
+            aiRecommendedModality: aiRecLabel,
+            prescribedModality: cardioModality.value,
+            prescribedDuration: mins,
+            prescribedDistance: actualDist,
+            prescribedIncline: actualInc,
+            prescribedResistance: actualRes,
+            prescribedRpe: actualRpe,
             duration: mins,
-            resistance: isRow ? (Number(cardioResistance.value) || 12) : null,
+            resistance: actualRes,
             meters: isRow ? meters : null,
-            distance: isRow ? Number((meters / 1609.34).toFixed(2)) : (Number(cardioDistance.value) || 2.0),
-            incline: isRow ? 0 : (Number(cardioIncline.value) || 1.0),
-            rpe: Number(cardioRpe.value) || 7.5
+            distance: actualDist,
+            incline: actualInc,
+            rpe: actualRpe
           });
           const res = await saveLogsToStorage(true);
           const tag = res && res.ok ? ' • Synced ✓' : '';

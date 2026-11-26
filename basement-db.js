@@ -331,7 +331,15 @@
       incline: r.incline != null ? Number(r.incline) : 0,
       resistance: r.resistance != null ? Number(r.resistance) : null,
       meters: r.meters != null ? Number(r.meters) : null,
-      rpe: r.rpe != null ? Number(r.rpe) : 7.5
+      rpe: r.rpe != null ? Number(r.rpe) : 7.5,
+      selectionSource: extra.selectionSource || 'legacy',
+      aiRecommendedModality: extra.aiRecommendedModality || null,
+      prescribedModality: extra.prescribedModality || null,
+      prescribedDuration: extra.prescribedDuration != null ? Number(extra.prescribedDuration) : null,
+      prescribedDistance: extra.prescribedDistance != null ? Number(extra.prescribedDistance) : null,
+      prescribedIncline: extra.prescribedIncline != null ? Number(extra.prescribedIncline) : null,
+      prescribedResistance: extra.prescribedResistance != null ? Number(extra.prescribedResistance) : null,
+      prescribedRpe: extra.prescribedRpe != null ? Number(extra.prescribedRpe) : null
     };
   }
 
@@ -621,19 +629,30 @@
         }
       }
       if (cardioArr.length > 0) {
-        const rowsC = cardioArr.map((item) => ({
-          id: String(item.id || ('c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
-          user_id: user.id,
-          date: item.date || fallbackDate,
-          modality: String(item.modality || 'Rowing'),
-          duration: item.duration != null ? Number(item.duration) : 30,
-          distance: item.distance != null ? Number(item.distance) : null,
-          incline: item.incline != null ? Number(item.incline) : 0,
-          resistance: item.resistance != null ? Math.round(Number(item.resistance)) : null,
-          meters: item.meters != null ? Math.round(Number(item.meters)) : null,
-          rpe: item.rpe != null ? Number(item.rpe) : 7.5,
-          extra: {}
-        }));
+        const rowsC = cardioArr.map((item) => {
+          const extra = {};
+          if (item.selectionSource != null) extra.selectionSource = String(item.selectionSource);
+          if (item.aiRecommendedModality != null) extra.aiRecommendedModality = String(item.aiRecommendedModality);
+          if (item.prescribedModality != null) extra.prescribedModality = String(item.prescribedModality);
+          if (item.prescribedDuration != null) extra.prescribedDuration = Number(item.prescribedDuration);
+          if (item.prescribedDistance != null) extra.prescribedDistance = Number(item.prescribedDistance);
+          if (item.prescribedIncline != null) extra.prescribedIncline = Number(item.prescribedIncline);
+          if (item.prescribedResistance != null) extra.prescribedResistance = Number(item.prescribedResistance);
+          if (item.prescribedRpe != null) extra.prescribedRpe = Number(item.prescribedRpe);
+          return {
+            id: String(item.id || ('c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6))),
+            user_id: user.id,
+            date: item.date || fallbackDate,
+            modality: String(item.modality || 'Rowing'),
+            duration: item.duration != null ? Number(item.duration) : 30,
+            distance: item.distance != null ? Number(item.distance) : null,
+            incline: item.incline != null ? Number(item.incline) : 0,
+            resistance: item.resistance != null ? Math.round(Number(item.resistance)) : null,
+            meters: item.meters != null ? Math.round(Number(item.meters)) : null,
+            rpe: item.rpe != null ? Number(item.rpe) : 7.5,
+            extra
+          };
+        });
         const { error } = await client
           .from('cardio_logs')
           .upsert(rowsC, { onConflict: 'user_id,id' });
