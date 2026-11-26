@@ -678,6 +678,29 @@
               </div>
             </div>
 
+            <!-- GUIDED VOICE TRAINER TOGGLE -->
+            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-indigo-500/40 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <span class="text-[11px] font-black text-white flex items-center gap-1.5">
+                  <span>🎙️ Guided Voice Trainer</span>
+                  <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-black" :class="guidedVoiceTrainerEnabled ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'">
+                    {{ guidedVoiceTrainerEnabled ? 'ON' : 'OFF' }}
+                  </span>
+                </span>
+                <span class="text-[10px] text-slate-400 block truncate">
+                  Briefs lift, weight/reps, target RPE &amp; form watch-outs on launch &amp; after RPE tap
+                </span>
+              </div>
+              <button
+                type="button"
+                @click="toggleGuidedVoiceTrainer"
+                class="px-3 py-1.5 rounded-xl font-black text-xs transition shrink-0 border"
+                :class="guidedVoiceTrainerEnabled ? 'bg-emerald-500 text-slate-950 border-emerald-300 shadow' : 'bg-slate-900 text-slate-300 border-slate-700 hover:text-white'"
+              >
+                {{ guidedVoiceTrainerEnabled ? '🔊 Voice ON' : '🔇 Voice OFF' }}
+              </button>
+            </div>
+
             <!-- PROMINENT TOP START CIRCUIT BUTTON -->
             <button
               @click="startGuidedWorkout"
@@ -1398,6 +1421,15 @@
                 <button @click="skipStepZeroToMainCircuit" class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-bold text-teal-300 hover:text-white">
                   {{ isCardioWarmupMode ? (activeTodayModality === 'row' ? 'Done → Go Row & Log' : 'Done → Go Run & Log') : 'Skip to Round 1 →' }}
                 </button>
+                <button
+                  v-if="!isCardioWarmupMode"
+                  type="button"
+                  @click="toggleGuidedVoiceTrainer"
+                  class="px-2 py-0.5 rounded-lg border text-[10px] font-mono font-black transition"
+                  :class="guidedVoiceTrainerEnabled ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-slate-950 border-slate-700 text-slate-400'"
+                >
+                  {{ guidedVoiceTrainerEnabled ? '🔊 Voice' : '🔇 Muted' }}
+                </button>
                 <button v-if="!isCardioWarmupMode" @click="quitActiveCircuit('today')" class="px-2 py-0.5 rounded-lg bg-rose-950/70 border border-rose-500/50 text-[10px] font-black text-rose-300 hover:bg-rose-500 hover:text-white transition">
                   ✕ Quit
                 </button>
@@ -1513,9 +1545,27 @@
                 NEXT UP: {{ nextPreviewStation.name }}
               </span>
             </div>
-            <button @click="quitActiveCircuit('today')" class="px-2 py-0.5 rounded-lg bg-rose-950/70 border border-rose-500/50 hover:bg-rose-500 hover:text-white text-[10px] font-black text-rose-300 transition shrink-0">
-              &#10005; Quit
-            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                v-if="activeTtsSourceId === 'guided-circuit'"
+                type="button"
+                @click="stopCurrentAudioPlayback"
+                class="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-[10px] font-mono font-black animate-pulse"
+              >
+                ⏹ Mute
+              </button>
+              <button
+                type="button"
+                @click="toggleGuidedVoiceTrainer"
+                class="px-2 py-0.5 rounded-lg border text-[10px] font-mono font-black transition"
+                :class="guidedVoiceTrainerEnabled ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-slate-950 border-slate-700 text-slate-400'"
+              >
+                {{ guidedVoiceTrainerEnabled ? '🔊 Voice' : '🔇 Muted' }}
+              </button>
+              <button @click="quitActiveCircuit('today')" class="px-2 py-0.5 rounded-lg bg-rose-950/70 border border-rose-500/50 hover:bg-rose-500 hover:text-white text-[10px] font-black text-rose-300 transition">
+                &#10005; Quit
+              </button>
+            </div>
           </div>
 
           <!-- 2. Lift Name Directly Above the 2-Stage Images -->
@@ -4266,6 +4316,7 @@ Return ONLY valid JSON:
         };
 
         const openFormCardByName = (name, customReason = '') => {
+          stopCurrentAudioPlayback();
           const meta = getLiftMeta(name);
           activeFormModalLift.value = { name, customReason, ...meta };
 
@@ -4495,6 +4546,7 @@ Return ONLY valid JSON:
 
         const quitActiveCircuit = (targetView = 'today') => {
           stopTimer();
+          stopCurrentAudioPlayback();
           clearSavedCircuitProgress();
           guidedState.value = 'ready';
           setDurationSeconds.value = 0;
@@ -4519,6 +4571,94 @@ Return ONLY valid JSON:
           setDurationSeconds.value = 0;
           currentView.value = 'guided';
           showToast(`Resumed Round ${currentRound.value}, Station ${currentStationIndex.value + 1}`);
+        };
+
+        const GUIDED_VOICE_PREF_KEY = 'basement_guided_voice_trainer_enabled';
+        const guidedVoiceTrainerEnabled = ref((() => {
+          try {
+            const saved = localStorage.getItem(GUIDED_VOICE_PREF_KEY);
+            return saved === null ? true : saved === 'true';
+          } catch (_e) {
+            return true;
+          }
+        })());
+
+        const cleanCueForSpeech = (rawText) => {
+          return String(rawText || '')
+            .replace(/^•\s*/g, '')
+            .replace(/DBs/g, 'dumbbells')
+            .replace(/DB/g, 'dumbbell')
+            .replace(/RDL/g, 'Romanian deadlift')
+            .replace(/[↗↖→←•]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        };
+
+        const buildStationVoiceBriefing = (st, roundNum, stationIdx, totalStations, isFirstLaunch = false) => {
+          if (!st) return '';
+          const meta = getLiftMeta(st.name);
+          const effort = getStationEffortProfile(st);
+          const totalRds = totalRoundsCount.value;
+          const intro = isFirstLaunch
+            ? `Starting Round ${roundNum} of ${totalRds}, Station ${stationIdx + 1}: ${st.name}.`
+            : `Next up for Round ${roundNum} of ${totalRds}, Station ${stationIdx + 1}: ${st.name}.`;
+
+          let loadPart = '';
+          if (st.equipment === 'Band') {
+            const bandName = (st.bandLevelLabel || selectedBandLevel.value.label || 'Medium Band').replace(/\s*\(.*?\)/, '');
+            loadPart = `Grab your ${bandName} for ${st.plannedReps} reps at target RPE ${effort.targetRpe}.`;
+          } else if (Number(st.plannedWeight) > 0) {
+            loadPart = `Grab ${st.plannedWeight} pounds for ${st.plannedReps} reps at target RPE ${effort.targetRpe}.`;
+          } else {
+            loadPart = `Bodyweight movement for ${st.plannedReps} reps at target RPE ${effort.targetRpe}.`;
+          }
+
+          const rawQuick = cleanCueForSpeech(meta.quickCue || meta.topCue || '');
+          const quickSentence = rawQuick ? (rawQuick.endsWith('.') ? rawQuick : rawQuick + '.') : '';
+
+          let trapSentence = '';
+          if (meta.trap) {
+            const cleanTrap = cleanCueForSpeech(meta.trap).replace(/^The\s+"([^"]+)"\s+Trap:\s*/i, 'Watch out for $1: ');
+            if (cleanTrap) {
+              trapSentence = cleanTrap.endsWith('.') ? cleanTrap : cleanTrap + '.';
+            }
+          }
+
+          return [intro, loadPart, quickSentence, trapSentence].filter(Boolean).join(' ');
+        };
+
+        const speakGuidedStationCue = (st, roundNum, stationIdx, isFirstLaunch = false) => {
+          if (!guidedVoiceTrainerEnabled.value || isCardioWarmupMode.value || !st) return;
+          const script = buildStationVoiceBriefing(st, roundNum, stationIdx, activeCircuitStations.value.length, isFirstLaunch);
+          if (script) {
+            speakTextOutLoud(script, 'guided-circuit');
+          }
+        };
+
+        const toggleGuidedVoiceTrainer = () => {
+          guidedVoiceTrainerEnabled.value = !guidedVoiceTrainerEnabled.value;
+          try {
+            localStorage.setItem(GUIDED_VOICE_PREF_KEY, String(guidedVoiceTrainerEnabled.value));
+          } catch (_e) {}
+          if (!guidedVoiceTrainerEnabled.value) {
+            stopCurrentAudioPlayback();
+            showToast('🔇 Guided Voice Trainer muted');
+          } else {
+            showToast('🔊 Guided Voice Trainer enabled');
+            if (currentView.value === 'guided' && !isCardioWarmupMode.value) {
+              if (guidedStage.value === 'step0' && currentPrimerObj.value) {
+                speakTextOutLoud(`Warm-up drill ${currentPrimerIndex.value + 1}: ${currentPrimerObj.value.title}. ${cleanCueForSpeech(getQuickHitReminder(currentPrimerObj.value.catalogName))}`, 'guided-circuit');
+              } else if (guidedStage.value === 'circuit') {
+                if (guidedState.value === 'resting' && nextPreviewStation.value) {
+                  const nextRound = currentStationIndex.value + 1 < activeCircuitStations.value.length ? currentRound.value : currentRound.value + 1;
+                  const nextIdx = currentStationIndex.value + 1 < activeCircuitStations.value.length ? currentStationIndex.value + 1 : 0;
+                  speakGuidedStationCue(nextPreviewStation.value, nextRound, nextIdx, false);
+                } else if (currentStation.value) {
+                  speakGuidedStationCue(currentStation.value, currentRound.value, currentStationIndex.value, false);
+                }
+              }
+            }
+          }
         };
 
         const guidedStage = ref('step0');
@@ -4574,6 +4714,9 @@ Return ONLY valid JSON:
           showToast(`Skipped Set ${currentOverallSetNumber.value}/${totalCircuitSetsCount.value}${st ? ' (' + st.name + ')' : ''}`);
           if (nextPreviewStation.value) {
             startRestCountdown();
+            const nextRound = currentStationIndex.value + 1 < activeCircuitStations.value.length ? currentRound.value : currentRound.value + 1;
+            const nextIdx = currentStationIndex.value + 1 < activeCircuitStations.value.length ? currentStationIndex.value + 1 : 0;
+            speakGuidedStationCue(nextPreviewStation.value, nextRound, nextIdx, false);
           } else {
             allowAdditionalWorkoutToday.value = false;
             clearSavedCircuitProgress();
@@ -4595,6 +4738,9 @@ Return ONLY valid JSON:
 
         const startTimer = () => {
           stopTimer();
+          if (activeTtsSourceId.value === 'guided-circuit') {
+            stopCurrentAudioPlayback();
+          }
           guidedState.value = 'working';
           setDurationSeconds.value = 0;
           timerInterval = setInterval(() => {
@@ -4641,6 +4787,14 @@ Return ONLY valid JSON:
           guidedState.value = 'ready';
           showGuidedFormDetails.value = false;
           setDurationSeconds.value = 0;
+          if (guidedVoiceTrainerEnabled.value) {
+            if (guidedStage.value === 'step0' && currentPrimerObj.value) {
+              const p = currentPrimerObj.value;
+              speakTextOutLoud(`Let's warm up first. Drill 1 of ${activeWarmupDrillsList.value.length}: ${p.title}. ${cleanCueForSpeech(getQuickHitReminder(p.catalogName))}`, 'guided-circuit');
+            } else if (guidedStage.value === 'circuit' && activeCircuitStations.value[0]) {
+              speakGuidedStationCue(activeCircuitStations.value[0], 1, 0, true);
+            }
+          }
         };
 
         const startGuidedCardioWarmup = () => {
@@ -4682,6 +4836,9 @@ Return ONLY valid JSON:
           showGuidedFormDetails.value = false;
           setDurationSeconds.value = 0;
           showToast('Step 0 Complete! Starting Round 1, Station 1.');
+          if (activeCircuitStations.value[0]) {
+            speakGuidedStationCue(activeCircuitStations.value[0], 1, 0, true);
+          }
         };
 
         const adjustPlannedWeight = (delta) => {
@@ -4755,6 +4912,15 @@ Return ONLY valid JSON:
             target.rpe = rpeVal;
             saveLogsToStorage();
             showToast(`Updated set RPE to ${rpeVal}`);
+          }
+          if (guidedVoiceTrainerEnabled.value && currentView.value === 'guided' && guidedStage.value === 'circuit') {
+            if (nextPreviewStation.value) {
+              const nextRound = currentStationIndex.value + 1 < activeCircuitStations.value.length ? currentRound.value : currentRound.value + 1;
+              const nextIdx = currentStationIndex.value + 1 < activeCircuitStations.value.length ? currentStationIndex.value + 1 : 0;
+              speakGuidedStationCue(nextPreviewStation.value, nextRound, nextIdx, false);
+            } else {
+              speakTextOutLoud('Final set logged at RPE ' + rpeVal + '. Tap Finish Circuit whenever you are ready to wrap up!', 'guided-circuit');
+            }
           }
         };
 
@@ -5201,6 +5367,7 @@ Return ONLY valid JSON:
           savedTodayCircuitProgress, resumeSavedCircuitToday, quitActiveCircuit,
           totalCircuitSetsCount, currentOverallSetNumber, nextPreviewStation, displayedCardStation, displayedCardEffort,
           lastSetWasSkipped, skipCurrentSet,
+          guidedVoiceTrainerEnabled, toggleGuidedVoiceTrainer,
           guidedStage, currentPrimerIndex, currentPrimerObj, currentRound, currentStationIndex, currentStation,
           guidedState, isSetTimerRunning, showGuidedFormDetails, setDurationSeconds, restRemainingSeconds,
           lastCompletedReps, lastCompletedDurationSec, lastCompletedSecPerRep, postSetRpe,
